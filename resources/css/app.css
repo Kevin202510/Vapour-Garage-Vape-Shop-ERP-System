@@ -1,0 +1,62 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* â”€â”€ Base resets â”€â”€ */
+@layer base {
+    html { @apply h-full; }
+    body { @apply h-full bg-cream text-ink antialiased; }
+
+    /* Remove default focus ring on non-keyboard navigation */
+    :focus:not(:focus-visible) { outline: none; }
+    :focus-visible { @apply ring-2 ring-terra/40 ring-offset-1 outline-none; }
+
+    /* Thin scrollbars globally */
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: theme('colors.cream.3') transparent;
+    }
+    *::-webkit-scrollbar       { width: 4px; height: 4px; }
+    *::-webkit-scrollbar-thumb { background: theme('colors.cream.3'); border-radius: 2px; }
+}
+
+/* â”€â”€ Component layer â”€â”€ */
+@layer components {
+
+    /* Sidebar nav active indicator animation */
+    @keyframes live-pulse {
+        0%, 100% { opacity: 1; }
+        50%       { opacity: 0.4; }
+    }
+    .live-dot { animation: live-pulse 2s infinite; }
+
+    /* Grain texture overlay (applied via inline style in layout for CSP) */
+    .grain-overlay {
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        background-size: 200px;
+    }
+
+    /* Pagination  - simple style matching design */
+    nav[role="navigation"] span,
+    nav[role="navigation"] a {
+        @apply inline-flex items-center px-3 py-1.5 text-[11px] font-mono border border-cream3 rounded transition-colors;
+    }
+    nav[role="navigation"] a {
+        @apply text-ink3 hover:bg-cream hover:border-terra;
+    }
+    nav[role="navigation"] span {
+        @apply text-ink4 cursor-not-allowed;
+    }
+}
+
+/* â”€â”€ Utility layer â”€â”€ */
+@layer utilities {
+    .font-serif-italic { font-family: 'Playfair Display', serif; font-style: italic; }
+
+    /* Page transition */
+    .page-enter { animation: page-rise 0.25s ease both; }
+    @keyframes page-rise {
+        from { opacity: 0; transform: translateY(8px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+}
