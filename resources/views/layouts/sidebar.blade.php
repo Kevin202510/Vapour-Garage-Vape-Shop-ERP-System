@@ -87,6 +87,7 @@
                         'branch_manager' => ['Branch Manager', 'text-terra-light'],
                         'supervisor'     => ['Supervisor',     'text-white/50'],
                         'cashier'        => ['Cashier',        'text-white/40'],
+                        'inventory_clerk'        => ['Inventory Clerk',        'text-white/40'],
                     ];
                     $userRole = auth()->user()->roles->first()?->name ?? 'cashier';
                     [$roleDisplay, $roleColor] = $roleLabels[$userRole] ?? ['Staff', 'text-white/40'];

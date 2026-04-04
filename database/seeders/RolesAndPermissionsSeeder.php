@@ -187,10 +187,28 @@ class RolesAndPermissionsSeeder extends Seeder
             'view discounts',
         ]);
 
+        $inventory_clerk = Role::firstOrCreate(['name' => 'inventory_clerk', 'guard_name' => 'sanctum']);
+        $inventory_clerk->syncPermissions([
+            'view products', 'edit products', 'create products',
+            'view categories',
+
+            'view inventory', 'adjust inventory',
+
+            'view stock transfers', 'create stock transfers', 'receive stock transfers',
+
+            'view suppliers',
+
+            'view purchase orders', 'create purchase orders', 'receive purchase orders',
+
+            'view sales', 'create sales', 'void sales', 'apply discounts',
+            'view sales reports',
+        ]);
+
         $this->command->info('✔ Roles and permissions seeded:');
         $this->command->info('  super_admin     — ' . $superAdmin->permissions->count() . ' permissions');
         $this->command->info('  branch_manager  — ' . $branchManager->permissions->count() . ' permissions');
         $this->command->info('  supervisor      — ' . $supervisor->permissions->count() . ' permissions');
         $this->command->info('  cashier         — ' . $cashier->permissions->count() . ' permissions');
+        $this->command->info('  inventory_clerk         — ' . $inventory_clerk->permissions->count() . ' permissions');
     }
 }

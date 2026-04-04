@@ -85,6 +85,23 @@ class UserSeeder extends Seeder
                 ]
             );
             $cashier->syncRoles(['cashier']);
+
+            // ── One Inventory Clerk per branch ────────────────────────────────────────
+            $inventoryClerkEmployee = Employee::where('branch_id', $branch->id)
+                                       ->where('role', 'inventory_clerk')
+                                       ->first();
+
+            $inventory_clerk = User::updateOrCreate(
+                ['email' => "inventoryclerk.{$slug}@vapehub.ph"],
+                [
+                    'name'        => $inventoryClerkEmployee?->full_name ?? "Inventory Clerk {$branch->name}",
+                    'password'    => Hash::make('Password@1'),
+                    'branch_id'   => $branch->id,
+                    'employee_id' => $inventoryClerkEmployee?->id,
+                    'is_active'   => true,
+                ]
+            );
+            $inventory_clerk->syncRoles(['inventory_clerk']);
         }
 
         $this->command->info('✔ ' . User::count() . ' users seeded.');
