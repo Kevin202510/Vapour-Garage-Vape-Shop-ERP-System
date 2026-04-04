@@ -1,18 +1,8 @@
 <?php
 
-// Public landing
-Route::get('/home', function () {
-    return view('pages.landing.index');
-})->name('landing');
-
-// Root redirect
-Route::get('/', function () {
-    return auth()->check()
-        ? redirect()->route('dashboard')
-        : redirect('/home');
-});
 
 use App\Http\Controllers\Web\BranchWebController;
+use App\Http\Controllers\Web\HomeController;
 use App\Http\Controllers\Web\CustomerWebController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\EmployeeWebController;
@@ -42,6 +32,16 @@ use Illuminate\Support\Facades\Route;
 |   purchasing.approve | purchasing.receive-form | purchasing.receive | purchasing.cancel
 |--------------------------------------------------------------------------
 */
+
+// Public landing
+Route::get('/home', [HomeController::class, 'index'])->name('landing');
+
+// Root redirect
+Route::get('/', function () {
+    return auth()->check()
+        ? redirect()->route('dashboard')
+        : redirect('/home');
+});
 
 // ── Auth routes (provided by Laravel Breeze / Fortify / Sanctum) ──────────
 require __DIR__ . '/auth.php';

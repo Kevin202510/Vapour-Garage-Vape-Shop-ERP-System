@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VapeHub — Premium Vape Shop · Metro Manila</title>
-<meta name="description" content="Metro Manila's finest vape shop. 4 locations, 200+ products, loyalty rewards. Disposables, pod systems, mods, and premium e-liquids.">
+<title>VapeHub — Premium Vape Shop · Nueva Ecija</title>
+<meta name="description" content="Nueva Ecija's finest vape shop. 4 locations, 200+ products, loyalty rewards. Disposables, pod systems, mods, and premium e-liquids.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;1,9..144,300;1,9..144,700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -209,6 +209,45 @@ footer{background:var(--ink2);padding:56px 60px 32px;border-top:1px solid rgba(2
 .hero-sub{animation:fadeUp 0.8s ease 0.5s both}
 .hero-actions{animation:fadeUp 0.8s ease 0.65s both}
 .branch-ticker{animation:fadeUp 0.8s ease 0.8s both}
+.branch-ticker {
+    display: flex;
+    gap: 28px;
+    align-items: center;
+    overflow-x: auto;
+    padding: 10px 0;
+}
+
+.ticker-branch {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.ticker-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #4ade80;
+    animation: pulse 1.5s infinite;
+}
+
+.ticker-name {
+    font-weight: 500;
+    color: #ffffff;
+}
+
+.ticker-status {
+    color: rgba(255,255,255,0.4);
+    font-size: 11px;
+}
+
+@keyframes pulse {
+    0%   { opacity: 0.4; transform: scale(0.8); }
+    50%  { opacity: 1;   transform: scale(1.2); }
+    100% { opacity: 0.4; transform: scale(0.8); }
+}
 </style>
 </head>
 <body>
@@ -256,7 +295,7 @@ footer{background:var(--ink2);padding:56px 60px 32px;border-top:1px solid rgba(2
     </div>
 
     <div class="hero-content">
-        <div class="hero-eyebrow">Metro Manila's Premium Vape Destination</div>
+        <div class="hero-eyebrow">Nueva Ecija's Premium Vape Destination</div>
         <h1 class="hero-title">
             <span class="line1">ELEVATE</span>
             <span class="line2">YOUR VAPE</span>
@@ -273,26 +312,24 @@ footer{background:var(--ink2);padding:56px 60px 32px;border-top:1px solid rgba(2
     </div>
 
     <div class="branch-ticker">
-        <div class="ticker-branch">
-            <span class="ticker-dot"></span>
-            <span class="ticker-name">Quezon City</span>
-            <span style="color:rgba(255,255,255,0.2)">· Open now</span>
-        </div>
-        <div class="ticker-branch">
-            <span class="ticker-dot" style="animation-delay:0.3s"></span>
-            <span class="ticker-name">Makati</span>
-            <span style="color:rgba(255,255,255,0.2)">· Open now</span>
-        </div>
-        <div class="ticker-branch">
-            <span class="ticker-dot" style="animation-delay:0.6s"></span>
-            <span class="ticker-name">Pasig</span>
-            <span style="color:rgba(255,255,255,0.2)">· Open now</span>
-        </div>
-        <div class="ticker-branch">
-            <span class="ticker-dot" style="animation-delay:0.9s"></span>
-            <span class="ticker-name">BGC · Taguig</span>
-            <span style="color:rgba(255,255,255,0.2)">· Open now</span>
-        </div>
+        @foreach($branches as $index => $branch)
+            <div class="ticker-branch">
+                
+                {{-- Animated dot --}}
+                <span class="ticker-dot" style="animation-delay: {{ $index * 0.3 }}s"></span>
+
+                {{-- Branch name --}}
+                <span class="ticker-name">
+                    {{ str_replace('Vapour Garage - ', '', $branch['name']) }}
+                </span>
+
+                {{-- Status --}}
+                <span class="ticker-status">
+                    · {{ $branch['is_active'] ? 'Open now' : 'Closed' }}
+                </span>
+
+            </div>
+        @endforeach
     </div>
 </section>
 
@@ -318,7 +355,7 @@ footer{background:var(--ink2);padding:56px 60px 32px;border-top:1px solid rgba(2
         <div class="stat-item">
             <div class="stat-num">4<span>+</span></div>
             <div class="stat-label">Locations</div>
-            <div class="stat-sub">Across Metro Manila</div>
+            <div class="stat-sub">Across Nueva Ecija</div>
         </div>
         <div class="stat-item">
             <div class="stat-num">200<span>+</span></div>
@@ -373,18 +410,13 @@ footer{background:var(--ink2);padding:56px 60px 32px;border-top:1px solid rgba(2
     <p class="section-label reveal">Our Locations</p>
     <h2 style="font-family:var(--display);font-size:clamp(52px,6vw,80px);line-height:0.95;letter-spacing:0.03em;margin-bottom:0" class="reveal">FIND YOUR<br>NEAREST <em style="font-family:var(--serif);font-style:italic;color:var(--accent)">Branch</em></h2>
     <div class="branches-grid">
-        @foreach([
-            ['01','VapeHub — Quezon City',   '123 Timog Avenue, South Triangle, QC',              '10AM – 9PM Daily'],
-            ['02','VapeHub — Makati',        '45 Ayala Avenue, Legazpi Village, Makati City',      '10AM – 10PM Daily'],
-            ['03','VapeHub — Pasig',         '88 Ortigas Center, San Antonio, Pasig City',         '10AM – 9PM Daily'],
-            ['04','VapeHub — BGC · Taguig',  '12 BGC High Street, Fort Bonifacio, Taguig City',   '10AM – 11PM Daily'],
-        ] as [$num, $name, $addr, $hours])
+        @foreach($branches as $index => $branch)
         <div class="branch-card reveal">
-            <div class="branch-num">{{ $num }}</div>
+            <div class="branch-num">{{ $index+1 }}</div>
             <div class="branch-info">
-                <div class="branch-name">{{ $name }}</div>
-                <div class="branch-addr">{{ $addr }}</div>
-                <div class="branch-hours">{{ $hours }}</div>
+                <div class="branch-name">{{ $branch->name }}</div>
+                <div class="branch-addr">{{ $branch->city }}</div>
+                <div class="branch-hours">10AM - 9PM Daily</div>
             </div>
         </div>
         @endforeach
@@ -422,7 +454,7 @@ footer{background:var(--ink2);padding:56px 60px 32px;border-top:1px solid rgba(2
 <!-- CTA -->
 <section class="cta-section">
     <h2 class="cta-title reveal">READY TO<br><em>Get Started?</em></h2>
-    <p class="cta-sub reveal">Visit any of our 4 branches across Metro Manila.</p>
+    <p class="cta-sub reveal">Visit any of our 4 branches across Nueva Ecija.</p>
     <div class="cta-btns reveal">
         <a href="#branches" class="btn-primary">Find a Store</a>
         <a href="#loyalty" class="btn-outline">Join Loyalty Program</a>
@@ -434,7 +466,7 @@ footer{background:var(--ink2);padding:56px 60px 32px;border-top:1px solid rgba(2
     <div class="footer-grid">
         <div>
             <div class="footer-brand-logo">Vape<span>Hub</span></div>
-            <p class="footer-brand-desc">Metro Manila's premier vape destination. Quality products, expert staff, unmatched loyalty rewards.</p>
+            <p class="footer-brand-desc">Nueva Ecija's premier vape destination. Quality products, expert staff, unmatched loyalty rewards.</p>
         </div>
         <div>
             <p class="footer-col-title">Quick Links</p>
