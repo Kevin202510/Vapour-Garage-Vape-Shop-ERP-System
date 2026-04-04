@@ -142,9 +142,9 @@ class RolesAndPermissionsSeeder extends Seeder
 
             'view discounts', 'create discounts', 'edit discounts',
 
-            'view employees', 'create employees', 'edit employees',
-            'view attendance', 'manage attendance',
-            'view payroll', 'process payroll',
+            // 'view employees', 'create employees', 'edit employees',
+            // 'view attendance', 'manage attendance',
+            // 'view payroll', 'process payroll',
 
             'view reports', 'export reports',
             'view audit logs',
@@ -171,8 +171,8 @@ class RolesAndPermissionsSeeder extends Seeder
 
             'view discounts',
 
-            'view employees',
-            'view attendance', 'manage attendance',
+            // 'view employees',
+            // 'view attendance', 'manage attendance',
 
             'view reports',
         ]);
