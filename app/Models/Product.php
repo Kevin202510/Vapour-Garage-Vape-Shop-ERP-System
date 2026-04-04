@@ -1,0 +1,79 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class Product extends Model
+{
+    use HasFactory, SoftDeletes;
+
+    protected $fillable = [
+        'sku',
+        'name',
+        'description',
+        'category_id',
+        'supplier_id',
+        'unit_cost',
+        'selling_price',
+        'tax_rate',
+        'unit_of_measure',
+        'reorder_level',
+        'requires_age_verification',
+        'is_active',
+    ];
+
+    protected $casts = [
+        'unit_cost'                => 'decimal:2',
+        'selling_price'            => 'decimal:2',
+        'tax_rate'                 => 'decimal:2',
+        'requires_age_verification'=> 'boolean',
+        'is_active'                => 'boolean',
+    ];
+
+    public function getPriceWithTaxAttribute(): float
+    {
+        return round($this->selling_price * (1 + $this->tax_rate / 100), 2);
+    }
+
+    public function getMarginAttribute(): float
+    {
+        return $this->selling_price > 0
+            ? round((($this->selling_price - $this->unit_cost) / $this->selling_price) * 100, 2)
+            : 0;
+    }
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(ProductCategory::class, 'category_id');
+    }
+
+    public function supplier(): BelongsTo
+    {
+        return $this->belongsTo(Supplier::class);
+    }
+
+    public function inventory(): HasMany
+    {
+        return $this->hasMany(BranchInventory::class);
+    }
+
+    public function salesItems(): HasMany
+    {
+        return $this->hasMany(SalesTransactionItem::class);
+    }
+
+    public function purchaseOrderItems(): HasMany
+    {
+        return $this->hasMany(PurchaseOrderItem::class);
+    }
+
+    public function transferItems(): HasMany
+    {
+        return $this->hasMany(StockTransferItem::class);
+    }
+}
