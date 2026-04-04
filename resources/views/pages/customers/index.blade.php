@@ -3,9 +3,11 @@
     <x-page-header overline="Loyalty & CRM" title="Customers"
                    :subtitle="$customers->total() . ' registered members · Loyalty program active'">
         <x-slot:actions>
+            @can('create customers')
             <x-btn variant="primary" size="sm" :href="route('customers.create')">
                 <x-icon name="plus" class="w-3 h-3" /> Add Customer
             </x-btn>
+            @endcan
         </x-slot:actions>
     </x-page-header>
 
@@ -66,15 +68,21 @@
                 <x-td><span class="font-mono text-[10px] text-ink4">{{ $customer->created_at->format('M d, Y') }}</span></x-td>
                 <x-td>
                     <div class="flex gap-2" @click.stop>
+                        @can('edit customers')
                         <x-btn :href="route('customers.edit', $customer)" variant="ghost" size="sm">Edit</x-btn>
+                        @endcan
+                        @can('delete customers')
                         <button onclick="window.dispatchEvent(new CustomEvent('open-modal', { detail: 'delete-customer-{{ $customer->id }}' }))"
                                 class="inline-flex items-center px-3 py-[5px] text-[11px] font-medium text-danger/70 border border-danger/20 rounded-md hover:bg-danger/5 transition-colors">
                             Delete
                         </button>
+                        @endcan
                     </div>
+                    @can('delete customers')
                     <x-confirm-delete :name="'delete-customer-' . $customer->id"
                                       :action="route('customers.destroy', $customer)"
                                       :item-name="$customer->full_name" />
+                    @endcan
                 </x-td>
             </tr>
         @empty

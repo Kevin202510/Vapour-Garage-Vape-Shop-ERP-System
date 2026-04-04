@@ -3,10 +3,14 @@
     <x-page-header overline="Stock Control" title="Inventory"
                    :subtitle="$totalRecords . ' records · ' . $criticalCount . ' critical · ' . $lowCount . ' low'">
         <x-slot:actions>
+            @can('adjust inventory')
             <x-btn variant="ghost" size="sm" x-on:click="$dispatch('open-modal', 'adjust-stock')">Adjust Stock</x-btn>
+            @endcan
+            @can('create stock transfers')
             <x-btn variant="primary" size="sm" x-on:click="$dispatch('open-modal', 'request-transfer')">
                 <x-icon name="plus" class="w-3 h-3" /> Request Transfer
             </x-btn>
+            @endcan
         </x-slot:actions>
     </x-page-header>
 

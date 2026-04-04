@@ -3,9 +3,11 @@
     <x-page-header overline="Human Resources" title="Employees"
                    :subtitle="$employees->total() . ' active staff · ' . $presentToday . ' present today · ' . $onLeave . ' on leave'">
         <x-slot:actions>
+            @can('create employees')
             <x-btn variant="primary" size="sm" :href="route('employees.create')">
                 <x-icon name="plus" class="w-3 h-3" /> Add Employee
             </x-btn>
+            @endcan
         </x-slot:actions>
     </x-page-header>
 
@@ -88,7 +90,9 @@
                 </x-td>
                 <x-td>
                     <div class="flex gap-2" @click.stop>
+                        @can('edit employees')
                         <x-btn :href="route('employees.edit', $employee)" variant="ghost" size="sm">Edit</x-btn>
+                        @endcan
                     </div>
                 </x-td>
             </tr>

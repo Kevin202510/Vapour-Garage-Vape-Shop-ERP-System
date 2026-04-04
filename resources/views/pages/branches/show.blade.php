@@ -7,7 +7,9 @@
     >
         <x-slot:actions>
             <x-btn :href="route('branches.index')" variant="ghost" size="sm">← All Branches</x-btn>
+            @can('edit branches')
             <x-btn :href="route('branches.edit', $branch)" variant="ghost" size="sm">Edit</x-btn>
+            @endcan
         </x-slot:actions>
     </x-page-header>
 
@@ -81,9 +83,11 @@
     {{-- Staff --}}
     <x-data-table title="Branch Staff" class="mb-5">
         <x-slot:tableHeader>
+            @can('create employees')
             <x-btn :href="route('employees.create', ['branch_id' => $branch->id])" variant="ghost" size="sm">
                 + Add Staff
             </x-btn>
+            @endcan
         </x-slot:tableHeader>
         <x-slot:head>
             <x-th>Code</x-th>

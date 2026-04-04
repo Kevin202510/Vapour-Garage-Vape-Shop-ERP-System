@@ -3,9 +3,11 @@
     <x-page-header overline="Network" title="Our Branches"
                    subtitle="{{ $branches->count() }} locations · Metro Manila · All systems operational">
         <x-slot:actions>
+            @can('create branches')
             <x-btn variant="primary" size="sm" :href="route('branches.create')">
                 <x-icon name="plus" class="w-3 h-3" /> Add Branch
             </x-btn>
+            @endcan
         </x-slot:actions>
     </x-page-header>
 

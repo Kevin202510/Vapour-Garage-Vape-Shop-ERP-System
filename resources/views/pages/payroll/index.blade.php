@@ -3,9 +3,11 @@
     <x-page-header overline="Compensation" title="Payroll"
                    :subtitle="'Period: ' . $periodLabel . ' · ' . $totalCount . ' records'">
         <x-slot:actions>
+            @can('process payroll')
             <x-btn variant="ghost" size="sm" x-on:click="$dispatch('open-modal', 'generate-payroll')">
                 Generate Payroll
             </x-btn>
+            @endcan
         </x-slot:actions>
     </x-page-header>
 
@@ -80,15 +82,19 @@
                 <x-td>
                     <div class="flex gap-2">
                         @if($payroll->status === 'draft')
+                            @can('approve payroll')
                             <form method="POST" action="{{ route('payroll.approve', $payroll) }}">
                                 @csrf @method('POST')
                                 <x-btn type="submit" variant="primary" size="sm">Approve</x-btn>
                             </form>
+                            @endcan
                         @elseif($payroll->status === 'approved')
+                            @can('approve payroll')
                             <form method="POST" action="{{ route('payroll.release', $payroll) }}">
                                 @csrf @method('POST')
                                 <x-btn type="submit" variant="primary" size="sm">Release</x-btn>
                             </form>
+                            @endcan
                         @else
                             <x-btn :href="route('payroll.show', $payroll)" variant="ghost" size="sm">Payslip</x-btn>
                         @endif

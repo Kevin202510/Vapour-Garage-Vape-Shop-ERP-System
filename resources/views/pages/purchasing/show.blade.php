@@ -14,12 +14,14 @@
                         <x-btn type="submit" variant="primary" size="sm">Approve PO</x-btn>
                     </form>
                 @endcan
+                @can('cancel purchase orders')
                 <form method="POST" action="{{ route('purchasing.cancel', $po) }}" class="inline">
                     @csrf @method('POST')
                     <button type="submit" class="inline-flex items-center px-3 py-[5px] text-[11px] font-medium text-danger/70 border border-danger/20 rounded-md hover:bg-danger/5 transition-colors">
                         Cancel PO
                     </button>
                 </form>
+                @endcan
             @elseif(in_array($po->status, ['approved','sent','partial']))
                 @can('receive purchase orders')
                     <x-btn :href="route('purchasing.receive-form', $po)" variant="primary" size="sm">Receive Items</x-btn>
