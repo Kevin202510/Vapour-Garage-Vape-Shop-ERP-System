@@ -10,7 +10,7 @@ use App\Models\SalesTransaction;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
-use RuntimeException;
+use Illuminate\Validation\ValidationException;
 
 class SalesService
 {
@@ -64,8 +64,8 @@ class SalesService
                     $discountAmount = $discount?->computeDiscount($lineSubtotal) ?? 0;
                 }
 
-                $taxable    = $lineSubtotal - $discountAmount;
-                $taxAmount  = round($taxable * 0.12, 2);
+                $taxable   = $lineSubtotal - $discountAmount;
+                $taxAmount = round($taxable * 0.12, 2);
 
                 $subtotal      += $lineSubtotal;
                 $totalDiscount += $discountAmount;
@@ -76,21 +76,29 @@ class SalesService
                     'tax_amount'      => $taxAmount,
                     'subtotal'        => $lineSubtotal,
                 ]);
+            }
 
-                // Decrement branch stock
-                $this->inventoryRepo->decrementStock(
+            // ✅ Compute totals FIRST
+            $totalAmount    = round($subtotal, 2);
+            $amountTendered = $data['amount_tendered'];
+            $change         = round($amountTendered - $totalAmount, 2);
+
+            // ✅ Validate BEFORE any side effects
+            if ($change < 0) {
+                throw ValidationException::withMessages([
+                    'amount_tendered' => [
+                        'Insufficient payment. Short by ₱' . number_format(abs($change), 2)
+                    ],
+                ]);
+            }
+
+            // ✅ ONLY deduct stock AFTER payment is valid
+            foreach ($lineItems as $item) {
+                $this->inventoryRepo->decrementStock (
                     $data['branch_id'],
                     $item['product_id'],
                     $item['quantity']
                 );
-            }
-
-            $totalAmount  = round($subtotal - $totalDiscount + $totalTax, 2);
-            $amountTendered = $data['amount_tendered'];
-            $change       = round($amountTendered - $totalAmount, 2);
-
-            if ($change < 0) {
-                throw new RuntimeException("Insufficient payment. Total: {$totalAmount}, Tendered: {$amountTendered}.");
             }
 
             $transaction = $this->transactionRepo->create([
