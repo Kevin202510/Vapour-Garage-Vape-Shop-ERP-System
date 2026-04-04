@@ -3,7 +3,7 @@
     <x-page-header
         overline="Overview · {{ now()->format('l, F d Y') }}"
         title="Good morning,<br><em>Operations.</em>"
-        subtitle="All {{ $branches->count() }} branches active · Last sync just now"
+        :subtitle="(auth()->user()->isSuperAdmin() ? 'All ' . $branches->count() . ' branches' : (auth()->user()->branch->name ?? 'Your branch')) . ' · Last sync just now'"
     >
         <x-slot:actions>
             <div class="flex gap-1 bg-cream border border-cream3 rounded-md p-[3px]" x-data="{ range: 'today' }">
@@ -15,24 +15,24 @@
                     </button>
                 @endforeach
             </div>
+            @can('export reports')
             <x-btn variant="ghost" size="sm">
                 <x-icon name="download" class="w-3 h-3" /> Export
             </x-btn>
+            @endcan
         </x-slot:actions>
     </x-page-header>
 
     {{-- KPI Cards --}}
     <div class="grid grid-cols-4 gap-4 mb-7">
-        <x-kpi-card label="Revenue Today"  :value="'₱' . number_format($stats['revenue_today'])"  delta="{{ number_format($stats['revenue_delta'], 1) }}% vs yesterday"  :deltaUp="$stats['revenue_delta'] >= 0"  bgChar="₱"  color="terra" />
-        <x-kpi-card label="Transactions"   :value="number_format($stats['transactions_today'])"  delta="{{ number_format($stats['transactions_delta'], 1) }}% vs yesterday"  :deltaUp="$stats['transactions_delta'] >= 0"  :bgChar="$stats['transactions_today']"  color="navy" />
-        <x-kpi-card label="Items Sold"     :value="number_format($stats['items_sold'])"  delta="{{ number_format($stats['items_delta'], 1) }}% vs yesterday"  :deltaUp="$stats['items_delta'] >= 0"  bgChar="1k"  color="gold" />
-        <x-kpi-card label="New Customers"  :value="number_format($stats['new_customers'])"  delta="{{ number_format($stats['customers_delta'], 1) }}% vs yesterday"  :deltaUp="$stats['customers_delta'] >= 0"  :bgChar="$stats['new_customers']"  color="sage" />
+        <x-kpi-card label="Revenue Today"  :value="'₱' . number_format($stats['revenue_today'])"       delta="{{ number_format($stats['revenue_delta'], 1) }}% vs yesterday"      :deltaUp="$stats['revenue_delta'] >= 0"      bgChar="₱"  color="terra" />
+        <x-kpi-card label="Transactions"   :value="number_format($stats['transactions_today'])"          delta="{{ number_format($stats['transactions_delta'], 1) }}% vs yesterday"  :deltaUp="$stats['transactions_delta'] >= 0" bgChar="—"  color="navy" />
+        <x-kpi-card label="Items Sold"     :value="number_format($stats['items_sold'])"                  delta="{{ number_format($stats['items_delta'], 1) }}% vs yesterday"         :deltaUp="$stats['items_delta'] >= 0"        bgChar="1k" color="gold" />
+        <x-kpi-card label="New Customers"  :value="number_format($stats['new_customers'])"               delta="{{ number_format($stats['customers_delta'], 1) }}% vs yesterday"     :deltaUp="$stats['customers_delta'] >= 0"    bgChar="—"  color="sage" />
     </div>
 
-    {{-- Charts row --}}
+    {{-- Charts --}}
     <div class="grid grid-cols-[1fr_320px] gap-4 mb-7">
-
-        {{-- Bar chart --}}
         <x-card title="Revenue by Branch" subtitle="TODAY · COMPLETED TRANSACTIONS">
             <div class="grid grid-cols-2 gap-3 mb-5">
                 <div class="bg-cream rounded-lg px-4 py-3">
@@ -51,7 +51,7 @@
                         <span class="font-mono text-[9px] text-ink4">₱{{ number_format($branch->revenue / 1000, 0) }}k</span>
                         <div class="w-full flex items-end flex-1">
                             <div class="{{ $colors[$i % 4] }} w-full rounded-t-[3px]"
-                                 style="height: {{ round(($branch->revenue / $max) * 100) }}%"></div>
+                                 style="height:{{ round(($branch->revenue / $max) * 100) }}%"></div>
                         </div>
                     </div>
                 @endforeach
@@ -66,28 +66,21 @@
             </div>
         </x-card>
 
-        {{-- Donut --}}
         <x-card title="Sales Mix" subtitle="BY CATEGORY · TODAY">
             <div class="flex justify-center my-2">
                 <svg width="110" height="110" viewBox="0 0 110 110">
                     <circle cx="55" cy="55" r="42" fill="none" stroke="#e3dccf" stroke-width="16"/>
                     @php
-                        $catColors  = ['#c45e3c','#1e2d4a','#b8882a','#5a7a5c'];
-                        $offset     = 0;
-                        $circumf    = 2 * M_PI * 42;
+                        $catColors = ['#c45e3c','#1e2d4a','#b8882a','#5a7a5c'];
+                        $offset    = 0;
+                        $circumf   = 2 * M_PI * 42;
                         $totalSales = $categorySales->sum('total') ?: 1;
                     @endphp
                     @foreach($categorySales as $j => $cat)
-                        @php
-                            $pct  = $cat->total / $totalSales;
-                            $dash = $pct * $circumf;
-                        @endphp
-                        <circle cx="55" cy="55" r="42" fill="none"
-                                stroke="{{ $catColors[$j % 4] }}"
-                                stroke-width="16"
-                                stroke-dasharray="{{ $dash }} {{ $circumf }}"
-                                stroke-dashoffset="{{ -$offset }}"
-                                transform="rotate(-90 55 55)"/>
+                        @php $pct = $cat->total / $totalSales; $dash = $pct * $circumf; @endphp
+                        <circle cx="55" cy="55" r="42" fill="none" stroke="{{ $catColors[$j % 4] }}"
+                                stroke-width="16" stroke-dasharray="{{ $dash }} {{ $circumf }}"
+                                stroke-dashoffset="{{ -$offset }}" transform="rotate(-90 55 55)"/>
                         @php $offset += $dash; @endphp
                     @endforeach
                     <text x="55" y="51" text-anchor="middle" font-family="'Playfair Display'" font-size="14" font-weight="900" fill="#1a1714">
@@ -115,6 +108,7 @@
     </div>
 
     {{-- Recent Transactions --}}
+    @can('view sales')
     <x-data-table title="Recent Transactions">
         <x-slot:tableHeader>
             <x-btn :href="route('sales.index')" variant="ghost" size="sm">View all →</x-btn>
@@ -129,13 +123,12 @@
             <x-th>Total</x-th>
             <x-th>Status</x-th>
         </x-slot:head>
-
         @forelse($recentTransactions as $txn)
             <tr class="hover:bg-cream transition-colors cursor-pointer"
                 onclick="window.location='{{ route('sales.show', $txn) }}'">
                 <x-td><span class="font-mono text-[11px] text-ink3">{{ $txn->transaction_number }}</span></x-td>
                 <x-td>{{ $txn->branch->name ?? '—' }}</x-td>
-                <x-td>{{ $txn->cashier->first_name ?? '—' }} {{ $txn->cashier->last_name ?? '' }}</x-td>
+                <x-td>{{ optional($txn->cashier)->full_name ?? '—' }}</x-td>
                 <x-td>{{ $txn->customer ? $txn->customer->full_name : 'Walk-in' }}</x-td>
                 <x-td>{{ $txn->items_count ?? $txn->items->count() }}</x-td>
                 <x-td>
@@ -154,5 +147,22 @@
             <tr><td colspan="8"><x-empty-state title="No transactions today" icon="activity" /></td></tr>
         @endforelse
     </x-data-table>
+    @endcan
+
+    {{-- Low stock alert panel (branch managers / supervisors / inventory) --}}
+    @can('view inventory')
+        @if(($lowStockCount ?? 0) > 0)
+        <div class="bg-warn/5 border border-warn/20 rounded-lg px-5 py-4 flex items-center justify-between mt-4">
+            <div class="flex items-center gap-3">
+                <x-icon name="alert-triangle" class="w-4 h-4 text-warn flex-shrink-0" />
+                <div>
+                    <p class="text-[12.5px] font-semibold text-ink">{{ $lowStockCount }} product{{ $lowStockCount > 1 ? 's' : '' }} below reorder level</p>
+                    <p class="font-mono text-[10px] text-ink4 mt-0.5">Immediate restocking may be required.</p>
+                </div>
+            </div>
+            <x-btn :href="route('inventory.index')" variant="ghost" size="sm">View Inventory →</x-btn>
+        </div>
+        @endif
+    @endcan
 
 </x-app-layout>

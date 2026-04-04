@@ -3,9 +3,11 @@
     <x-page-header overline="Inter-branch" title="Stock Transfers"
                    :subtitle="$pendingCount . ' pending · ' . $inTransitCount . ' in transit · ' . $completedThisWeek . ' completed this week'">
         <x-slot:actions>
+            @can('create stock transfers')
             <x-btn variant="primary" size="sm" x-on:click="$dispatch('open-modal', 'request-transfer')">
                 <x-icon name="plus" class="w-3 h-3" /> Request Transfer
             </x-btn>
+            @endcan
         </x-slot:actions>
     </x-page-header>
 

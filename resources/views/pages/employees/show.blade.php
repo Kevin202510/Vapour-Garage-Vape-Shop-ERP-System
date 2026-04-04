@@ -7,11 +7,15 @@
     >
         <x-slot:actions>
             <x-btn :href="route('employees.index')" variant="ghost" size="sm">← All Employees</x-btn>
+            @can('edit employees')
             <x-btn :href="route('employees.edit', $employee)" variant="ghost" size="sm">Edit</x-btn>
+            @endcan
+            @can('delete employees')
             <button onclick="window.dispatchEvent(new CustomEvent('open-modal', { detail: 'delete-employee' }))"
                     class="inline-flex items-center px-3 py-[5px] text-[11px] font-medium text-danger/70 border border-danger/20 rounded-md hover:bg-danger/5 transition-colors">
                 Delete
             </button>
+            @endcan
         </x-slot:actions>
     </x-page-header>
 

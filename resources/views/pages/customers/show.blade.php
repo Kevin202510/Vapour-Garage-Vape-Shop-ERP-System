@@ -7,7 +7,9 @@
     >
         <x-slot:actions>
             <x-btn :href="route('customers.index')" variant="ghost" size="sm">← All Customers</x-btn>
+            @can('edit customers')
             <x-btn :href="route('customers.edit', $customer)" variant="ghost" size="sm">Edit</x-btn>
+            @endcan
             <button onclick="window.dispatchEvent(new CustomEvent('open-modal', { detail: 'delete-customer' }))"
                     class="inline-flex items-center px-3 py-[5px] text-[11px] font-medium text-danger/70 border border-danger/20 rounded-md hover:bg-danger/5 transition-colors">
                 Delete
@@ -87,6 +89,7 @@
             </div>
 
             {{-- Add points form --}}
+            @can('edit customers')
             <div class="mt-4 pt-4 border-t border-cream2">
                 <p class="font-mono text-[9px] tracking-[0.14em] uppercase text-ink4 mb-2">Manually Add Points</p>
                 <form method="POST" action="{{ route('customers.add-points', $customer) }}"
@@ -98,6 +101,7 @@
                     <x-btn type="submit" variant="primary" size="sm">Add</x-btn>
                 </form>
             </div>
+            @endcan
         </x-card>
     </div>
 

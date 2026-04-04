@@ -3,9 +3,11 @@
     <x-page-header overline="Procurement" title="Purchase Orders"
                    :subtitle="$suppliers->count() . ' suppliers · ' . $activePoCount . ' active POs'">
         <x-slot:actions>
+            @can('create purchase orders')
             <x-btn variant="primary" size="sm" :href="route('purchasing.create')">
                 <x-icon name="plus" class="w-3 h-3" /> New PO
             </x-btn>
+            @endcan
         </x-slot:actions>
     </x-page-header>
 

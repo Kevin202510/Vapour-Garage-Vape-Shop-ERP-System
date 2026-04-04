@@ -2,12 +2,16 @@
 
     <x-page-header overline="Catalogue" title="Products" :subtitle="$products->total() . ' SKUs · ' . $lowStockCount . ' low stock alerts'">
         <x-slot:actions>
+            @can('export reports')
             <x-btn variant="ghost" size="sm">
                 <x-icon name="download" class="w-3 h-3" /> Import CSV
             </x-btn>
+            @endcan
+            @can('create products')
             <x-btn variant="primary" size="sm" :href="route('products.create')">
                 <x-icon name="plus" class="w-3 h-3" /> Add Product
             </x-btn>
+            @endcan
         </x-slot:actions>
     </x-page-header>
 
@@ -82,15 +86,21 @@
                 </x-td>
                 <x-td>
                     <div class="flex gap-2" @click.stop>
+                        @can('edit products')
                         <x-btn :href="route('products.edit', $product)" variant="ghost" size="sm">Edit</x-btn>
+                        @endcan
+                        @can('delete products')
                         <button onclick="window.dispatchEvent(new CustomEvent('open-modal', { detail: 'delete-product-{{ $product->id }}' }))"
                                 class="inline-flex items-center px-3 py-[5px] text-[11px] font-medium text-danger/70 border border-danger/20 rounded-md hover:bg-danger/5 transition-colors">
                             Delete
                         </button>
+                        @endcan
                     </div>
+                    @can('delete products')
                     <x-confirm-delete :name="'delete-product-' . $product->id"
                                       :action="route('products.destroy', $product)"
                                       :item-name="$product->name" />
+                    @endcan
                 </x-td>
             </tr>
         @empty
