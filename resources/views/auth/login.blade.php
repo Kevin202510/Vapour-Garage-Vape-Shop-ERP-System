@@ -28,7 +28,7 @@
                 Unified operations platform for all 4 branches. Inventory, sales, HR, and reporting — all in one place.
             </p>
             <div class="flex items-center justify-center gap-3 mt-10">
-                @foreach(['QC','MKT','PSG','BGC'] as $branch)
+                @foreach(['PEÑARANDA','GENERAL TIÑIO','SAN LEONARDO','FORT MAGSAYSAY'] as $branch)
                     <div class="flex flex-col items-center gap-1.5">
                         <div class="w-1.5 h-1.5 rounded-full bg-ok" style="animation:pulse 2s infinite;animation-delay:{{ $loop->index * 0.3 }}s"></div>
                         <span class="font-mono text-[8px] text-white/25 tracking-widest">{{ $branch }}</span>
