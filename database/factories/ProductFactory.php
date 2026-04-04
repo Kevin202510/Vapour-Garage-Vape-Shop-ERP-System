@@ -5,6 +5,7 @@ namespace Database\Factories;
 use App\Models\ProductCategory;
 use App\Models\Supplier;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
 
 class ProductFactory extends Factory
 {
@@ -27,20 +28,24 @@ class ProductFactory extends Factory
 
         $product = fake()->randomElement($products);
 
-        return [
-            'sku'                      => strtoupper(fake()->unique()->bothify('VPH-####-??')),
-            'name'                     => $product['name'] . ' - ' . fake()->colorName(),
-            'description'              => fake()->sentence(),
-            'category_id'              => ProductCategory::factory(),
-            'supplier_id'              => Supplier::factory(),
-            'unit_cost'                => $product['cost'],
-            'selling_price'            => $product['price'],
-            'tax_rate'                 => 12.00,
-            'unit_of_measure'          => $product['uom'],
-            'reorder_level'            => fake()->numberBetween(5, 20),
-            'requires_age_verification'=> true,
-            'is_active'                => true,
-        ];
+    return [
+    'sku' => 'VPH-' . Str::upper(Str::random(10)),
+
+    'name' => $product['name'] . ' - ' . fake()->colorName(),
+    'description' => fake()->sentence(),
+
+    'category_id' => ProductCategory::inRandomOrder()->value('id') ?? ProductCategory::factory(),
+    'supplier_id' => Supplier::inRandomOrder()->value('id') ?? Supplier::factory(),
+
+    'unit_cost' => $product['cost'],
+    'selling_price' => $product['price'],
+    'tax_rate' => 12.00,
+    'unit_of_measure' => $product['uom'],
+    'reorder_level' => fake()->numberBetween(5, 20),
+
+    'requires_age_verification' => true,
+    'is_active' => true,
+];
     }
 
     public function accessory(): static
