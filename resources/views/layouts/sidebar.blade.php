@@ -1,18 +1,24 @@
-<aside class="w-64 bg-navy flex flex-col flex-shrink-0 relative overflow-hidden">
+<aside style="width:256px;background:#060608;border-right:1px solid rgba(124,34,212,0.25);display:flex;flex-direction:column;flex-shrink:0;position:relative;overflow:hidden">
 
-    {{-- Decorative blobs --}}
-    <div class="absolute -bottom-16 -right-16 w-48 h-48 bg-terra opacity-[0.08] rounded-full pointer-events-none"></div>
-    <div class="absolute -top-10 -left-10 w-40 h-40 bg-gold opacity-[0.06] rounded-full pointer-events-none"></div>
+    {{-- Purple glow orb --}}
+    <div style="position:absolute;bottom:-40px;right:-40px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(124,34,212,0.18) 0%,transparent 70%);pointer-events:none"></div>
+    <div style="position:absolute;top:-30px;left:-30px;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,rgba(57,255,20,0.06) 0%,transparent 70%);pointer-events:none"></div>
 
-    {{-- Logo --}}
-    <div class="px-6 py-7 border-b border-white/[0.08]">
-        <p class="font-mono text-[9px] tracking-[0.2em] uppercase text-white/35 mb-1.5">Operations Platform</p>
-        <h1 class="font-serif text-[22px] font-bold text-white leading-none tracking-tight">VapeHub</h1>
-        <p class="font-mono text-[10px] text-terra-light tracking-[0.08em] mt-1">ERP · v2.1.0</p>
+    {{-- Logo / Brand --}}
+    <div style="padding:24px 20px 20px;border-bottom:1px solid rgba(124,34,212,0.2)">
+        <div style="font-family:'Exo 2',sans-serif;font-size:9px;letter-spacing:0.22em;text-transform:uppercase;color:#7a7490;margin-bottom:10px">
+            // OPERATIONS PLATFORM
+        </div>
+        <div style="font-family:'Russo One',sans-serif;font-size:20px;letter-spacing:0.06em;line-height:1;margin-bottom:2px;background:linear-gradient(90deg,#9b3df0,#39ff14);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">
+            VAPOUR GARAGE
+        </div>
+        <div style="font-family:'Russo One',sans-serif;font-size:13px;letter-spacing:0.16em;color:rgba(57,255,20,0.6)">
+            MAIN — ERP
+        </div>
     </div>
 
-    {{-- Navigation --}}
-    <nav class="flex-1 overflow-y-auto py-4 scrollbar-none">
+    {{-- Nav --}}
+    <nav style="flex:1;overflow-y:auto;padding:12px 0" class="scrollbar-none">
 
         <x-nav-section label="Overview" />
         <x-nav-item route="dashboard" icon="grid" label="Dashboard" />
@@ -26,8 +32,7 @@
         @endcanany
 
         @can('view products')
-            <x-nav-item route="products.index" icon="box" label="Products"
-                        :badge="($lowStockCount ?? 0)" />
+            <x-nav-item route="products.index" icon="box" label="Products" :badge="$lowStockCount ?? 0" />
         @endcan
 
         @can('view inventory')
@@ -74,35 +79,35 @@
     </nav>
 
     {{-- User card --}}
-    <div class="p-4 border-t border-white/[0.08]">
-        <div class="flex items-center gap-2.5 p-2.5 rounded-md hover:bg-white/5 transition-colors group">
-            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-terra to-gold flex items-center justify-center font-serif font-bold text-xs text-white flex-shrink-0">
+    <div style="padding:14px;border-top:1px solid rgba(124,34,212,0.2)">
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:4px;border:1px solid rgba(124,34,212,0.12);transition:background 0.2s"
+             class="group hover:border-purple/30" style="cursor:pointer">
+            {{-- Avatar --}}
+            <div style="width:34px;height:34px;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:'Russo One',sans-serif;font-size:13px;color:#fff;background:linear-gradient(135deg,#7c22d4,#39ff14);clip-path:polygon(0 0,calc(100% - 5px) 0,100% 5px,100% 100%,5px 100%,0 calc(100% - 5px))">
                 {{ strtoupper(substr(auth()->user()->name ?? 'U', 0, 2)) }}
             </div>
-            <div class="flex-1 min-w-0">
-                <p class="text-[12px] font-medium text-white/85 truncate">{{ auth()->user()->name ?? 'User' }}</p>
+            <div style="flex:1;min-width:0">
+                <div style="font-size:12px;font-weight:600;color:#e8e4f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                    {{ auth()->user()->name ?? 'User' }}
+                </div>
                 @php
-                    $roleLabels = [
-                        'super_admin'    => ['Super Admin',    'text-gold-2'],
-                        'branch_manager' => ['Branch Manager', 'text-terra-light'],
-                        'supervisor'     => ['Supervisor',     'text-white/50'],
-                        'cashier'        => ['Cashier',        'text-white/40'],
-                        'inventory_clerk'        => ['Inventory Clerk',        'text-white/40'],
-                    ];
-                    $userRole = auth()->user()->roles->first()?->name ?? 'cashier';
-                    [$roleDisplay, $roleColor] = $roleLabels[$userRole] ?? ['Staff', 'text-white/40'];
-                    $branchName = auth()->user()->branch?->name;
+                    $rmap = ['super_admin'=>['SUPER ADMIN','#9b3df0'],'branch_manager'=>['MANAGER','#39ff14'],'supervisor'=>['SUPERVISOR','#c8c4d4'],'cashier'=>['CASHIER','#7a7490']];
+                    $ur = auth()->user()->roles->first()?->name ?? 'cashier';
+                    [$rlabel,$rcolor] = $rmap[$ur] ?? ['STAFF','#7a7490'];
+                    $bn = auth()->user()->branch?->name;
                 @endphp
-                <p class="font-mono text-[9px] uppercase tracking-wider mt-0.5 {{ $roleColor }}">
-                    {{ $roleDisplay }}
-                    @if($branchName && $userRole !== 'super_admin')· {{ Str::limit($branchName, 12) }}@endif
-                </p>
+                <div style="font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:0.12em;color:{{ $rcolor }};margin-top:2px">
+                    {{ $rlabel }}@if($bn && $ur !== 'super_admin') · {{ Str::limit($bn, 11) }}@endif
+                </div>
             </div>
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
-                <button type="submit" title="Sign out" class="opacity-0 group-hover:opacity-100 transition-opacity">
-                    <svg class="w-3.5 h-3.5 text-white/40 hover:text-white/80 transition-colors" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+                <button type="submit" title="Sign out"
+                        style="opacity:0;color:#7a7490;transition:opacity 0.2s"
+                        class="group-hover:opacity-100 hover:!text-[#39ff14]">
+                    <svg style="width:13px;height:13px" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                        <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
                     </svg>
                 </button>
             </form>

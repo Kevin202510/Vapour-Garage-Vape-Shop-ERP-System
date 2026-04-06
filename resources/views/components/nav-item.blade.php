@@ -1,30 +1,28 @@
 @props(['route', 'icon', 'label', 'badge' => 0])
-
-@php
-    $baseRoute = str_ends_with($route, '.index')
-        ? str_replace('.index', '', $route)
-        : $route;
-
-    $active = request()->routeIs($baseRoute . '.*') || request()->routeIs($route);
-@endphp
+@php $active = request()->routeIs($route) || request()->routeIs($route . '.*'); @endphp
 
 <a href="{{ route($route) }}"
-   class="relative flex items-center gap-2.5 px-6 py-[9px] text-[13px] transition-all
-          {{ $active
-              ? 'text-white bg-white/[0.07]'
-              : 'text-white/50 hover:text-white/85 hover:bg-white/[0.04]' }}">
+   style="display:flex;align-items:center;gap:10px;padding:9px 20px;font-family:'Exo 2',sans-serif;font-size:13px;font-weight:{{ $active ? '600' : '400' }};text-decoration:none;transition:all 0.15s;position:relative;
+          color:{{ $active ? '#e8e4f0' : '#7a7490' }};
+          background:{{ $active ? 'rgba(124,34,212,0.15)' : 'transparent' }};"
+   onmouseover="if(!{{ $active ? 'true' : 'false' }})this.style.color='#c8c4d4',this.style.background='rgba(124,34,212,0.07)'"
+   onmouseout="if(!{{ $active ? 'true' : 'false' }})this.style.color='#7a7490',this.style.background='transparent'">
 
+    {{-- Active left bar --}}
     @if($active)
-        <span class="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-[60%] bg-terra-light rounded-r-sm"></span>
+    <span style="position:absolute;left:0;top:50%;transform:translateY(-50%);width:2px;height:60%;background:linear-gradient(180deg,#7c22d4,#39ff14);border-radius:0 2px 2px 0"></span>
     @endif
 
-    <x-icon :name="$icon" class="w-[15px] h-[15px] flex-shrink-0 {{ $active ? 'opacity-100' : 'opacity-70' }}" />
+    {{-- Icon --}}
+    <span style="flex-shrink:0;opacity:{{ $active ? '1' : '0.6' }}">
+        <x-icon :name="$icon" style="width:15px;height:15px;{{ $active ? 'color:#9b3df0' : 'color:#7a7490' }}" />
+    </span>
 
     <span>{{ $label }}</span>
 
     @if($badge > 0)
-        <span class="ml-auto min-w-[18px] h-[18px] bg-terra text-white font-mono text-[9px] rounded-full flex items-center justify-center px-1.5">
-            {{ $badge }}
-        </span>
+    <span style="margin-left:auto;min-width:18px;height:18px;background:#7c22d4;color:#fff;font-family:'Share Tech Mono',monospace;font-size:9px;border-radius:2px;display:flex;align-items:center;justify-content:center;padding:0 4px;box-shadow:0 0 8px rgba(124,34,212,0.5)">
+        {{ $badge }}
+    </span>
     @endif
 </a>

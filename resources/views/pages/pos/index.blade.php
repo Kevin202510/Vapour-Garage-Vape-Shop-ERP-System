@@ -261,7 +261,7 @@
             </x-slot:footer>
         </form>
     </x-modal>
-    
+
     @push('scripts')
     <script>
     function posApp(products, customers, branchId, csrfToken) {

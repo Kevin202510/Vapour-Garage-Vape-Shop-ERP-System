@@ -4,49 +4,46 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ config('app.name', 'VapeHub ERP') }} — {{ $title ?? 'Dashboard' }}</title>
-
+    <title>{{ config('app.name', 'Vapour Garage') }} — {{ $title ?? 'Dashboard' }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=IBM+Plex+Mono:wght@300;400;500&family=Epilogue:wght@300;400;500;600&display=swap" rel="stylesheet">
-
+    <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Exo+2:ital,wght@0,300;0,400;0,500;0,600;0,800;1,300;1,600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('styles')
-    @stack('scripts')
 </head>
-<body class="h-full bg-cream font-sans antialiased" x-data="{ sidebarOpen: false }">
+<body class="h-full antialiased" style="background:#0d0b14;font-family:'Exo 2',sans-serif" x-data>
 
-{{-- Grain texture --}}
-<div class="fixed inset-0 pointer-events-none z-50 opacity-[0.025]"
-     style="background-image:url('data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\'/%3E%3C/svg%3E');background-size:200px"></div>
+    {{-- Scanline --}}
+    <div class="fixed inset-0 pointer-events-none z-[998]"
+         style="background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(124,34,212,0.012) 3px,rgba(124,34,212,0.012) 4px)"></div>
 
-<div class="flex h-full">
+    {{-- Grid overlay --}}
+    <div class="fixed inset-0 pointer-events-none z-0"
+         style="background:linear-gradient(rgba(124,34,212,0.035) 1px,transparent 1px),linear-gradient(90deg,rgba(124,34,212,0.035) 1px,transparent 1px);background-size:48px 48px"></div>
 
-    {{-- Sidebar --}}
-    @include('layouts.sidebar')
+    <div class="relative z-10 flex h-full">
+        @include('layouts.sidebar')
 
-    {{-- Main --}}
-    <div class="flex flex-col flex-1 min-w-0 overflow-hidden bg-paper">
+        <div class="flex flex-col flex-1 min-w-0 overflow-hidden">
+            @include('layouts.topbar')
 
-        {{-- Topbar --}}
-        @include('layouts.topbar')
+            <main class="flex-1 overflow-y-auto px-8 py-7 pb-16 page-enter">
 
-        {{-- Page content --}}
-        <main class="flex-1 overflow-y-auto px-10 py-9 pb-16">
+                {{-- Flash alerts --}}
+                @if(session('success'))
+                    <x-alert type="success" :message="session('success')" class="mb-5" />
+                @endif
+                @if(session('error'))
+                    <x-alert type="error" :message="session('error')" class="mb-5" />
+                @endif
+                @if($errors->any())
+                    <x-alert type="error" :message="$errors->first()" class="mb-5" />
+                @endif
 
-            {{-- Flash messages --}}
-            @if (session('success'))
-                <x-alert type="success" :message="session('success')" class="mb-6" />
-            @endif
-            @if (session('error'))
-                <x-alert type="error" :message="session('error')" class="mb-6" />
-            @endif
-            @if ($errors->any())
-                <x-alert type="error" :message="$errors->first()" class="mb-6" />
-            @endif
-
-            {{ $slot }}
-        </main>
+                {{ $slot }}
+            </main>
+        </div>
     </div>
-</div>
+
+    @stack('scripts')
 </body>
 </html>

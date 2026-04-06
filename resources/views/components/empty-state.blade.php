@@ -1,14 +1,14 @@
 @props(['title', 'description' => null, 'icon' => 'box'])
 
-<div class="flex flex-col items-center justify-center py-16 text-center">
-    <div class="w-14 h-14 rounded-full bg-cream2 flex items-center justify-center mb-4">
-        <x-icon :name="$icon" class="w-6 h-6 text-ink4" />
+<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:56px 24px;text-align:center">
+    <div style="width:52px;height:52px;border-radius:6px;background:rgba(124,34,212,0.12);border:1px solid rgba(124,34,212,0.25);display:flex;align-items:center;justify-content:center;margin-bottom:16px">
+        <x-icon :name="$icon" style="width:22px;height:22px;color:rgba(124,34,212,0.6)" />
     </div>
-    <p class="font-serif text-[15px] font-bold text-ink mb-1">{{ $title }}</p>
+    <p style="font-family:'Russo One',sans-serif;font-size:13px;letter-spacing:0.06em;color:#c8c4d4;margin-bottom:6px;text-transform:uppercase">{{ $title }}</p>
     @if($description)
-        <p class="text-[12px] text-ink4 max-w-xs">{{ $description }}</p>
+    <p style="font-family:'Share Tech Mono',monospace;font-size:11px;color:#7a7490;max-width:280px;line-height:1.5">{{ $description }}</p>
     @endif
     @if(isset($action))
-        <div class="mt-4">{{ $action }}</div>
+    <div style="margin-top:16px">{{ $action }}</div>
     @endif
 </div>

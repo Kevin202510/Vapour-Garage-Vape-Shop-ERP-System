@@ -2,61 +2,175 @@
 @tailwind components;
 @tailwind utilities;
 
-/* â”€â”€ Base resets â”€â”€ */
-@layer base {
-    html { @apply h-full; }
-    body { @apply h-full bg-cream text-ink antialiased; }
+/* ── Google Fonts: Russo One + Exo 2 + Share Tech Mono ── */
+@import url('https://fonts.googleapis.com/css2?family=Russo+One&family=Exo+2:ital,wght@0,300;0,400;0,500;0,600;0,800;1,300;1,600&family=Share+Tech+Mono&display=swap');
 
-    /* Remove default focus ring on non-keyboard navigation */
-    :focus:not(:focus-visible) { outline: none; }
-    :focus-visible { @apply ring-2 ring-terra/40 ring-offset-1 outline-none; }
-
-    /* Thin scrollbars globally */
-    * {
-        scrollbar-width: thin;
-        scrollbar-color: theme('colors.cream.3') transparent;
-    }
-    *::-webkit-scrollbar       { width: 4px; height: 4px; }
-    *::-webkit-scrollbar-thumb { background: theme('colors.cream.3'); border-radius: 2px; }
+/* ── CSS Variables matching Vapour Garage Main logo ── */
+:root {
+  --vg-black:   #060608;
+  --vg-dark:    #0d0b14;
+  --vg-dark2:   #130f1e;
+  --vg-dark3:   #1a1428;
+  --vg-purple:  #7c22d4;
+  --vg-purple2: #9b3df0;
+  --vg-purple3: #5b16a0;
+  --vg-green:   #39ff14;
+  --vg-green2:  #25cc0a;
+  --vg-grey:    #c8c4d4;
+  --vg-muted:   #7a7490;
 }
 
-/* â”€â”€ Component layer â”€â”€ */
+/* ── Base ── */
+@layer base {
+  html { @apply h-full; }
+
+  body {
+    @apply h-full antialiased;
+    background: var(--vg-dark);
+    color: var(--vg-grey);
+    font-family: 'Exo 2', sans-serif;
+  }
+
+  /* Cyberpunk scanline */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    pointer-events: none; z-index: 999;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 3px,
+      rgba(124,34,212,0.015) 3px, rgba(124,34,212,0.015) 4px
+    );
+  }
+
+  /* Subtle grid overlay */
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    pointer-events: none; z-index: 0;
+    background:
+      linear-gradient(rgba(124,34,212,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,34,212,0.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  :focus-visible { @apply outline-none ring-2 ring-purple ring-offset-1 ring-offset-dark; }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(124,34,212,0.4) transparent;
+  }
+  *::-webkit-scrollbar { width: 4px; height: 4px; }
+  *::-webkit-scrollbar-thumb { background: rgba(124,34,212,0.4); border-radius: 2px; }
+}
+
+/* ── Component layer ── */
 @layer components {
 
-    /* Sidebar nav active indicator animation */
-    @keyframes live-pulse {
-        0%, 100% { opacity: 1; }
-        50%       { opacity: 0.4; }
-    }
-    .live-dot { animation: live-pulse 2s infinite; }
+  /* ── PAGE ENTRANCE ── */
+  .page-enter { animation: page-rise 0.3s ease both; }
+  @keyframes page-rise {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
 
-    /* Grain texture overlay (applied via inline style in layout for CSP) */
-    .grain-overlay {
-        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-        background-size: 200px;
-    }
+  /* ── VG CARD (base card style) ── */
+  .vg-card {
+    background: var(--vg-dark2);
+    border: 1px solid rgba(124,34,212,0.2);
+    border-radius: 6px;
+    position: relative;
+    overflow: hidden;
+  }
+  .vg-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--vg-purple3), var(--vg-green), var(--vg-purple3));
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .vg-card:hover::before { opacity: 1; }
 
-    /* Pagination  - simple style matching design */
-    nav[role="navigation"] span,
-    nav[role="navigation"] a {
-        @apply inline-flex items-center px-3 py-1.5 text-[11px] font-mono border border-cream3 rounded transition-colors;
-    }
-    nav[role="navigation"] a {
-        @apply text-ink3 hover:bg-cream hover:border-terra;
-    }
-    nav[role="navigation"] span {
-        @apply text-ink4 cursor-not-allowed;
-    }
+  /* ── VG PANEL (sidebar-use darker panel) ── */
+  .vg-panel {
+    background: var(--vg-black);
+    border: 1px solid rgba(124,34,212,0.15);
+  }
+
+  /* ── Corner brackets (decorative) ── */
+  .vg-corner-tl::before {
+    content: '';
+    position: absolute; top: 10px; left: 10px;
+    width: 20px; height: 20px;
+    border-top: 1.5px solid rgba(57,255,20,0.3);
+    border-left: 1.5px solid rgba(57,255,20,0.3);
+  }
+  .vg-corner-br::after {
+    content: '';
+    position: absolute; bottom: 10px; right: 10px;
+    width: 20px; height: 20px;
+    border-bottom: 1.5px solid rgba(124,34,212,0.4);
+    border-right: 1.5px solid rgba(124,34,212,0.4);
+  }
+
+  /* ── LIVE DOT ── */
+  .live-dot {
+    display: inline-block; width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--vg-green);
+    box-shadow: 0 0 8px var(--vg-green);
+    animation: dot-pulse 2s ease-in-out infinite;
+  }
+  @keyframes dot-pulse {
+    0%,100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: 0.5; transform: scale(0.85); }
+  }
+
+  /* ── PAGINATION ── */
+  nav[role="navigation"] span,
+  nav[role="navigation"] a {
+    @apply inline-flex items-center px-3 py-1.5 text-[11px] font-mono;
+    border: 1px solid rgba(124,34,212,0.3);
+    border-radius: 3px;
+    transition: all 0.2s;
+  }
+  nav[role="navigation"] a {
+    color: var(--vg-muted);
+  }
+  nav[role="navigation"] a:hover {
+    background: rgba(124,34,212,0.15);
+    border-color: rgba(124,34,212,0.5);
+    color: #fff;
+  }
+  nav[role="navigation"] span {
+    color: rgba(255,255,255,0.2);
+    cursor: not-allowed;
+  }
 }
 
-/* â”€â”€ Utility layer â”€â”€ */
+/* ── Utility overrides ── */
 @layer utilities {
-    .font-serif-italic { font-family: 'Playfair Display', serif; font-style: italic; }
+  .font-display { font-family: 'Russo One', sans-serif; }
+  .font-mono    { font-family: 'Share Tech Mono', monospace; }
+  .font-body    { font-family: 'Exo 2', sans-serif; }
 
-    /* Page transition */
-    .page-enter { animation: page-rise 0.25s ease both; }
-    @keyframes page-rise {
-        from { opacity: 0; transform: translateY(8px); }
-        to   { opacity: 1; transform: translateY(0); }
-    }
+  .text-neon-glow    { text-shadow: 0 0 20px rgba(57,255,20,0.6); }
+  .text-purple-glow  { text-shadow: 0 0 28px rgba(124,34,212,0.7); }
+  .border-neon       { border-color: rgba(57,255,20,0.35); }
+  .border-purple     { border-color: rgba(124,34,212,0.35); }
+  .bg-purple-glow    { box-shadow: 0 0 30px rgba(124,34,212,0.35); }
+  .bg-green-glow     { box-shadow: 0 0 20px rgba(57,255,20,0.25); }
+
+  .clip-cyber {
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+  }
+  .clip-cyber-sm {
+    clip-path: polygon(0 0, calc(100% - 5px) 0, 100% 5px, 100% 100%, 5px 100%, 0 calc(100% - 5px));
+  }
+
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar { display: none; }
 }

@@ -1,23 +1,21 @@
 @props(['label', 'name', 'type' => 'text', 'required' => false, 'help' => null])
 
 <div {{ $attributes->only('class') }}>
-    <label for="{{ $name }}" class="block font-mono text-[9px] tracking-[0.14em] uppercase text-ink4 mb-1.5">
-        {{ $label }}@if($required)<span class="text-terra ml-0.5">*</span>@endif
+    <label for="{{ $name }}" style="display:block;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(124,34,212,0.7);margin-bottom:7px">
+        {{ $label }}@if($required)<span style="color:#39ff14;margin-left:3px">*</span>@endif
     </label>
     <input
-        id="{{ $name }}"
-        name="{{ $name }}"
-        type="{{ $type }}"
+        id="{{ $name }}" name="{{ $name }}" type="{{ $type }}"
         @if($required) required @endif
         {{ $attributes->except('class') }}
-        class="w-full bg-cream border border-cream3 rounded-md px-3 py-2 text-[13px] font-sans text-ink
-               placeholder-ink4 outline-none focus:border-terra focus:ring-1 focus:ring-terra/20
-               transition-colors @error($name) border-danger @enderror"
+        style="width:100%;background:#0d0b14;border:1px solid rgba(124,34,212,0.3);border-radius:4px;padding:9px 14px;font-family:'Exo 2',sans-serif;font-size:13px;color:#e8e4f0;outline:none;caret-color:#39ff14;transition:border-color 0.2s;{{ $errors->has($name) ? 'border-color:rgba(184,50,50,0.6)' : '' }}"
+        onfocus="this.style.borderColor='rgba(124,34,212,0.7)';this.style.boxShadow='0 0 12px rgba(124,34,212,0.2)'"
+        onblur="this.style.borderColor='rgba(124,34,212,0.3)';this.style.boxShadow='none'"
     >
     @error($name)
-        <p class="mt-1 font-mono text-[10px] text-danger">{{ $message }}</p>
+        <p style="margin-top:5px;font-family:'Share Tech Mono',monospace;font-size:10px;color:#e05050">{{ $message }}</p>
     @enderror
     @if($help)
-        <p class="mt-1 text-[11px] text-ink4">{{ $help }}</p>
+        <p style="margin-top:5px;font-size:11px;color:#7a7490">{{ $help }}</p>
     @endif
 </div>

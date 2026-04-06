@@ -1,27 +1,27 @@
-@if ($paginator->hasPages())
-<nav role="navigation" class="flex items-center justify-between">
-    <div class="font-mono text-[10px] text-ink4">
-        Showing {{ $paginator->firstItem() }}–{{ $paginator->lastItem() }}
+@if($paginator->hasPages())
+<nav role="navigation" style="display:flex;align-items:center;justify-content:space-between">
+    <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:#7a7490;letter-spacing:0.06em">
+        // SHOWING {{ $paginator->firstItem() }}–{{ $paginator->lastItem() }}
     </div>
-    <div class="flex items-center gap-1">
-        @if ($paginator->onFirstPage())
-            <span class="px-3 py-1.5 text-[11px] font-mono border border-cream3 rounded text-ink4 opacity-40">← Prev</span>
+    <div style="display:flex;align-items:center;gap:6px">
+        @if($paginator->onFirstPage())
+            <span style="padding:5px 12px;font-family:'Share Tech Mono',monospace;font-size:11px;border:1px solid rgba(124,34,212,0.15);border-radius:3px;color:rgba(255,255,255,0.2);cursor:not-allowed">← PREV</span>
         @else
             <a href="{{ $paginator->previousPageUrl() }}"
-               class="px-3 py-1.5 text-[11px] font-mono border border-cream3 rounded text-ink3 hover:bg-cream hover:border-terra transition-colors">
-                ← Prev
-            </a>
+               style="padding:5px 12px;font-family:'Share Tech Mono',monospace;font-size:11px;border:1px solid rgba(124,34,212,0.3);border-radius:3px;color:#7a7490;text-decoration:none;transition:all 0.2s"
+               onmouseover="this.style.background='rgba(124,34,212,0.15)';this.style.color='#e8e4f0';this.style.borderColor='rgba(124,34,212,0.6)'"
+               onmouseout="this.style.background='';this.style.color='#7a7490';this.style.borderColor='rgba(124,34,212,0.3)'">← PREV</a>
         @endif
 
-        <span class="px-3 py-1.5 font-mono text-[11px] text-ink4">Page {{ $paginator->currentPage() }}</span>
+        <span style="padding:5px 14px;font-family:'Share Tech Mono',monospace;font-size:11px;color:rgba(124,34,212,0.7);letter-spacing:0.06em">PAGE {{ $paginator->currentPage() }}</span>
 
-        @if ($paginator->hasMorePages())
+        @if($paginator->hasMorePages())
             <a href="{{ $paginator->nextPageUrl() }}"
-               class="px-3 py-1.5 text-[11px] font-mono border border-cream3 rounded text-ink3 hover:bg-cream hover:border-terra transition-colors">
-                Next →
-            </a>
+               style="padding:5px 12px;font-family:'Share Tech Mono',monospace;font-size:11px;border:1px solid rgba(124,34,212,0.3);border-radius:3px;color:#7a7490;text-decoration:none;transition:all 0.2s"
+               onmouseover="this.style.background='rgba(124,34,212,0.15)';this.style.color='#e8e4f0';this.style.borderColor='rgba(124,34,212,0.6)'"
+               onmouseout="this.style.background='';this.style.color='#7a7490';this.style.borderColor='rgba(124,34,212,0.3)'">NEXT →</a>
         @else
-            <span class="px-3 py-1.5 text-[11px] font-mono border border-cream3 rounded text-ink4 opacity-40">Next →</span>
+            <span style="padding:5px 12px;font-family:'Share Tech Mono',monospace;font-size:11px;border:1px solid rgba(124,34,212,0.15);border-radius:3px;color:rgba(255,255,255,0.2);cursor:not-allowed">NEXT →</span>
         @endif
     </div>
 </nav>

@@ -1,4 +1,3 @@
-{{-- th.blade.php --}}
-<th {{ $attributes->merge(['class' => 'font-mono text-[9px] tracking-[0.14em] uppercase text-ink4 px-6 py-3 text-left border-b border-cream2 font-normal whitespace-nowrap bg-cream/30']) }}>
+<th {{ $attributes }} style="padding:10px 14px;text-align:left;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(124,34,212,0.7);font-weight:normal;white-space:nowrap">
     {{ $slot }}
 </th>
