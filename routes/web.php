@@ -2,10 +2,10 @@
 
 
 use App\Http\Controllers\Web\BranchWebController;
-use App\Http\Controllers\Web\HomeController;
 use App\Http\Controllers\Web\CustomerWebController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\EmployeeWebController;
+use App\Http\Controllers\Web\HomeController;
 use App\Http\Controllers\Web\InventoryWebController;
 use App\Http\Controllers\Web\PayrollWebController;
 use App\Http\Controllers\Web\PosWebController;
@@ -48,9 +48,9 @@ require __DIR__ . '/auth.php';
 
 // ── Authenticated web routes ───────────────────────────────────────────────
 Route::middleware(['auth', 'verified'])->group(function () {
+
     // Dashboard
-    
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
     // Point of Sale
     Route::get('/pos', [PosWebController::class, 'index'])->name('pos.index');
@@ -109,4 +109,28 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Branches
     Route::resource('branches', BranchWebController::class);
 
+});
+
+// ── Public shop routes (no auth required) ────────────────────────────────────
+use App\Http\Controllers\Shop\ShopController;
+
+Route::prefix('shop')->name('shop.')->group(function () {
+    Route::get('/',                          [ShopController::class, 'index'])->name('index');
+    Route::get('/product/{id}',              [ShopController::class, 'product'])->name('product');
+    Route::get('/cart',                      [ShopController::class, 'cart'])->name('cart');
+    Route::post('/cart/{id}',               [ShopController::class, 'addToCart'])->name('cart.add');
+    Route::patch('/cart/{id}',              [ShopController::class, 'updateCart'])->name('cart.update');
+    Route::delete('/cart/{id}',             [ShopController::class, 'removeFromCart'])->name('cart.remove');
+    Route::get('/checkout',                  [ShopController::class, 'checkout'])->name('checkout');
+    Route::post('/checkout',                 [ShopController::class, 'placeOrder'])->name('order.place');
+    Route::get('/order/{orderNumber}',       [ShopController::class, 'confirmation'])->name('confirmation');
+    Route::get('/track',                     [ShopController::class, 'trackOrder'])->name('track');
+});
+
+// ── Online Orders (ERP staff) ──────────────────────────────────────────────
+use App\Http\Controllers\Web\OnlineOrderWebController;
+
+Route::middleware(['auth', 'verified'])->prefix('online-orders')->name('online-orders.')->group(function () {
+    Route::get('/',       [OnlineOrderWebController::class, 'index'])->name('index');
+    Route::patch('/{onlineOrder}', [OnlineOrderWebController::class, 'update'])->name('update');
 });

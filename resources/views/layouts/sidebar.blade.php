@@ -60,6 +60,11 @@
             <x-nav-item route="customers.index" icon="users" label="Customers" />
         @endcan
 
+        
+        @can('view sales')
+            <x-nav-item route="online-orders.index" icon="shopping-bag" label="Online Orders" :badge="\App\Models\OnlineOrder::where('status','pending')->count()" />
+        @endcan
+
         @canany(['view employees','view payroll','view branches'])
             <x-nav-section label="HR & Admin" />
         @endcanany

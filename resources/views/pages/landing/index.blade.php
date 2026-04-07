@@ -369,10 +369,9 @@ footer{background:var(--dark2);padding:56px 60px 28px;border-top:1px solid rgba(
     <div>
       <p class="fct">Branches</p>
       <ul class="flinks">
-        <li><a href="#branches">Quezon City</a></li>
-        <li><a href="#branches">Makati</a></li>
-        <li><a href="#branches">Pasig</a></li>
-        <li><a href="#branches">BGC · Taguig</a></li>
+        @foreach($branches as $index => $branch)
+          <li><a href="#branches">{{ $branch->city }}</a></li>
+        @endforeach
       </ul>
     </div>
     <div>
