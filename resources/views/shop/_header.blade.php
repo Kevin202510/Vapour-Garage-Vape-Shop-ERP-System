@@ -81,7 +81,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;back
 
 {{-- NAV --}}
 <nav class="shop-nav">
-    <a href="{{ route('shop.index') }}" class="snav-brand">
+    <a href="{{ route('landing') }}" class="snav-brand">
         <span class="snav-brand-main">VAPOUR GARAGE</span>
         <span class="snav-brand-sub">Est. 2023 · Online Shop</span>
     </a>

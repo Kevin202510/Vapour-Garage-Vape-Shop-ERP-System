@@ -8,6 +8,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Exo+2:ital,wght@0,300;0,400;0,600;0,800;1,300;1,600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
+  .justify-end {
+    margin-top: 10px;
+    display: flex;
+    justify-content: flex-end;
+}
+
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --black:#060608;--dark:#0d0b14;--dark2:#130f1e;--dark3:#1a1428;
@@ -295,6 +301,12 @@ footer{background:var(--dark2);padding:56px 60px 28px;border-top:1px solid rgba(
       <div class="pprice">{{ $price }} <span>/ item</span></div>
     </div>
     @endforeach
+  </div>
+  <div class="justify-end">
+    <a href="{{ route('shop.index') }}" class="btn1">
+    <svg style="width:13px;height:13px;fill:none;stroke:#fff;stroke-width:2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8"/></svg>
+    Browse in Shop
+  </a>
   </div>
 </section>
 
