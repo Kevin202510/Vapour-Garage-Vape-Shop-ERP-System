@@ -68,7 +68,7 @@
                         </div>
                         <div>
                             <label class="vlabel">City / Municipality *</label>
-                            <input type="text" name="city" value="{{ old('city') }}" required class="vinput" placeholder="Quezon City">
+                            <input type="text" name="city" value="{{ old('city') }}" required class="vinput" placeholder="General Tiñio">
                         </div>
                         <div>
                             <label class="vlabel">Preferred Pickup Branch (optional)</label>

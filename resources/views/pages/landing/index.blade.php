@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vapour Garage Main — Dispods · EJuice · Mods · Wires · Est. 2023</title>
-<meta name="description" content="Vapour Garage Main — NUEVA ECIJA's premier vape shop. Dispods, EJuice, Mods, Wires. Est. 2023.">
+<title>Vapour Garage — Dispods · EJuice · Mods · Wires · Est. 2023</title>
+<meta name="description" content="Vapour Garage — NUEVA ECIJA's premier vape shop. Dispods, EJuice, Mods, Wires. Est. 2023.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Exo+2:ital,wght@0,300;0,400;0,600;0,800;1,300;1,600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>

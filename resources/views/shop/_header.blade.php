@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{ $title ?? 'Shop' }} — Vapour Garage Main</title>
+<title>{{ $title ?? 'Shop' }} — Vapour Garage</title>
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Exo+2:ital,wght@0,300;0,400;0,500;0,600;0,800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
@@ -82,7 +82,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;back
 {{-- NAV --}}
 <nav class="shop-nav">
     <a href="{{ route('shop.index') }}" class="snav-brand">
-        <span class="snav-brand-main">VAPOUR GARAGE MAIN</span>
+        <span class="snav-brand-main">VAPOUR GARAGE</span>
         <span class="snav-brand-sub">Est. 2023 · Online Shop</span>
     </a>
     <div class="snav-links">
