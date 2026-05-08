@@ -12,6 +12,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $m) {
+
+        $m->redirectGuestsTo('/home');
+
         $m->web(append: [
             \App\Http\Middleware\ShareNavigationData::class,
         ]);
