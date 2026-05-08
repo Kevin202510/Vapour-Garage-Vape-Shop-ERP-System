@@ -243,7 +243,7 @@ footer{background:var(--dark2);padding:56px 60px 28px;border-top:1px solid rgba(
 
               {{-- Status --}}
               <span class="ticker-status">
-                  · {{ $branch['is_active'] ? 'Open now' : 'Closed' }}
+                {{ $branch['is_active'] == 1 && now()->hour >= 10 && now()->hour < 21 ? 'Open now' : 'Closed' }}
               </span>
 
           </div>
