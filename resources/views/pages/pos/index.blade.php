@@ -339,17 +339,17 @@
                     <!-- QUICK CASH -->
                     <div class="grid grid-cols-3 gap-2 mb-3">
 
-                        <button type="button" @click="amountTendered = 1000"
+                        <button type="button" @click="amountTendered = 100"
                             class="py-3 rounded-md bg-cream border border-cream3 hover:border-terra text-black font-bold">
                             ₱1000
                         </button>
 
-                        <button type="button" @click="amountTendered = 5000"
+                        <button type="button" @click="amountTendered = 500"
                             class="py-3 rounded-md bg-cream border border-cream3 hover:border-terra text-black font-bold">
                             ₱5000
                         </button>
 
-                        <button type="button" @click="amountTendered = 10000"
+                        <button type="button" @click="amountTendered = 1000"
                             class="py-3 rounded-md bg-cream border border-cream3 hover:border-terra text-black font-bold">
                             ₱10000
                         </button>
