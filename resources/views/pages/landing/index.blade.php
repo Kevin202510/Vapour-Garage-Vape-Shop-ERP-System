@@ -3,11 +3,103 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="csrf-token" content="{{ csrf_token() }}">
 <title>Vapour Garage — Dispods · EJuice · Mods · Wires · Est. 2023</title>
 <meta name="description" content="Vapour Garage — NUEVA ECIJA's premier vape shop. Dispods, EJuice, Mods, Wires. Est. 2023.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Exo+2:ital,wght@0,300;0,400;0,600;0,800;1,300;1,600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
+  #chatbot-toggle{
+    position:fixed;
+    bottom:24px;
+    right:24px;
+    width:60px;
+    height:60px;
+    border-radius:50%;
+    background:linear-gradient(135deg,#7c22d4,#39ff14);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    z-index:9999;
+    font-size:24px;
+    box-shadow:0 0 25px rgba(124,34,212,.6);
+}
+
+#chatbot-box{
+    position:fixed;
+    bottom:95px;
+    right:24px;
+    width:340px;
+    background:#130f1e;
+    border:1px solid rgba(124,34,212,.4);
+    border-radius:10px;
+    overflow:hidden;
+    display:none;
+    z-index:9999;
+    box-shadow:0 0 35px rgba(124,34,212,.35);
+}
+
+#chatbot-header{
+    padding:14px;
+    background:#7c22d4;
+    color:white;
+    font-family:'Russo One',sans-serif;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+#chatbot-header span{
+    cursor:pointer;
+}
+
+#chatbot-messages{
+    height:300px;
+    overflow-y:auto;
+    padding:14px;
+    font-size:13px;
+    color:#fff;
+}
+
+.bot-msg{
+    background:#1a1428;
+    padding:10px;
+    border-radius:8px;
+    margin-bottom:10px;
+    line-height:1.5;
+}
+
+.user-msg{
+    background:#39ff14;
+    color:#000;
+    padding:10px;
+    border-radius:8px;
+    margin-bottom:10px;
+    text-align:right;
+}
+
+#chatbot-input-wrap{
+    display:flex;
+    border-top:1px solid rgba(255,255,255,.08);
+}
+
+#chatbot-input{
+    flex:1;
+    background:#0d0b14;
+    border:none;
+    padding:14px;
+    color:white;
+    outline:none;
+}
+
+#chatbot-input-wrap button{
+    background:#39ff14;
+    border:none;
+    padding:0 18px;
+    cursor:pointer;
+    font-weight:bold;
+}
   .justify-end {
     margin-top: 10px;
     display: flex;
@@ -363,6 +455,30 @@ footer{background:var(--dark2);padding:56px 60px 28px;border-top:1px solid rgba(
   </div>
 </section>
 
+<!-- CHATBOT -->
+<div id="chatbot-toggle">
+    💬
+</div>
+
+<div id="chatbot-box">
+    <div id="chatbot-header">
+        VAPOUR AI
+        <span onclick="closeChat()">✕</span>
+    </div>
+
+    <div id="chatbot-messages">
+        <div class="bot-msg">
+            Welcome to Vapour Garage 🔥<br>
+            Ask about products, branches, promos, or rewards.
+        </div>
+    </div>
+
+    <div id="chatbot-input-wrap">
+        <input type="text" id="chatbot-input" placeholder="Type message...">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+</div>
+
 <footer>
   <div class="fgrid">
     <div>
@@ -409,6 +525,125 @@ if(sessionStorage.getItem('vgm'))document.getElementById('ag').style.display='no
 window.addEventListener('scroll',()=>document.getElementById('nav').classList.toggle('scrolled',scrollY>60));
 const io=new IntersectionObserver(e=>e.forEach(x=>{if(x.isIntersecting)x.target.classList.add('visible')}),{threshold:0.08});
 document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+</script>
+<script>
+const toggle = document.getElementById('chatbot-toggle');
+const box = document.getElementById('chatbot-box');
+const input = document.getElementById('chatbot-input');
+const messages = document.getElementById('chatbot-messages');
+
+toggle.addEventListener('click', () => {
+    box.style.display = 'block';
+});
+
+function closeChat() {
+    box.style.display = 'none';
+}
+
+input.addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') {
+        sendMessage();
+    }
+});
+
+async function sendMessage() {
+
+    const text = input.value.trim();
+
+    if (!text) return;
+
+    appendUserMessage(text);
+
+    input.value = '';
+
+    const loadingId = appendBotMessage('Typing...');
+
+    try {
+
+        const csrf = document
+            .querySelector('meta[name="csrf-token"]')
+            .getAttribute('content');
+
+        const response = await fetch('/chatbot', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrf
+            },
+            body: JSON.stringify({
+                message: text
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('HTTP Error: ' + response.status);
+        }
+
+        const data = await response.json();
+
+        removeMessage(loadingId);
+
+        appendBotMessage(data.reply ?? 'No reply from AI.');
+
+    } catch (error) {
+
+        console.error('Chatbot Error:', error);
+
+        removeMessage(loadingId);
+
+        appendBotMessage(
+            'Server error. Check Laravel logs or chatbot route.'
+        );
+    }
+
+    scrollBottom();
+}
+
+function appendUserMessage(text) {
+
+    const div = document.createElement('div');
+
+    div.className = 'user-msg';
+
+    div.innerText = text;
+
+    messages.appendChild(div);
+
+    scrollBottom();
+}
+
+function appendBotMessage(text) {
+
+    const id = 'msg-' + Date.now();
+
+    const div = document.createElement('div');
+
+    div.className = 'bot-msg';
+
+    div.id = id;
+
+    div.innerText = text;
+
+    messages.appendChild(div);
+
+    scrollBottom();
+
+    return id;
+}
+
+function removeMessage(id) {
+
+    const el = document.getElementById(id);
+
+    if (el) {
+        el.remove();
+    }
+}
+
+function scrollBottom() {
+    messages.scrollTop = messages.scrollHeight;
+}
 </script>
 </body>
 </html>

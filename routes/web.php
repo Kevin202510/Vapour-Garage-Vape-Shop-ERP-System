@@ -1,6 +1,7 @@
 <?php
 
 
+use App\Http\Controllers\ChatBotController;
 use App\Http\Controllers\Web\BranchWebController;
 use App\Http\Controllers\Web\CustomerWebController;
 use App\Http\Controllers\Web\DashboardController;
@@ -42,6 +43,8 @@ Route::get('/', function () {
         ? redirect()->route('dashboard')
         : redirect('/home');
 });
+ 
+ Route::post('/chatbot', [ChatBotController::class, 'chat']);
 
 // ── Auth routes (provided by Laravel Breeze / Fortify / Sanctum) ──────────
 require __DIR__ . '/auth.php';
