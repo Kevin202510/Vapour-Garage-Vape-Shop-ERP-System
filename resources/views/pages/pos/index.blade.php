@@ -315,7 +315,7 @@
 
                 <p class="font-mono text-[9px] tracking-[0.14em] uppercase text-ink4 mb-2">Payment</p>
                 <div class="grid grid-cols-3 gap-1.5 mb-3">
-                    @foreach (['cash' => 'Cash', 'gcash' => 'GCash', 'maya' => 'Maya', 'card' => 'Card', 'bank_transfer' => 'Bank', 'mixed' => 'Mixed'] as $val => $lbl)
+                    @foreach (['cash' => 'Cash', 'gcash' => 'GCash', 'maya' => 'Maya'] as $val => $lbl)
                         <button @click="paymentMethod = '{{ $val }}'"
                             :class="paymentMethod === '{{ $val }}' ? 'border-terra bg-terra/8 text-terra' :
                                 'border-cream3 bg-cream text-ink4'"
@@ -334,23 +334,23 @@
 
                     <!-- INPUT -->
                     <input type="number" x-model.number="amountTendered" placeholder="Enter cash amount"
-                        class="w-full px-4 py-3 rounded-md border border-cream3 bg-cream text-black text-[16px] font-bold mb-3">
+                        class="w-full px-4 py-3 rounded-md border border-cream3 bg-cream text-white text-[16px] font-bold mb-3">
 
                     <!-- QUICK CASH -->
                     <div class="grid grid-cols-3 gap-2 mb-3">
 
                         <button type="button" @click="amountTendered = 100"
-                            class="py-3 rounded-md bg-cream border border-cream3 hover:border-terra text-black font-bold">
+                            class="py-3 rounded-md bg-cream border border-cream3 hover:border-terra text-white font-bold">
                             ₱1000
                         </button>
 
                         <button type="button" @click="amountTendered = 500"
-                            class="py-3 rounded-md bg-cream border border-cream3 hover:border-terra text-black font-bold">
+                            class="py-3 rounded-md bg-cream border border-cream3 hover:border-terra text-white font-bold">
                             ₱5000
                         </button>
 
                         <button type="button" @click="amountTendered = 1000"
-                            class="py-3 rounded-md bg-cream border border-cream3 hover:border-terra text-black font-bold">
+                            class="py-3 rounded-md bg-cream border border-cream3 hover:border-terra text-white font-bold">
                             ₱10000
                         </button>
 
