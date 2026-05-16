@@ -1,5 +1,14 @@
 <header class="vg-topbar">
 
+    {{-- Hamburger (mobile only) --}}
+    <button @click="sidebarOpen = !sidebarOpen" class="vg-hamburger" aria-label="Toggle menu">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <line x1="3" y1="6"  x2="21" y2="6"/>
+            <line x1="3" y1="12" x2="21" y2="12"/>
+            <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+    </button>
+
     {{-- Breadcrumb --}}
     <div class="vg-topbar-breadcrumb">
         <span class="vg-topbar-brand">VGM</span>
@@ -83,8 +92,8 @@
     </div>
     @endif
 
-    {{-- Search --}}
-    <div class="vg-topbar-search">
+    {{-- Search (hidden on mobile) --}}
+    <div class="vg-topbar-search hidden md:flex">
         <svg class="vg-topbar-search-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
         </svg>
@@ -191,10 +200,10 @@
     {{-- New Transaction --}}
     @can('create sales')
     <a href="{{ route('pos.index') }}" class="vg-new-txn-btn">
-        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+        <svg class="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
         </svg>
-        New Transaction
+        <span class="hidden sm:inline">New Transaction</span>
     </a>
     @endcan
 

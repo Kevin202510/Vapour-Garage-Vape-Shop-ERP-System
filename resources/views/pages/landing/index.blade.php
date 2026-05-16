@@ -1493,15 +1493,125 @@
         }
 
         @media(max-width:1100px) {
+            .hero-upgraded { grid-template-columns: 1fr; }
+            .hero-carousel  { height: 500px; }
+        }
 
-            .hero-upgraded {
-                grid-template-columns: 1fr;
+        /* ══════════════════════════════════════════════════
+           MOBILE — 768px and below
+        ══════════════════════════════════════════════════ */
+        @media(max-width:767px) {
+
+            /* ── Nav: hamburger ── */
+            nav { padding: 14px 20px; flex-wrap: wrap; align-items: center; }
+            .nlinks {
+                display: none;
+                width: 100%;
+                flex-direction: column;
+                gap: 0;
+                padding: 8px 0 12px;
+                border-top: 1px solid rgba(124,34,212,0.15);
+                margin-top: 12px;
             }
+            .nlinks.nav-open { display: flex; }
+            .nlinks a { padding: 10px 0; font-size: 13px; border-bottom: 1px solid rgba(124,34,212,0.08); }
+            .nlinks a:last-child { border-bottom: none; }
+            .ncta { margin-top: 10px; text-align: center; padding: 10px; }
 
-            .hero-carousel {
-                height: 500px;
+            .nav-hamburger {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 36px; height: 36px;
+                background: none; border: none; cursor: pointer;
+                color: var(--muted); margin-left: auto;
             }
+            .nav-hamburger:hover { color: var(--green); }
+            .nav-hamburger.is-open .bar1 { transform: translateY(6px) rotate(45deg); }
+            .nav-hamburger.is-open .bar2 { opacity: 0; }
+            .nav-hamburger.is-open .bar3 { transform: translateY(-6px) rotate(-45deg); }
+            .nav-hamburger .bar1,
+            .nav-hamburger .bar2,
+            .nav-hamburger .bar3 {
+                display: block; width: 20px; height: 2px;
+                background: currentColor; border-radius: 2px;
+                transition: transform 0.25s, opacity 0.2s;
+                transform-origin: center;
+            }
+            .nav-hamburger span { display: flex; flex-direction: column; gap: 4px; }
 
+            /* ── Hero ── */
+            .hero, .hero-upgraded { padding: 100px 20px 50px; }
+            .ht1 { font-size: clamp(46px, 13vw, 90px); }
+            .ht2 { font-size: clamp(52px, 14vw, 100px); }
+            .ht3 { font-size: clamp(56px, 15vw, 110px); }
+            .htag { font-size: 10px; }
+            .hbtns { flex-direction: column; gap: 10px; }
+            .btn1, .btn2 { width: 100%; justify-content: center; }
+            .hbranches { flex-wrap: wrap; gap: 6px; padding-top: 18px; }
+            .hbi { border-right: none; padding: 0; }
+            .hbi::after { content: '·'; color: rgba(124,34,212,0.3); margin-left: 10px; }
+            .hbi:last-child::after { display: none; }
+            .hero-carousel { height: 280px; }
+            .hero-right { margin-top: 0; }
+            .hcorn1, .hcorn2 { display: none; }
+
+            /* ── Section padding ── */
+            .sec, .psec, .lbg, .pbg, .cta { padding: 60px 20px; }
+
+            /* ── Stats: 2-col ── */
+            .srow { grid-template-columns: repeat(2, 1fr); }
+            .snum { font-size: 42px; }
+
+            /* ── Product category grid: 2-col ── */
+            .pgrid { grid-template-columns: repeat(2, 1fr); gap: 2px; }
+            .pname { font-size: 15px; }
+            .pprice { font-size: 18px; }
+
+            /* ── Branches: 1-col ── */
+            .bgrd { grid-template-columns: 1fr; }
+
+            /* ── Loyalty tiers: 2-col ── */
+            .tgrid { grid-template-columns: repeat(2, 1fr); }
+
+            /* ── Product sections ── */
+            .psec-head { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .psec-viewall { align-self: flex-start; }
+
+            /* ── FAQ: already 1-col via its own media query ── */
+
+            /* ── CTA ── */
+            .ctatitle { font-size: clamp(36px, 10vw, 80px); }
+            .ctabtns { flex-direction: column; align-items: center; gap: 10px; }
+            .ctabg { font-size: 130px; }
+
+            /* ── Footer ── */
+            .fgrid { grid-template-columns: 1fr 1fr; gap: 28px; }
+            footer { padding: 40px 20px 24px; }
+            .fbot { flex-direction: column; gap: 8px; text-align: center; }
+
+            /* ── Age gate ── */
+            .agi { padding: 0 16px; }
+            .agbrand { font-size: 22px; }
+
+            /* ── Shop header ── */
+            .shop-nav { padding: 0 16px; }
+            .snav-links { display: none; }
+            .snav-brand-main { font-size: 14px; }
+        }
+
+        /* ── Extra small: 480px ── */
+        @media(max-width:479px) {
+            .hero, .hero-upgraded { padding: 90px 16px 40px; }
+            .sec, .psec, .lbg, .pbg, .cta { padding: 48px 16px; }
+            .srow { grid-template-columns: repeat(2, 1fr); gap: 1px; }
+            .snum { font-size: 34px; }
+            .pgrid { grid-template-columns: repeat(1, 1fr); }
+            .pscroll { grid-template-columns: repeat(1, 1fr) !important; }
+            .tgrid { grid-template-columns: repeat(1, 1fr); }
+            .fgrid { grid-template-columns: 1fr; }
+            .stitle { font-size: clamp(26px, 8vw, 50px); }
+            footer { padding: 32px 16px 20px; }
         }
     </style>
 </head>
@@ -1525,14 +1635,24 @@
 
     <nav id="nav">
         <div class="nbrand">VAPOUR GARAGE</div>
-        <div class="nlinks">
-            <a href="{{ route('shop.index') }}">Shop</a>
-            <a href="#new-arrivals">New In</a>
-            <a href="#sale-products">Sale</a>
-            <a href="#wholesale-products">Wholesale</a>
-            <a href="#branches">Locations</a>
-            <a href="#loyalty">Rewards</a>
-            <a href="#faq">FAQ</a>
+
+        {{-- Hamburger (mobile only) --}}
+        <button class="nav-hamburger" id="nav-hamburger" aria-label="Menu">
+            <span>
+                <span class="bar1"></span>
+                <span class="bar2"></span>
+                <span class="bar3"></span>
+            </span>
+        </button>
+
+        <div class="nlinks" id="nav-links">
+            <a href="{{ route('shop.index') }}" onclick="closeNav()">Shop</a>
+            <a href="#new-arrivals" onclick="closeNav()">New In</a>
+            <a href="#sale-products" onclick="closeNav()">Sale</a>
+            <a href="#wholesale-products" onclick="closeNav()">Wholesale</a>
+            <a href="#branches" onclick="closeNav()">Locations</a>
+            <a href="#loyalty" onclick="closeNav()">Rewards</a>
+            <a href="#faq" onclick="closeNav()">FAQ</a>
             <a href="{{ route('login') }}" class="ncta">Staff Login</a>
         </div>
     </nav>
@@ -2149,6 +2269,26 @@
         }
         if (sessionStorage.getItem('vgm')) document.getElementById('ag').style.display = 'none';
         window.addEventListener('scroll', () => document.getElementById('nav').classList.toggle('scrolled', scrollY > 60));
+
+        // ── Mobile nav hamburger ──
+        const navHamburger = document.getElementById('nav-hamburger');
+        const navLinks     = document.getElementById('nav-links');
+        if (navHamburger) {
+            navHamburger.addEventListener('click', () => {
+                const isOpen = navLinks.classList.toggle('nav-open');
+                navHamburger.classList.toggle('is-open', isOpen);
+            });
+        }
+        function closeNav() {
+            if (navLinks)     navLinks.classList.remove('nav-open');
+            if (navHamburger) navHamburger.classList.remove('is-open');
+        }
+        // Close nav on outside click
+        document.addEventListener('click', e => {
+            if (navLinks && !navLinks.contains(e.target) && !navHamburger.contains(e.target)) {
+                closeNav();
+            }
+        });
         const io = new IntersectionObserver(e => e.forEach(x => {
             if (x.isIntersecting) x.target.classList.add('visible')
         }), {

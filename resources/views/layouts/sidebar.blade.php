@@ -1,4 +1,5 @@
-<aside class="vg-sidebar">
+<aside class="vg-sidebar" :class="{ 'mobile-open': sidebarOpen }"
+      @keydown.escape.window="sidebarOpen = false">
 
     <div class="vg-sidebar-orb-bottom"></div>
     <div class="vg-sidebar-orb-top"></div>

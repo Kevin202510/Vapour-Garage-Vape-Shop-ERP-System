@@ -12,15 +12,29 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('styles')
 </head>
-<body class="h-full antialiased" x-data>
+<body class="h-full antialiased" x-data="{ sidebarOpen: false }">
 
     <div class="relative flex h-full">
+
+        {{-- Mobile backdrop --}}
+        <div x-show="sidebarOpen"
+             @click="sidebarOpen = false"
+             x-transition:enter="transition-opacity duration-200"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition-opacity duration-150"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="fixed inset-0 z-[90] bg-ink/50 md:hidden"
+             style="display:none">
+        </div>
+
         @include('layouts.sidebar')
 
         <div class="flex flex-col flex-1 min-w-0 overflow-hidden">
             @include('layouts.topbar')
 
-            <main class="flex-1 overflow-y-auto px-8 py-7 pb-16 page-enter bg-cream">
+            <main class="flex-1 overflow-y-auto px-4 py-4 md:px-8 md:py-7 pb-16 page-enter bg-cream">
 
                 @if(session('success'))
                     <x-alert type="success" :message="session('success')" class="mb-5" />
