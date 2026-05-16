@@ -78,10 +78,55 @@ class EmployeeWebController extends Controller
             'base_salary'     => 'required|numeric|min:0',
             'hire_date'       => 'required|date',
         ]);
-        $validated['is_active'] = true;
 
-        $this->employeeService->create($validated);
-        return redirect()->route('employees.index')->with('success', 'Employee created successfully.');
+        // Validate login account fields if admin opted to create one
+        if ($request->boolean('create_account')) {
+            $request->validate([
+                'login_email'                  => 'required|email|max:255|unique:users,email',
+                'login_password'               => 'required|string|min:8|confirmed',
+                'login_password_confirmation'  => 'required',
+            ]);
+        }
+
+        $validated['is_active'] = true;
+        $employee = $this->employeeService->create($validated);
+
+        if ($request->boolean('create_account')) {
+            $loginEmail    = $request->input('login_email');
+            $loginPassword = $request->input('login_password');
+
+            $user = \App\Models\User::create([
+                'name'              => $employee->full_name,
+                'email'             => $loginEmail,
+                'password'          => $loginPassword,  // cast: 'hashed' handles bcrypt
+                'employee_id'       => $employee->id,
+                'branch_id'         => $employee->branch_id,
+                'is_active'         => true,
+                'email_verified_at' => now(),
+            ]);
+
+            // Map employee role → Spatie permission role
+            $roleMap = [
+                'branch_manager'  => 'branch_manager',
+                'supervisor'      => 'supervisor',
+                'cashier'         => 'cashier',
+                'inventory_clerk' => 'inventory_clerk',
+            ];
+            if (isset($roleMap[$employee->role])) {
+                $user->syncRoles([$roleMap[$employee->role]]);
+            }
+
+            // Flash once — admin must share these credentials with the employee
+            session()->flash('new_account', [
+                'name'     => $employee->full_name,
+                'email'    => $loginEmail,
+                'password' => $loginPassword,
+                'role'     => ucwords(str_replace('_', ' ', $employee->role)),
+            ]);
+        }
+
+        return redirect()->route('employees.index')
+            ->with('success', "Employee {$employee->full_name} created successfully.");
     }
 
     public function show(int $id)

@@ -11,6 +11,43 @@
         </x-slot:actions>
     </x-page-header>
 
+    {{-- New account credentials — shown once after creating an employee with login --}}
+    @if(session('new_account'))
+    @php $acc = session('new_account'); @endphp
+    <div class="mb-6 rounded-xl border border-ok/30 bg-ok/5 overflow-hidden">
+        <div class="flex items-center gap-3 px-5 py-3 border-b border-ok/20 bg-ok/8">
+            <x-icon name="check-circle" class="w-4 h-4 text-ok flex-shrink-0" />
+            <p class="text-[13px] font-semibold text-ink">ERP Login Account Created for {{ $acc['name'] }}</p>
+            <span class="ml-auto font-mono text-[9px] text-ok bg-ok/10 px-2 py-1 rounded uppercase tracking-widest">
+                Save now — shown once only
+            </span>
+        </div>
+        <div class="px-5 py-4 grid grid-cols-3 gap-6">
+            <div>
+                <p class="erp-label mb-1">Login Email</p>
+                <p class="font-mono text-[13px] font-semibold text-ink select-all">{{ $acc['email'] }}</p>
+            </div>
+            <div>
+                <p class="erp-label mb-1">Password</p>
+                <p class="font-mono text-[13px] font-semibold text-ink select-all">{{ $acc['password'] }}</p>
+            </div>
+            <div>
+                <p class="erp-label mb-1">Assigned Role</p>
+                <p class="text-[13px] text-ink2">{{ $acc['role'] }}</p>
+            </div>
+        </div>
+        <div class="px-5 pb-3">
+            <p class="font-mono text-[9px] text-ink4 tracking-wide">
+                Share these credentials securely with the employee. The password is stored encrypted and cannot be retrieved again.
+            </p>
+        </div>
+    </div>
+    @endif
+
+    @if(session('success'))
+        <x-alert type="success" :message="session('success')" class="mb-5" />
+    @endif
+
     <div class="grid grid-cols-3 gap-3 mb-6">
         <x-stat-box label="Total Active"    :value="$totalActive" />
         <x-stat-box label="Present Today"   :value="$presentToday"  value-class="text-ok" />

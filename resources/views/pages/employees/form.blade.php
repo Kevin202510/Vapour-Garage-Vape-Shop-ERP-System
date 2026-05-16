@@ -83,6 +83,49 @@
             </div>
         @endif
 
+        {{-- ERP Login Account (create mode only) --}}
+        @if(!isset($employee))
+        <div class="border border-purple/20 rounded-lg p-5 mb-6 bg-purple/[0.03]"
+             x-data="{ createAccount: {{ old('create_account') ? 'true' : 'false' }} }">
+
+            <label class="flex items-center gap-3 cursor-pointer select-none mb-1">
+                <input type="checkbox" name="create_account" value="1"
+                       x-model="createAccount"
+                       class="w-4 h-4 rounded border-purple/40 text-purple focus:ring-purple/20">
+                <span class="text-[13px] font-semibold text-ink">Create ERP Login Account</span>
+            </label>
+            <p class="font-mono text-[9px] text-ink4 tracking-wide ml-7 mb-4">
+                Lets this employee sign in to the ERP dashboard.
+            </p>
+
+            <div x-show="createAccount" x-cloak class="flex flex-col gap-4">
+
+                <x-form-input label="Login Email" name="login_email" type="email"
+                              :value="old('login_email')"
+                              placeholder="employee@vapourgarage.ph"
+                              help="This will be the username to log in." />
+
+                <div class="grid grid-cols-2 gap-4">
+                    <x-form-input label="Password" name="login_password" type="password"
+                                  placeholder="Min. 8 characters" />
+                    <x-form-input label="Confirm Password" name="login_password_confirmation" type="password"
+                                  placeholder="Re-enter password" />
+                </div>
+
+                <div class="flex items-start gap-2 px-3 py-2.5 bg-warn/5 border border-warn/20 rounded-md">
+                    <svg class="w-4 h-4 text-warn flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    <p class="font-mono text-[9px] text-warn leading-relaxed tracking-wide">
+                        Save the credentials before submitting — the password will only be shown once after creation.
+                        The employee's role in the ERP will match their job role.
+                    </p>
+                </div>
+            </div>
+        </div>
+        @endif
+
         <div class="flex items-center gap-3 pt-2">
             <x-btn type="submit" variant="primary">
                 {{ isset($employee) ? 'Save Changes' : 'Create Employee' }}
