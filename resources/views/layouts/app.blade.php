@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ config('app.name', 'Vapour Garage') }} — {{ $title ?? 'Dashboard' }}</title>
+    {{-- Apply theme before CSS loads to prevent flash --}}
+    <script>(function(){if(localStorage.getItem('vg_theme')==='dark')document.documentElement.classList.add('dark');})()</script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Exo+2:ital,wght@0,300;0,400;0,500;0,600;0,800;1,300;1,600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])

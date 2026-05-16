@@ -4,7 +4,7 @@
    Compiled via Vite through app.css @import.
    ============================================================ */
 
-/* ── CSS custom properties ── */
+/* ── CSS custom properties — Light mode (default) ── */
 :root {
   --brand:        #7c22d4;
   --brand-light:  #9b3df0;
@@ -12,8 +12,8 @@
   --brand-faint:  rgba(124,34,212,0.08);
   --brand-border: rgba(124,34,212,0.2);
 
-  --surface:      #ffffff;
-  --surface-soft: #f5f4fb;
+  --surface:        #ffffff;
+  --surface-soft:   #f5f4fb;
   --surface-subtle: #eeecf8;
 
   --sidebar-bg:   #1e1a35;
@@ -32,6 +32,25 @@
   --warn:   #d97706;
   --danger: #dc2626;
   --gold:   #d97706;
+}
+
+/* ── CSS custom properties — Dark mode overrides ── */
+html.dark {
+  --surface:        #130f1e;
+  --surface-soft:   #1a1428;
+  --surface-subtle: #0d0b14;
+
+  --topbar-bg:    #060608;
+  --topbar-border: rgba(124,34,212,0.25);
+
+  --text-primary:   #e8e4f0;
+  --text-secondary: #c8c4d4;
+  --text-muted:     #7a7490;
+
+  --border-default: rgba(124,34,212,0.2);
+  --border-medium:  rgba(124,34,212,0.35);
+
+  --brand-faint:  rgba(124,34,212,0.15);
 }
 
 /* ============================================================
@@ -783,3 +802,133 @@ nav[role="navigation"] a:hover {
 nav[role="navigation"] span {
   color: var(--border-medium); cursor: not-allowed;
 }
+
+/* ============================================================
+   DARK MODE — Tailwind utility class overrides
+   (Tailwind classes compile to static values; these CSS rules
+   override them when html.dark is active)
+   ============================================================ */
+
+/* Page / surface backgrounds */
+html.dark body,
+html.dark .bg-cream    { background-color: #060608 !important; }
+html.dark .bg-cream-2,
+html.dark .bg-cream2   { background-color: #0d0b14 !important; }
+html.dark .bg-white    { background-color: #130f1e !important; }
+html.dark .bg-navy     { background-color: #130f1e !important; }
+
+/* Main content area */
+html.dark main.bg-cream { background-color: #060608 !important; }
+
+/* Text */
+html.dark .text-ink    { color: #e8e4f0 !important; }
+html.dark .text-ink2   { color: #c8c4d4 !important; }
+html.dark .text-ink3   { color: #a09ab0 !important; }
+html.dark .text-ink4   { color: #7a7490 !important; }
+
+/* Borders */
+html.dark .border-cream3 { border-color: rgba(124,34,212,0.2) !important; }
+html.dark .border-cream2 { border-color: rgba(124,34,212,0.12) !important; }
+html.dark .border-cream  { border-color: rgba(124,34,212,0.08) !important; }
+
+/* Hover backgrounds */
+html.dark .hover\:bg-cream:hover { background-color: #1a1428 !important; }
+
+/* ERP component dark overrides (already use CSS vars — these catch stragglers) */
+html.dark .erp-card,
+html.dark .erp-table-wrap,
+html.dark .erp-stat-box     { background: #130f1e; border-color: rgba(124,34,212,0.2); }
+
+html.dark .erp-table-head,
+html.dark .erp-table-pagination { background: #1a1428; border-color: rgba(124,34,212,0.15); }
+
+html.dark .erp-th           { background: #1a1428; color: rgba(155,61,240,0.7); border-color: rgba(124,34,212,0.15); }
+html.dark .erp-td           { color: #c8c4d4; border-color: rgba(124,34,212,0.1); }
+html.dark tr:hover .erp-td  { background: #1a1428; }
+
+html.dark .erp-input,
+html.dark .erp-select        { background: #0d0b14; border-color: rgba(124,34,212,0.3); color: #e8e4f0; }
+html.dark .erp-input:focus,
+html.dark .erp-select:focus  { border-color: rgba(124,34,212,0.7); box-shadow: 0 0 0 3px rgba(124,34,212,0.15); }
+html.dark .erp-input::placeholder { color: #7a7490; }
+
+html.dark .erp-btn--ghost    { background: rgba(124,34,212,0.08); color: #c8c4d4; border-color: rgba(124,34,212,0.25); }
+html.dark .erp-btn--ghost:hover { background: rgba(124,34,212,0.18); color: #e8e4f0; border-color: rgba(124,34,212,0.5); }
+
+html.dark .erp-page-header   { border-color: rgba(124,34,212,0.2); }
+html.dark .erp-page-header-title { color: #e8e4f0; }
+html.dark .erp-page-header-subtitle { color: #7a7490; }
+
+html.dark .erp-kpi           { background: #130f1e; border-color: rgba(124,34,212,0.2); }
+html.dark .erp-kpi-label     { color: #7a7490; }
+html.dark .erp-kpi-value     { color: #e8e4f0; }
+
+html.dark .erp-card-title    { color: #e8e4f0; }
+html.dark .erp-card-corner-tl,
+html.dark .erp-card-corner-br { border-color: rgba(124,34,212,0.2); }
+
+/* Modal dark */
+html.dark .fixed.bg-ink\/40 { background: rgba(6,6,8,0.85) !important; }
+
+/* Topbar search dark */
+html.dark .vg-topbar-search { background: #0d0b14; border-color: rgba(124,34,212,0.25); }
+html.dark .vg-topbar-search input { color: #e8e4f0; }
+html.dark .vg-topbar-icon-btn { background: #130f1e; border-color: rgba(124,34,212,0.25); color: #7a7490; }
+html.dark .vg-topbar-icon-btn:hover { background: rgba(124,34,212,0.15); border-color: rgba(124,34,212,0.5); color: #9b3df0; }
+
+/* Branch switcher dark */
+html.dark .vg-branch-btn     { background: #130f1e; border-color: rgba(124,34,212,0.25); }
+html.dark .vg-branch-btn:hover { background: rgba(124,34,212,0.15); border-color: rgba(124,34,212,0.5); }
+html.dark .vg-branch-btn-name { color: #c8c4d4; }
+html.dark .vg-branch-dropdown { background: #130f1e; border-color: rgba(124,34,212,0.3); box-shadow: 0 8px 40px rgba(0,0,0,0.7); }
+html.dark .vg-branch-option  { border-color: rgba(124,34,212,0.12); }
+html.dark .vg-branch-option:hover { background: #1a1428; }
+html.dark .vg-branch-option-name { color: #c8c4d4; }
+html.dark .vg-branch-option--active .vg-branch-option-name { color: #9b3df0; }
+html.dark .vg-topbar-dropdown-header { border-color: rgba(124,34,212,0.15); }
+html.dark .vg-topbar-dropdown { background: #130f1e; border-color: rgba(124,34,212,0.3); box-shadow: 0 8px 40px rgba(0,0,0,0.7); }
+html.dark .vg-topbar-dropdown-title { color: #e8e4f0; }
+html.dark .vg-topbar-alert-row { border-color: rgba(124,34,212,0.12); }
+html.dark .vg-topbar-alert-row:hover { background: #1a1428; }
+html.dark .vg-topbar-alert-title { color: #e8e4f0; }
+html.dark .vg-topbar-empty { color: #7a7490; }
+html.dark .vg-topbar-breadcrumb { color: #7a7490; }
+html.dark .vg-topbar-page { color: #9b3df0; }
+
+/* x-modal dark */
+html.dark .bg-white.rounded-xl { background: #130f1e !important; }
+html.dark .border-cream3.rounded-xl { border-color: rgba(124,34,212,0.3) !important; }
+
+/* Pagination dark */
+html.dark nav[role="navigation"] span,
+html.dark nav[role="navigation"] a { border-color: rgba(124,34,212,0.2); }
+html.dark nav[role="navigation"] a { color: #7a7490; }
+html.dark nav[role="navigation"] a:hover { background: rgba(124,34,212,0.12); border-color: rgba(124,34,212,0.4); color: #9b3df0; }
+html.dark nav[role="navigation"] span { color: rgba(255,255,255,0.2); }
+
+/* Alert dark */
+html.dark .erp-alert-msg { color: #e8e4f0; }
+
+/* Form labels dark */
+html.dark .erp-label { opacity: 0.85; }
+
+/* Status badges — keep vivid, adjust muted */
+html.dark .erp-badge--muted { background: rgba(255,255,255,0.06); color: #7a7490; border-color: rgba(255,255,255,0.1); }
+
+/* POS dark overrides */
+html.dark .bg-navy.border.border-cream3 { background: #130f1e !important; border-color: rgba(124,34,212,0.2) !important; }
+html.dark .bg-cream.border.border-cream3 { background: #1a1428 !important; border-color: rgba(124,34,212,0.15) !important; }
+html.dark select option { background: #130f1e; color: #e8e4f0; }
+
+/* Theme toggle button */
+.vg-theme-toggle {
+  display: flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px;
+  border-radius: 6px;
+  background: var(--surface-soft);
+  border: 1px solid var(--border-default);
+  cursor: pointer;
+  transition: all 0.15s;
+  color: var(--text-muted);
+}
+.vg-theme-toggle:hover { border-color: rgba(124,34,212,0.4); background: rgba(124,34,212,0.06); color: var(--brand); }

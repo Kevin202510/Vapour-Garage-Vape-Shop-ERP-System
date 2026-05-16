@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 class CustomerWebController extends Controller
 {
     use AuthorizesRequests;
+
     public function __construct(
         protected CustomerService $customerService,
         protected BranchService   $branchService,
@@ -38,7 +39,10 @@ class CustomerWebController extends Controller
         $loyalCount = \App\Models\Customer::when($effectiveBranchId, fn ($q) => $q->where('registered_branch_id', $effectiveBranchId))->whereIn('tier', ['gold', 'platinum'])->count();
         $avgPoints  = \App\Models\Customer::when($effectiveBranchId, fn ($q) => $q->where('registered_branch_id', $effectiveBranchId))->avg('loyalty_points') ?? 0;
 
-        return view('pages.customers.index', compact('customers', 'branches', 'totalCount', 'loyalCount', 'avgPoints', 'effectiveBranchId', 'activeBranchLabel'));
+        return view('pages.customers.index', compact(
+            'customers', 'branches', 'totalCount', 'loyalCount', 'avgPoints',
+            'effectiveBranchId', 'activeBranchLabel'
+        ));
     }
 
     public function create()
@@ -49,22 +53,38 @@ class CustomerWebController extends Controller
 
     public function store(Request $request)
     {
+        $this->authorize('create customers');
+
         $validated = $request->validate([
             'first_name'           => 'required|string|max:100',
             'last_name'            => 'required|string|max:100',
-            'email'                => 'nullable|email|max:255',
+            'email'                => 'nullable|email|max:255|unique:customers,email',
             'phone'                => 'nullable|string|max:20',
             'birth_date'           => 'nullable|date|before:-18 years',
             'registered_branch_id' => 'nullable|exists:branches,id',
         ]);
-        $this->customerService->create($validated);
-        return redirect()->route('customers.index')->with('success', 'Customer registered.');
+
+        $customer = $this->customerService->create($validated);
+        return redirect()->route('customers.show', $customer)
+            ->with('success', "{$customer->full_name} registered as a loyalty member.");
     }
 
     public function show(int $id)
     {
         $customer = $this->customerService->findOrFail($id);
-        return view('pages.customers.show', compact('customer'));
+        $customer->load(['registeredBranch']);
+
+        $transactions = $customer->transactions()
+            ->with(['branch', 'items'])
+            ->latest('transaction_date')
+            ->paginate(10);
+
+        $totalSpent = (float) $customer->transactions()->where('status', 'completed')->sum('total_amount');
+        $visitCount = $customer->transactions()->where('status', 'completed')->count();
+
+        return view('pages.customers.show', compact(
+            'customer', 'transactions', 'totalSpent', 'visitCount'
+        ));
     }
 
     public function edit(int $id)
@@ -76,20 +96,58 @@ class CustomerWebController extends Controller
 
     public function update(Request $request, int $id)
     {
+        $this->authorize('edit customers');
+
         $validated = $request->validate([
-            'first_name' => 'sometimes|string|max:100',
-            'last_name'  => 'sometimes|string|max:100',
-            'email'      => 'nullable|email|max:255',
-            'phone'      => 'nullable|string|max:20',
-            'birth_date' => 'nullable|date|before:-18 years',
+            'first_name'           => 'sometimes|string|max:100',
+            'last_name'            => 'sometimes|string|max:100',
+            'email'                => "nullable|email|max:255|unique:customers,email,{$id}",
+            'phone'                => 'nullable|string|max:20',
+            'birth_date'           => 'nullable|date|before:-18 years',
+            'registered_branch_id' => 'nullable|exists:branches,id',
         ]);
-        $this->customerService->update($id, $validated);
-        return redirect()->route('customers.index')->with('success', 'Customer updated.');
+
+        $customer = $this->customerService->update($id, $validated);
+        return redirect()->route('customers.show', $id)
+            ->with('success', "{$customer->full_name}'s profile updated.");
     }
 
     public function destroy(int $id)
     {
+        $this->authorize('delete customers');
+        $customer = $this->customerService->findOrFail($id);
         $this->customerService->delete($id);
-        return redirect()->route('customers.index')->with('success', 'Customer deleted.');
+        return redirect()->route('customers.index')
+            ->with('success', "{$customer->full_name} has been removed.");
+    }
+
+    public function addPoints(Request $request, int $id)
+    {
+        $this->authorize('edit customers');
+
+        $validated = $request->validate([
+            'points' => 'required|integer|min:1|max:100000',
+        ]);
+
+        $customer = $this->customerService->addPoints($id, $validated['points']);
+        return redirect()->route('customers.show', $id)
+            ->with('success', number_format($validated['points']) . ' points added — now ' . ucfirst($customer->tier) . ' tier with ' . number_format($customer->loyalty_points) . ' pts.');
+    }
+
+    public function deductPoints(Request $request, int $id)
+    {
+        $this->authorize('edit customers');
+
+        $validated = $request->validate([
+            'points' => 'required|integer|min:1|max:100000',
+        ]);
+
+        try {
+            $customer = $this->customerService->deductPoints($id, $validated['points']);
+            return redirect()->route('customers.show', $id)
+                ->with('success', number_format($validated['points']) . ' points deducted — ' . number_format($customer->loyalty_points) . ' pts remaining.');
+        } catch (\RuntimeException $e) {
+            return back()->withErrors(['deduct' => $e->getMessage()]);
+        }
     }
 }

@@ -14,6 +14,12 @@
     background: #f5f4fb;
     color: #1c1830;
     font-family: 'Exo 2', sans-serif;
+    transition: background 0.2s, color 0.2s;
+  }
+
+  html.dark body {
+    background: #060608;
+    color: #e8e4f0;
   }
 
   :focus-visible {
