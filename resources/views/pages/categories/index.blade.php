@@ -88,7 +88,6 @@
                     <span class="font-mono text-[9px] text-ink4 self-center px-2">
                         {{ $cat->products_count > 0 ? 'Has products' : 'Has children' }}
                     </span>
-                    @endif
                     @endcan
                 </div>
             </x-td>

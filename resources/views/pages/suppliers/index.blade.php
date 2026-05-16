@@ -64,7 +64,6 @@
                     </a>
                 @else
                     <span class="text-ink4">—</span>
-                @endif
             </x-td>
             <x-td><span class="font-mono text-[11px] text-ink3">{{ $supplier->phone ?? '—' }}</span></x-td>
             <x-td><span class="font-mono text-[10px] text-ink4">{{ $supplier->tin ?? '—' }}</span></x-td>
