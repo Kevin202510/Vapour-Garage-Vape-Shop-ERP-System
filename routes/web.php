@@ -122,6 +122,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/{id}/cancel',            [PurchasingWebController::class, 'cancel'])->name('cancel');
     });
 
+    // Product Categories
+    Route::resource('categories', \App\Http\Controllers\Web\CategoryWebController::class)->except(['show']);
+
+    // Suppliers
+    Route::resource('suppliers', \App\Http\Controllers\Web\SupplierWebController::class);
+
     // Customers
     Route::post('customers/{customer}/add-points',    [CustomerWebController::class, 'addPoints'])->name('customers.add-points');
     Route::post('customers/{customer}/deduct-points', [CustomerWebController::class, 'deductPoints'])->name('customers.deduct-points');

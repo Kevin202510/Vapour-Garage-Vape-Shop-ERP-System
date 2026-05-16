@@ -26,13 +26,16 @@
         @endcanany
 
         @can('view products')
-            <x-nav-item route="products.index" icon="box"    label="Products"   :badge="$lowStockCount ?? 0" />
+            <x-nav-item route="products.index"   icon="box"    label="Products"   :badge="$lowStockCount ?? 0" />
+        @endcan
+        @can('view categories')
+            <x-nav-item route="categories.index" icon="list"   label="Categories" />
         @endcan
         @can('view inventory')
-            <x-nav-item route="inventory.index" icon="list"  label="Inventory" />
+            <x-nav-item route="inventory.index"  icon="list"   label="Inventory" />
         @endcan
         @can('view stock transfers')
-            <x-nav-item route="transfers.index" icon="repeat" label="Transfers"
+            <x-nav-item route="transfers.index"  icon="repeat" label="Transfers"
                 :badge="auth()->user()->can('approve stock transfers') ? $pendingTransfers ?? 0 : 0" />
         @endcan
 
@@ -48,6 +51,9 @@
         @endcan
         @can('view purchase orders')
             <x-nav-item route="purchasing.index"     icon="shopping-bag"  label="Purchasing" />
+        @endcan
+        @can('view suppliers')
+            <x-nav-item route="suppliers.index"      icon="users"         label="Suppliers" />
         @endcan
         @can('view customers')
             <x-nav-item route="customers.index"      icon="users"         label="Customers" />
