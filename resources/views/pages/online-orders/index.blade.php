@@ -9,12 +9,57 @@
         </x-slot:actions>
     </x-page-header>
 
+    @if($errors->has('error'))
+        <div style="margin-bottom:16px;padding:12px 16px;background:rgba(224,80,80,0.08);border:1px solid rgba(224,80,80,0.3);border-radius:4px;font-family:'Share Tech Mono',monospace;font-size:11px;color:#e05050;letter-spacing:0.04em">
+            {{ $errors->first('error') }}
+        </div>
+    @endif
+    @if(session('success'))
+        <div style="margin-bottom:16px;padding:12px 16px;background:rgba(57,255,20,0.06);border:1px solid rgba(57,255,20,0.25);border-radius:4px;font-family:'Share Tech Mono',monospace;font-size:11px;color:#39ff14;letter-spacing:0.04em">
+            {{ session('success') }}
+        </div>
+    @endif
+
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px">
         <x-kpi-card label="Pending"    :value="$totalPending"   color="purple" />
         <x-kpi-card label="Confirmed"  :value="$totalConfirmed" color="green" />
         <x-kpi-card label="Ready"      :value="$totalReady"     color="gold" />
         <x-kpi-card label="Today Revenue" :value="'₱' . number_format($todayRevenue)" color="green" />
     </div>
+
+    {{-- Search & date filters --}}
+    <form method="GET" action="{{ route('online-orders.index') }}" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+        <input type="text" name="search" value="{{ request('search') }}"
+               placeholder="Order #, name, email, phone…"
+               style="padding:6px 12px;background:rgba(124,34,212,0.06);border:1px solid rgba(124,34,212,0.25);border-radius:3px;font-family:'Share Tech Mono',monospace;font-size:11px;color:#e8e4f0;outline:none;width:220px"
+               onfocus="this.style.borderColor='rgba(124,34,212,0.6)'" onblur="this.style.borderColor='rgba(124,34,212,0.25)'">
+        <input type="date" name="date_from" value="{{ request('date_from') }}"
+               style="padding:6px 10px;background:rgba(124,34,212,0.06);border:1px solid rgba(124,34,212,0.25);border-radius:3px;font-family:'Share Tech Mono',monospace;font-size:11px;color:#e8e4f0;outline:none;color-scheme:dark">
+        <span style="font-family:'Share Tech Mono',monospace;font-size:10px;color:#7a7490">to</span>
+        <input type="date" name="date_to" value="{{ request('date_to') }}"
+               style="padding:6px 10px;background:rgba(124,34,212,0.06);border:1px solid rgba(124,34,212,0.25);border-radius:3px;font-family:'Share Tech Mono',monospace;font-size:11px;color:#e8e4f0;outline:none;color-scheme:dark">
+        @if(auth()->user()->isSuperAdmin())
+        <select name="branch_id"
+                style="padding:6px 10px;background:rgba(124,34,212,0.06);border:1px solid rgba(124,34,212,0.25);border-radius:3px;font-family:'Share Tech Mono',monospace;font-size:11px;color:#e8e4f0;outline:none">
+            <option value="">All Branches</option>
+            @foreach($branches as $branch)
+                <option value="{{ $branch->id }}" {{ request('branch_id') == $branch->id ? 'selected' : '' }}>
+                    {{ $branch->name }}
+                </option>
+            @endforeach
+        </select>
+        @endif
+        <button type="submit"
+                style="padding:6px 14px;background:rgba(124,34,212,0.15);border:1px solid rgba(124,34,212,0.4);border-radius:3px;font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:#9b3df0;cursor:pointer">
+            Apply
+        </button>
+        @if(request()->hasAny(['search','date_from','date_to','branch_id']))
+        <a href="{{ route('online-orders.index', request()->only('status')) }}"
+           style="font-family:'Share Tech Mono',monospace;font-size:10px;color:#7a7490;text-decoration:none;letter-spacing:0.06em">
+            Clear
+        </a>
+        @endif
+    </form>
 
     {{-- Status filter --}}
     <div style="display:flex;gap:4px;margin-bottom:20px;flex-wrap:wrap">
@@ -47,9 +92,9 @@
         <tr style="border-bottom:1px solid rgba(124,34,212,0.1);transition:background 0.15s;cursor:pointer"
             onmouseover="this.style.background='rgba(124,34,212,0.05)'" onmouseout="this.style.background=''">
             <x-td>
-                <span style="font-family:'Share Tech Mono',monospace;font-size:11px;color:#9b3df0;letter-spacing:0.06em">
+                <a href="{{ route('online-orders.show', $order) }}" style="font-family:'Share Tech Mono',monospace;font-size:11px;color:#9b3df0;letter-spacing:0.06em;text-decoration:none;border-bottom:1px dashed rgba(155,61,240,0.4)">
                     {{ $order->order_number }}
-                </span>
+                </a>
             </x-td>
             <x-td style="font-weight:600;color:#e8e4f0">{{ $order->full_name }}</x-td>
             <x-td>
@@ -72,6 +117,7 @@
             </x-td>
             <x-td>
                 <div style="display:flex;gap:6px">
+                    <a href="{{ route('online-orders.show', $order) }}" style="padding:4px 10px;background:rgba(124,34,212,0.1);color:#9b3df0;border:1px solid rgba(124,34,212,0.3);border-radius:3px;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;text-decoration:none;display:inline-flex;align-items:center">View</a>
                     @if($order->status === 'pending')
                         <form method="POST" action="{{ route('online-orders.update', $order) }}">
                             @csrf @method('PATCH')

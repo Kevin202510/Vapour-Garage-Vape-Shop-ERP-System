@@ -39,7 +39,11 @@
         @endif
         <x-form-input name="date_from" type="date" label="" :value="request('date_from')" class="min-w-[130px]" />
         <x-form-input name="date_to"   type="date" label="" :value="request('date_to')"   class="min-w-[130px]" />
+        <x-form-input name="search" type="text" label="" placeholder="Search TXN #…" :value="request('search')" class="min-w-[160px]" />
         <x-btn type="submit" variant="ghost" size="sm">Apply</x-btn>
+        @if(request()->hasAny(['search','date_from','date_to','branch_id']))
+            <a href="{{ route('sales.index', array_merge(request()->only('status'))) }}" class="text-[11px] font-mono text-ink4 hover:text-ink">Clear</a>
+        @endif
     </form>
 
     <x-data-table title="Transactions">

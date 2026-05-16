@@ -11,6 +11,26 @@
         </x-slot:actions>
     </x-page-header>
 
+    {{-- Search & date filters --}}
+    <form method="GET" action="{{ route('transfers.index') }}" class="flex items-center gap-3 flex-wrap mb-4">
+        <x-form-input name="search" type="text" label="" placeholder="Search transfer #…" :value="request('search')" class="min-w-[180px]" />
+        @if(auth()->user()->isSuperAdmin())
+        <x-form-select name="branch_id" label="" placeholder="All Branches" class="min-w-[140px]">
+            @foreach($branches as $branch)
+                <option value="{{ $branch->id }}" {{ request('branch_id') == $branch->id ? 'selected' : '' }}>
+                    {{ $branch->name }}
+                </option>
+            @endforeach
+        </x-form-select>
+        @endif
+        <x-form-input name="date_from" type="date" label="" :value="request('date_from')" class="min-w-[130px]" />
+        <x-form-input name="date_to"   type="date" label="" :value="request('date_to')"   class="min-w-[130px]" />
+        <x-btn type="submit" variant="ghost" size="sm">Apply</x-btn>
+        @if(request()->hasAny(['search','branch_id','date_from','date_to']))
+            <a href="{{ route('transfers.index', array_merge(request()->only('status'))) }}" class="text-[11px] font-mono text-ink4 hover:text-ink">Clear</a>
+        @endif
+    </form>
+
     {{-- Status filter --}}
     <div class="flex gap-1 bg-cream border border-cream3 rounded-md p-[3px] mb-5 w-fit">
         @foreach(['all' => 'All', 'pending' => 'Pending', 'approved' => 'Approved', 'in_transit' => 'In Transit', 'received' => 'Received', 'rejected' => 'Rejected'] as $val => $lbl)

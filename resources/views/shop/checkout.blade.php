@@ -5,7 +5,11 @@
     <div class="sec-tag">Secure Checkout</div>
     <h1 class="sec-title" style="margin-bottom:32px">COMPLETE <span style="color:var(--green)">YOUR ORDER</span></h1>
 
-    @if($errors->any())
+    @if($errors->has('stock'))
+        <div class="flash flash-err" style="margin-bottom:24px">
+            <strong>Stock unavailable:</strong> {{ $errors->first('stock') }}
+        </div>
+    @elseif($errors->any())
         <div class="flash flash-err" style="margin-bottom:24px">{{ $errors->first() }}</div>
     @endif
 

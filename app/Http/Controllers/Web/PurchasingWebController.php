@@ -22,16 +22,17 @@ class PurchasingWebController extends Controller
 
     public function index(Request $request)
     {
-        $filters = $request->only(['status', 'supplier_id', 'branch_id', 'date_from', 'date_to']);
+        $filters = $request->only(['status', 'supplier_id', 'branch_id', 'date_from', 'date_to', 'search']);
         $user    = auth()->user();
         if (! $user->isSuperAdmin()) $filters['branch_id'] = $user->branch_id;
         if (($filters['status'] ?? 'all') === 'all') unset($filters['status']);
 
         $purchaseOrders = $this->poService->list($filters, 20);
         $suppliers      = $this->supplierService->allActive();
+        $branches       = $this->branchService->allActive();
         $activePoCount  = \App\Models\PurchaseOrder::whereIn('status', ['draft', 'approved', 'sent', 'partial'])->count();
 
-        return view('pages.purchasing.index', compact('purchaseOrders', 'suppliers', 'activePoCount'));
+        return view('pages.purchasing.index', compact('purchaseOrders', 'suppliers', 'branches', 'activePoCount'));
     }
 
     public function create()

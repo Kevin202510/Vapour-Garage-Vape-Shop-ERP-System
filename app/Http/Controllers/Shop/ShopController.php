@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Shop;
 
 use App\Http\Controllers\Controller;
+use App\Models\BranchInventory;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\OnlineOrder;
@@ -127,6 +128,29 @@ class ShopController extends Controller
         if (empty($cart)) return redirect()->route('shop.cart');
 
         $products = Product::whereIn('id', array_keys($cart))->get()->keyBy('id');
+
+        // Validate stock before creating the order
+        $branchId = $validated['pickup_branch_id'] ?? null;
+        foreach ($cart as $productId => $qty) {
+            if (! isset($products[$productId])) continue;
+            $product = $products[$productId];
+
+            if ($branchId) {
+                $inv       = BranchInventory::where('branch_id', $branchId)->where('product_id', $productId)->first();
+                $available = $inv ? max(0, $inv->quantity_on_hand - $inv->quantity_reserved) : 0;
+            } else {
+                $available = (int) BranchInventory::where('product_id', $productId)
+                    ->selectRaw('COALESCE(SUM(quantity_on_hand - quantity_reserved), 0) as avail')
+                    ->value('avail');
+            }
+
+            if ($available < $qty) {
+                return back()->withInput()->withErrors([
+                    'stock' => "\"{$product->name}\" — only {$available} unit(s) available, you requested {$qty}.",
+                ]);
+            }
+        }
+
         $subtotal = collect($cart)->reduce(fn ($sum, $qty, $id) =>
             $sum + (($products[$id]->selling_price ?? 0) * $qty), 0
         );

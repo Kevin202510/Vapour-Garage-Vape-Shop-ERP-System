@@ -134,6 +134,7 @@ Route::prefix('shop')->name('shop.')->group(function () {
 use App\Http\Controllers\Web\OnlineOrderWebController;
 
 Route::middleware(['auth', 'verified'])->prefix('online-orders')->name('online-orders.')->group(function () {
-    Route::get('/',       [OnlineOrderWebController::class, 'index'])->name('index');
+    Route::get('/',                [OnlineOrderWebController::class, 'index'])->name('index');
+    Route::get('/{onlineOrder}',   [OnlineOrderWebController::class, 'show'])->name('show');
     Route::patch('/{onlineOrder}', [OnlineOrderWebController::class, 'update'])->name('update');
 });

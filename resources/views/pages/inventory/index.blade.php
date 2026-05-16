@@ -65,7 +65,7 @@
     {{-- Inventory table --}}
     <x-data-table title="Stock by Branch">
         <x-slot:tableHeader>
-            <form method="GET" action="{{ route('inventory.index') }}" class="flex gap-2">
+            <form method="GET" action="{{ route('inventory.index') }}" class="flex gap-2 items-center">
                 <select name="branch_id" onchange="this.form.submit()"
                         class="bg-cream border border-cream3 text-ink2 text-[12px] px-3 py-[5px] rounded-md outline-none focus:border-terra font-sans">
                     <option value="">All Branches</option>
@@ -75,6 +75,12 @@
                         </option>
                     @endforeach
                 </select>
+                <input type="text" name="search" value="{{ request('search') }}" placeholder="Product name or SKU…"
+                       class="bg-cream border border-cream3 text-ink2 text-[12px] px-3 py-[5px] rounded-md outline-none focus:border-terra font-sans min-w-[200px]">
+                <x-btn type="submit" variant="ghost" size="sm">Search</x-btn>
+                @if(request()->hasAny(['search','branch_id']))
+                    <a href="{{ route('inventory.index') }}" class="text-[11px] font-mono text-ink4 hover:text-ink">Clear</a>
+                @endif
             </form>
         </x-slot:tableHeader>
         <x-slot:head>

@@ -16,10 +16,14 @@ class InventoryWebController extends Controller
     public function index(Request $request)
     {
         $branchId = $request->input('branch_id', auth()->user()->branch_id);
+        $search   = $request->input('search');
         $branches = $this->branchService->allActive();
 
         $inventory = \App\Models\BranchInventory::with(['product.category', 'branch'])
             ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->when($search,   fn ($q) => $q->whereHas('product', fn ($p) =>
+                $p->where('name', 'like', "%{$search}%")->orWhere('sku', 'like', "%{$search}%")
+            ))
             ->paginate(25);
 
         $totalRecords = $inventory->total();
