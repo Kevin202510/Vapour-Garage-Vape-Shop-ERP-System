@@ -123,6 +123,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     // Customers
+    Route::post('customers/{customer}/add-points',    [CustomerWebController::class, 'addPoints'])->name('customers.add-points');
+    Route::post('customers/{customer}/deduct-points', [CustomerWebController::class, 'deductPoints'])->name('customers.deduct-points');
     Route::resource('customers', CustomerWebController::class);
 
     // Employees
