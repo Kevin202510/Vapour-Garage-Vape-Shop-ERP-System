@@ -20,11 +20,19 @@ class PayrollWebController extends Controller
     {
         $filters = $request->only(['employee_id', 'branch_id', 'status', 'period_start', 'period_end']);
         $user    = auth()->user();
-        if (! $user->isSuperAdmin()) $filters['branch_id'] = $user->branch_id;
+        $effectiveBranchId = $user->isSuperAdmin()
+            ? (request()->has('branch_id') ? (request('branch_id') ?: null) : $user->activeBranchId())
+            : $user->branch_id;
+        if (! $user->isSuperAdmin()) { $filters['branch_id'] = $user->branch_id; }
+        elseif ($effectiveBranchId)  { $filters['branch_id'] = $effectiveBranchId; }
+        else                         { unset($filters['branch_id']); }
 
         $payrolls    = $this->payrollService->list($filters, 20);
         $branches    = $this->branchService->allActive();
         $periodLabel = now()->format('F Y');
+        $activeBranchLabel = $effectiveBranchId
+            ? ($branches->firstWhere('id', $effectiveBranchId)?->name ?? 'Selected Branch')
+            : 'All Branches';
 
         $stats = [
             'total_net'      => $payrolls->sum('net_pay'),
@@ -33,7 +41,7 @@ class PayrollWebController extends Controller
         ];
         $totalCount = $payrolls->total();
 
-        return view('pages.payroll.index', compact('payrolls', 'branches', 'periodLabel', 'stats', 'totalCount'));
+        return view('pages.payroll.index', compact('payrolls', 'branches', 'periodLabel', 'stats', 'totalCount', 'effectiveBranchId', 'activeBranchLabel'));
     }
 
     public function show(int $id)

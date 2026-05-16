@@ -22,7 +22,12 @@ class TransferWebController extends Controller
     {
         $filters = $request->only(['status', 'branch_id', 'date_from', 'date_to', 'search']);
         $user    = auth()->user();
-        if (! $user->isSuperAdmin()) $filters['branch_id'] = $user->branch_id;
+        $effectiveBranchId = $user->isSuperAdmin()
+            ? (request()->has('branch_id') ? (request('branch_id') ?: null) : $user->activeBranchId())
+            : $user->branch_id;
+        if (! $user->isSuperAdmin()) { $filters['branch_id'] = $user->branch_id; }
+        elseif ($effectiveBranchId)  { $filters['branch_id'] = $effectiveBranchId; }
+        else                         { unset($filters['branch_id']); }
         if (($filters['status'] ?? 'all') === 'all') unset($filters['status']);
 
         $transfers         = \App\Models\StockTransfer::with(['fromBranch', 'toBranch', 'requestedBy', 'items.product'])
@@ -43,9 +48,13 @@ class TransferWebController extends Controller
 
         $branches = $this->branchService->allActive();
         $products = $this->productService->list(['is_active' => true]);
+        $activeBranchLabel = $effectiveBranchId
+            ? ($branches->firstWhere('id', $effectiveBranchId)?->name ?? 'Selected Branch')
+            : 'All Branches';
 
         return view('pages.transfers.index', compact(
-            'transfers', 'pendingCount', 'inTransitCount', 'completedThisWeek', 'branches', 'products'
+            'transfers', 'pendingCount', 'inTransitCount', 'completedThisWeek',
+            'branches', 'products', 'effectiveBranchId', 'activeBranchLabel'
         ));
     }
 

@@ -1,7 +1,7 @@
 <x-app-layout title="Stock Transfers">
 
     <x-page-header overline="Inter-branch" title="Stock Transfers"
-                   :subtitle="$pendingCount . ' pending · ' . $inTransitCount . ' in transit · ' . $completedThisWeek . ' completed this week'">
+                   :subtitle="$activeBranchLabel . ' · ' . $pendingCount . ' pending · ' . $inTransitCount . ' in transit'">
         <x-slot:actions>
             @can('create stock transfers')
             <x-btn variant="primary" size="sm" x-on:click="$dispatch('open-modal', 'request-transfer')">
@@ -15,9 +15,9 @@
     <form method="GET" action="{{ route('transfers.index') }}" class="flex items-center gap-3 flex-wrap mb-4">
         <x-form-input name="search" type="text" label="" placeholder="Search transfer #…" :value="request('search')" class="min-w-[180px]" />
         @if(auth()->user()->isSuperAdmin())
-        <x-form-select name="branch_id" label="" placeholder="All Branches" class="min-w-[140px]">
+        <x-form-select name="branch_id" label="" placeholder="All Branches" class="min-w-[160px]">
             @foreach($branches as $branch)
-                <option value="{{ $branch->id }}" {{ request('branch_id') == $branch->id ? 'selected' : '' }}>
+                <option value="{{ $branch->id }}" {{ $effectiveBranchId == $branch->id ? 'selected' : '' }}>
                     {{ $branch->name }}
                 </option>
             @endforeach

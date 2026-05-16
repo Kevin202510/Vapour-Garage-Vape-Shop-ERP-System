@@ -115,6 +115,10 @@ class RolesAndPermissionsSeeder extends Seeder
         $superAdmin = Role::firstOrCreate(['name' => 'super_admin', 'guard_name' => 'sanctum']);
         $superAdmin->syncPermissions($permissions);
 
+        // ADMIN — full permissions across all branches (mirrors super_admin)
+        $admin = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'sanctum']);
+        $admin->syncPermissions($permissions);
+
         // BRANCH MANAGER — full access within their branch
         $branchManager = Role::firstOrCreate(['name' => 'branch_manager', 'guard_name' => 'sanctum']);
         $branchManager->syncPermissions([
@@ -206,9 +210,10 @@ class RolesAndPermissionsSeeder extends Seeder
 
         $this->command->info('✔ Roles and permissions seeded:');
         $this->command->info('  super_admin     — ' . $superAdmin->permissions->count() . ' permissions');
+        $this->command->info('  admin           — ' . $admin->permissions->count() . ' permissions');
         $this->command->info('  branch_manager  — ' . $branchManager->permissions->count() . ' permissions');
         $this->command->info('  supervisor      — ' . $supervisor->permissions->count() . ' permissions');
         $this->command->info('  cashier         — ' . $cashier->permissions->count() . ' permissions');
-        $this->command->info('  inventory_clerk         — ' . $inventory_clerk->permissions->count() . ' permissions');
+        $this->command->info('  inventory_clerk — ' . $inventory_clerk->permissions->count() . ' permissions');
     }
 }

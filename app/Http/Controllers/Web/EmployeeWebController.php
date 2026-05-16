@@ -24,19 +24,31 @@ class EmployeeWebController extends Controller
         $user    = auth()->user();
         $filters = $request->only(['search', 'branch_id', 'role', 'is_active']);
 
-        if (! $user->isSuperAdmin()) {
-            $filters['branch_id'] = $user->branch_id;
-        }
+        $effectiveBranchId = $user->isSuperAdmin()
+            ? (request()->has('branch_id') ? (request('branch_id') ?: null) : $user->activeBranchId())
+            : $user->branch_id;
+        if (! $user->isSuperAdmin()) { $filters['branch_id'] = $user->branch_id; }
+        elseif ($effectiveBranchId)  { $filters['branch_id'] = $effectiveBranchId; }
+        else                         { unset($filters['branch_id']); }
         $filters['is_active'] = true;
 
         $employees = $this->employeeService->list($filters, 20);
         $branches  = $this->branchService->allActive();
+        $activeBranchLabel = $effectiveBranchId
+            ? ($branches->firstWhere('id', $effectiveBranchId)?->name ?? 'Selected Branch')
+            : 'All Branches';
 
-        $totalActive  = DB::table('employees')->where('is_active', true)->count();
-        $presentToday = DB::table('attendances')->where('work_date', now()->toDateString())->where('status', 'present')->count();
-        $onLeave      = DB::table('attendances')->where('work_date', now()->toDateString())->where('status', 'leave')->count();
+        $totalActive  = DB::table('employees')
+            ->when($effectiveBranchId, fn ($q) => $q->where('branch_id', $effectiveBranchId))
+            ->where('is_active', true)->count();
+        $presentToday = DB::table('attendances')
+            ->when($effectiveBranchId, fn ($q) => $q->where('branch_id', $effectiveBranchId))
+            ->where('work_date', now()->toDateString())->where('status', 'present')->count();
+        $onLeave      = DB::table('attendances')
+            ->when($effectiveBranchId, fn ($q) => $q->where('branch_id', $effectiveBranchId))
+            ->where('work_date', now()->toDateString())->where('status', 'leave')->count();
 
-        return view('pages.employees.index', compact('employees', 'branches', 'totalActive', 'presentToday', 'onLeave'));
+        return view('pages.employees.index', compact('employees', 'branches', 'totalActive', 'presentToday', 'onLeave', 'effectiveBranchId', 'activeBranchLabel'));
     }
 
     public function create()

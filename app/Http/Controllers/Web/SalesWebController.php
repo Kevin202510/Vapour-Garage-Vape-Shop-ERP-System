@@ -21,25 +21,39 @@ class SalesWebController extends Controller
     {
         $filters = $request->only(['branch_id', 'cashier_id', 'status', 'payment_method', 'date_from', 'date_to', 'search']);
         $user    = auth()->user();
-        if (! $user->isSuperAdmin()) $filters['branch_id'] = $user->branch_id;
+
+        $effectiveBranchId = $user->isSuperAdmin()
+            ? (request()->has('branch_id') ? (request('branch_id') ?: null) : $user->activeBranchId())
+            : $user->branch_id;
+
+        if (! $user->isSuperAdmin()) {
+            $filters['branch_id'] = $user->branch_id;
+        } elseif ($effectiveBranchId) {
+            $filters['branch_id'] = $effectiveBranchId;
+        } else {
+            unset($filters['branch_id']);
+        }
+
         if (($filters['status'] ?? 'all') === 'all') unset($filters['status']);
 
-        $transactions = $this->salesService->list($filters, 20);
-        $branches     = $this->branchService->allActive();
+        $transactions      = $this->salesService->list($filters, 20);
+        $branches          = $this->branchService->allActive();
+        $activeBranchLabel = $effectiveBranchId
+            ? ($branches->firstWhere('id', $effectiveBranchId)?->name ?? 'Selected Branch')
+            : 'All Branches';
 
-        $branchId = $user->isSuperAdmin() ? null : $user->branch_id;
         $stats = [
             'month_revenue' => DB::table('sales_transactions')
                 ->whereMonth('transaction_date', now()->month)
                 ->whereYear('transaction_date', now()->year)
                 ->where('status', 'completed')
-                ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+                ->when($effectiveBranchId, fn ($q) => $q->where('branch_id', $effectiveBranchId))
                 ->sum('total_amount'),
             'month_count' => DB::table('sales_transactions')
                 ->whereMonth('transaction_date', now()->month)
                 ->whereYear('transaction_date', now()->year)
                 ->where('status', 'completed')
-                ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+                ->when($effectiveBranchId, fn ($q) => $q->where('branch_id', $effectiveBranchId))
                 ->count(),
             'avg_basket' => 0,
         ];
@@ -47,7 +61,7 @@ class SalesWebController extends Controller
             ? round($stats['month_revenue'] / $stats['month_count'])
             : 0;
 
-        return view('pages.sales.index', compact('transactions', 'branches', 'stats'));
+        return view('pages.sales.index', compact('transactions', 'branches', 'stats', 'effectiveBranchId', 'activeBranchLabel'));
     }
 
     public function show(int $id)
@@ -70,7 +84,12 @@ class SalesWebController extends Controller
 
         $filters = $request->only(['branch_id', 'cashier_id', 'status', 'payment_method', 'date_from', 'date_to', 'search']);
         $user    = auth()->user();
-        if (! $user->isSuperAdmin()) $filters['branch_id'] = $user->branch_id;
+        $effectiveBranchId = $user->isSuperAdmin()
+            ? (request()->has('branch_id') ? (request('branch_id') ?: null) : $user->activeBranchId())
+            : $user->branch_id;
+        if (! $user->isSuperAdmin()) { $filters['branch_id'] = $user->branch_id; }
+        elseif ($effectiveBranchId)  { $filters['branch_id'] = $effectiveBranchId; }
+        else                         { unset($filters['branch_id']); }
         if (($filters['status'] ?? 'all') === 'all') unset($filters['status']);
 
         $rows = DB::table('sales_transactions')

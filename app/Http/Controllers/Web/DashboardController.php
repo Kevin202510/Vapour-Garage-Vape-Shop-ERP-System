@@ -29,18 +29,28 @@ class DashboardController extends Controller
         $user  = auth()->user();
         $range = $request->input('range', 'today');
 
+        // Resolve the branch whose data to show.
+        // Admins: URL ?range= param ignored for branch; use active branch from session unless URL explicitly overrides.
+        $effectiveBranchId = $user->isSuperAdmin()
+            ? (request()->has('branch_id') ? (request('branch_id') ?: null) : $user->activeBranchId())
+            : $user->branch_id;
+
+        $activeBranchLabel = $effectiveBranchId
+            ? ($user->activeBranch()?->name ?? 'Selected Branch')
+            : 'All Branches';
+
         [$dateFrom, $dateTo, $prevFrom, $prevTo, $deltaLabel] = $this->resolveDateRange($range);
 
         $branches = $this->branchRepo->getActive();
 
-        $currentRev  = $this->getRangeRevenue($dateFrom, $dateTo, $user);
-        $previousRev = $this->getRangeRevenue($prevFrom, $prevTo, $user);
-        $currentTxn  = $this->getRangeTxnCount($dateFrom, $dateTo, $user);
-        $previousTxn = $this->getRangeTxnCount($prevFrom, $prevTo, $user);
-        $currentItems    = $this->getRangeItemsSold($dateFrom, $dateTo, $user);
-        $previousItems   = $this->getRangeItemsSold($prevFrom, $prevTo, $user);
-        $currentCustomers  = $this->getRangeNewCustomers($dateFrom, $dateTo, $user);
-        $previousCustomers = $this->getRangeNewCustomers($prevFrom, $prevTo, $user);
+        $currentRev       = $this->getRangeRevenue($dateFrom, $dateTo, $effectiveBranchId);
+        $previousRev      = $this->getRangeRevenue($prevFrom, $prevTo, $effectiveBranchId);
+        $currentTxn       = $this->getRangeTxnCount($dateFrom, $dateTo, $effectiveBranchId);
+        $previousTxn      = $this->getRangeTxnCount($prevFrom, $prevTo, $effectiveBranchId);
+        $currentItems     = $this->getRangeItemsSold($dateFrom, $dateTo, $effectiveBranchId);
+        $previousItems    = $this->getRangeItemsSold($prevFrom, $prevTo, $effectiveBranchId);
+        $currentCustomers = $this->getRangeNewCustomers($dateFrom, $dateTo, $effectiveBranchId);
+        $previousCustomers= $this->getRangeNewCustomers($prevFrom, $prevTo, $effectiveBranchId);
 
         $stats = [
             'revenue_today'      => $currentRev,
@@ -58,7 +68,7 @@ class DashboardController extends Controller
             ->join('branches', 'sales_transactions.branch_id', '=', 'branches.id')
             ->whereBetween(DB::raw('DATE(transaction_date)'), [$dateFrom, $dateTo])
             ->where('status', 'completed')
-            ->when(! $user->isSuperAdmin(), fn ($q) => $q->where('sales_transactions.branch_id', $user->branch_id))
+            ->when($effectiveBranchId, fn ($q) => $q->where('sales_transactions.branch_id', $effectiveBranchId))
             ->select('branches.name', DB::raw('SUM(total_amount) as revenue'))
             ->groupBy('branches.id', 'branches.name')
             ->orderByDesc('revenue')
@@ -72,29 +82,37 @@ class DashboardController extends Controller
             ->join('product_categories', 'products.category_id', '=', 'product_categories.id')
             ->whereBetween(DB::raw('DATE(sales_transactions.transaction_date)'), [$dateFrom, $dateTo])
             ->where('sales_transactions.status', 'completed')
-            ->when(! $user->isSuperAdmin(), fn ($q) => $q->where('sales_transactions.branch_id', $user->branch_id))
+            ->when($effectiveBranchId, fn ($q) => $q->where('sales_transactions.branch_id', $effectiveBranchId))
             ->select('product_categories.name', DB::raw('SUM(sales_transaction_items.subtotal) as total'))
             ->groupBy('product_categories.id', 'product_categories.name')
             ->orderByDesc('total')
             ->limit(4)
             ->get();
 
-        $recentTransactions = $this->salesRepo->paginate(8, [
+        $recentTransactions = $this->salesRepo->paginate(8, array_filter([
+            'branch_id'  => $effectiveBranchId,
             'sort_by'    => 'transaction_date',
             'sort_order' => 'desc',
-        ])->withQueryString();
+        ]))->withQueryString();
 
         $lowStockCount = DB::table('branch_inventory')
             ->join('products', 'branch_inventory.product_id', '=', 'products.id')
+            ->when($effectiveBranchId, fn ($q) => $q->where('branch_inventory.branch_id', $effectiveBranchId))
             ->whereRaw('(branch_inventory.quantity_on_hand - branch_inventory.quantity_reserved) <= products.reorder_level')
             ->count();
 
-        $pendingTransfers = DB::table('stock_transfers')->where('status', 'pending')->count();
+        $pendingTransfers = DB::table('stock_transfers')
+            ->where('status', 'pending')
+            ->when($effectiveBranchId, fn ($q) => $q->where(fn ($s) =>
+                $s->where('from_branch_id', $effectiveBranchId)->orWhere('to_branch_id', $effectiveBranchId)
+            ))
+            ->count();
 
         return view('pages.dashboard.index', compact(
             'branches', 'stats', 'branchRevenue', 'topBranch',
             'categorySales', 'recentTransactions', 'lowStockCount', 'pendingTransfers',
-            'range', 'dateFrom', 'dateTo', 'deltaLabel'
+            'range', 'dateFrom', 'dateTo', 'deltaLabel',
+            'effectiveBranchId', 'activeBranchLabel'
         ));
     }
 
@@ -106,13 +124,15 @@ class DashboardController extends Controller
         $range = $request->input('range', 'today');
         [$dateFrom, $dateTo] = $this->resolveDateRange($range);
 
+        $effectiveBranchId = $user->isSuperAdmin() ? $user->activeBranchId() : $user->branch_id;
+
         $transactions = DB::table('sales_transactions')
             ->join('branches', 'sales_transactions.branch_id', '=', 'branches.id')
             ->leftJoin('employees as cashiers', 'sales_transactions.cashier_id', '=', 'cashiers.id')
             ->leftJoin('customers', 'sales_transactions.customer_id', '=', 'customers.id')
             ->whereBetween(DB::raw('DATE(transaction_date)'), [$dateFrom, $dateTo])
             ->where('sales_transactions.status', 'completed')
-            ->when(! $user->isSuperAdmin(), fn ($q) => $q->where('sales_transactions.branch_id', $user->branch_id))
+            ->when($effectiveBranchId, fn ($q) => $q->where('sales_transactions.branch_id', $effectiveBranchId))
             ->select(
                 'sales_transactions.transaction_number',
                 'sales_transactions.transaction_date',
@@ -182,39 +202,39 @@ class DashboardController extends Controller
         };
     }
 
-    private function getRangeRevenue(string $from, string $to, $user): float
+    private function getRangeRevenue(string $from, string $to, ?int $branchId): float
     {
         return (float) DB::table('sales_transactions')
             ->whereBetween(DB::raw('DATE(transaction_date)'), [$from, $to])
             ->where('status', 'completed')
-            ->when(! $user->isSuperAdmin(), fn ($q) => $q->where('branch_id', $user->branch_id))
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->sum('total_amount');
     }
 
-    private function getRangeTxnCount(string $from, string $to, $user): int
+    private function getRangeTxnCount(string $from, string $to, ?int $branchId): int
     {
         return DB::table('sales_transactions')
             ->whereBetween(DB::raw('DATE(transaction_date)'), [$from, $to])
             ->where('status', 'completed')
-            ->when(! $user->isSuperAdmin(), fn ($q) => $q->where('branch_id', $user->branch_id))
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->count();
     }
 
-    private function getRangeItemsSold(string $from, string $to, $user): int
+    private function getRangeItemsSold(string $from, string $to, ?int $branchId): int
     {
         return (int) DB::table('sales_transaction_items')
             ->join('sales_transactions', 'sales_transaction_items.transaction_id', '=', 'sales_transactions.id')
             ->whereBetween(DB::raw('DATE(sales_transactions.transaction_date)'), [$from, $to])
             ->where('sales_transactions.status', 'completed')
-            ->when(! $user->isSuperAdmin(), fn ($q) => $q->where('sales_transactions.branch_id', $user->branch_id))
+            ->when($branchId, fn ($q) => $q->where('sales_transactions.branch_id', $branchId))
             ->sum('sales_transaction_items.quantity');
     }
 
-    private function getRangeNewCustomers(string $from, string $to, $user): int
+    private function getRangeNewCustomers(string $from, string $to, ?int $branchId): int
     {
         return DB::table('customers')
             ->whereBetween(DB::raw('DATE(created_at)'), [$from, $to])
-            ->when(! $user->isSuperAdmin(), fn ($q) => $q->where('registered_branch_id', $user->branch_id))
+            ->when($branchId, fn ($q) => $q->where('registered_branch_id', $branchId))
             ->count();
     }
 }

@@ -1,7 +1,7 @@
 <x-app-layout title="Online Orders">
 
     <x-page-header overline="E-Commerce" title="Online Orders"
-                   :subtitle="$totalPending . ' pending · ' . $totalToday . ' received today'">
+                   :subtitle="$activeBranchLabel . ' · ' . $totalPending . ' pending · ' . $totalToday . ' received today'">
         <x-slot:actions>
             <x-btn :href="route('shop.index')" variant="ghost" size="sm" target="_blank">
                 View Shop →
@@ -43,7 +43,7 @@
                 style="padding:6px 10px;background:rgba(124,34,212,0.06);border:1px solid rgba(124,34,212,0.25);border-radius:3px;font-family:'Share Tech Mono',monospace;font-size:11px;color:#e8e4f0;outline:none">
             <option value="">All Branches</option>
             @foreach($branches as $branch)
-                <option value="{{ $branch->id }}" {{ request('branch_id') == $branch->id ? 'selected' : '' }}>
+                <option value="{{ $branch->id }}" {{ $effectiveBranchId == $branch->id ? 'selected' : '' }}>
                     {{ $branch->name }}
                 </option>
             @endforeach

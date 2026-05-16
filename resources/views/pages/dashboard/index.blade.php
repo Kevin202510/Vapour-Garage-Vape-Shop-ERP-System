@@ -3,7 +3,7 @@
     <x-page-header
         overline="Overview · {{ now()->format('l, F d Y') }}"
         title="Good morning,<br><em>Operations.</em>"
-        :subtitle="(auth()->user()->isSuperAdmin() ? 'All ' . $branches->count() . ' branches' : (auth()->user()->branch->name ?? 'Your branch')) . ' · ' . ucfirst($range) . ' view'"
+        :subtitle="$activeBranchLabel . ' · ' . ucfirst($range) . ' view'"
     >
         <x-slot:actions>
             <div class="flex gap-1 bg-cream border border-cream3 rounded-md p-[3px]">

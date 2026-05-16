@@ -29,9 +29,9 @@ class InventoryService
         return $this->inventoryRepo->getLowStockByBranch($branchId);
     }
 
-    public function adjust(int $branchId, int $productId, int $newQty, ?int $employeeId, ?string $ipAddress): BranchInventory
+    public function adjust(int $branchId, int $productId, int $newQty, ?int $employeeId, ?string $ipAddress, ?string $reason = null): BranchInventory
     {
-        return DB::transaction(function () use ($branchId, $productId, $newQty, $employeeId, $ipAddress) {
+        return DB::transaction(function () use ($branchId, $productId, $newQty, $employeeId, $ipAddress, $reason) {
             $record  = $this->inventoryRepo->upsert($branchId, $productId, 0);
             $oldQty  = $record->quantity_on_hand;
 
@@ -42,7 +42,7 @@ class InventoryService
                 recordId:   $record->id,
                 action:     'update',
                 oldValues:  ['quantity_on_hand' => $oldQty],
-                newValues:  ['quantity_on_hand' => $newQty],
+                newValues:  ['quantity_on_hand' => $newQty, 'reason' => $reason],
                 employeeId: $employeeId,
                 branchId:   $branchId,
                 ipAddress:  $ipAddress,

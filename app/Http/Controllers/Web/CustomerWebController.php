@@ -19,14 +19,26 @@ class CustomerWebController extends Controller
     public function index(Request $request)
     {
         $filters = $request->only(['search', 'branch_id', 'tier']);
+        $user    = auth()->user();
+        $effectiveBranchId = $user->isSuperAdmin()
+            ? (request()->has('branch_id') ? (request('branch_id') ?: null) : $user->activeBranchId())
+            : $user->branch_id;
+        if (! $user->isSuperAdmin()) { $filters['branch_id'] = $user->branch_id; }
+        elseif ($effectiveBranchId)  { $filters['branch_id'] = $effectiveBranchId; }
+        else                         { unset($filters['branch_id']); }
         if (($filters['tier'] ?? 'all') === 'all') unset($filters['tier']);
 
         $customers  = $this->customerService->list($filters, 20);
-        $totalCount = \App\Models\Customer::count();
-        $loyalCount = \App\Models\Customer::whereIn('tier', ['gold', 'platinum'])->count();
-        $avgPoints  = \App\Models\Customer::avg('loyalty_points') ?? 0;
+        $branches   = $this->branchService->allActive();
+        $activeBranchLabel = $effectiveBranchId
+            ? ($branches->firstWhere('id', $effectiveBranchId)?->name ?? 'Selected Branch')
+            : 'All Branches';
 
-        return view('pages.customers.index', compact('customers', 'totalCount', 'loyalCount', 'avgPoints'));
+        $totalCount = \App\Models\Customer::when($effectiveBranchId, fn ($q) => $q->where('registered_branch_id', $effectiveBranchId))->count();
+        $loyalCount = \App\Models\Customer::when($effectiveBranchId, fn ($q) => $q->where('registered_branch_id', $effectiveBranchId))->whereIn('tier', ['gold', 'platinum'])->count();
+        $avgPoints  = \App\Models\Customer::when($effectiveBranchId, fn ($q) => $q->where('registered_branch_id', $effectiveBranchId))->avg('loyalty_points') ?? 0;
+
+        return view('pages.customers.index', compact('customers', 'branches', 'totalCount', 'loyalCount', 'avgPoints', 'effectiveBranchId', 'activeBranchLabel'));
     }
 
     public function create()

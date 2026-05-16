@@ -1,21 +1,21 @@
 @props(['label', 'name', 'type' => 'text', 'required' => false, 'help' => null])
 
 <div {{ $attributes->only('class') }}>
-    <label for="{{ $name }}" style="display:block;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(124,34,212,0.7);margin-bottom:7px">
-        {{ $label }}@if($required)<span style="color:#39ff14;margin-left:3px">*</span>@endif
+    @if($label)
+    <label for="{{ $name }}" class="erp-label">
+        {{ $label }}@if($required)<span class="erp-required">*</span>@endif
     </label>
+    @endif
     <input
         id="{{ $name }}" name="{{ $name }}" type="{{ $type }}"
         @if($required) required @endif
         {{ $attributes->except('class') }}
-        style="width:100%;background:#0d0b14;border:1px solid rgba(124,34,212,0.3);border-radius:4px;padding:9px 14px;font-family:'Exo 2',sans-serif;font-size:13px;color:#e8e4f0;outline:none;caret-color:#39ff14;transition:border-color 0.2s;{{ $errors->has($name) ? 'border-color:rgba(184,50,50,0.6)' : '' }}"
-        onfocus="this.style.borderColor='rgba(124,34,212,0.7)';this.style.boxShadow='0 0 12px rgba(124,34,212,0.2)'"
-        onblur="this.style.borderColor='rgba(124,34,212,0.3)';this.style.boxShadow='none'"
+        class="erp-input {{ $errors->has($name) ? 'erp-input--error' : '' }}"
     >
     @error($name)
-        <p style="margin-top:5px;font-family:'Share Tech Mono',monospace;font-size:10px;color:#e05050">{{ $message }}</p>
+        <p class="erp-field-error">{{ $message }}</p>
     @enderror
     @if($help)
-        <p style="margin-top:5px;font-size:11px;color:#7a7490">{{ $help }}</p>
+        <p class="erp-field-help">{{ $help }}</p>
     @endif
 </div>

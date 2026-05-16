@@ -57,7 +57,7 @@ class User extends Authenticatable
 
     public function isSuperAdmin(): bool
     {
-        return $this->hasRole('super_admin');
+        return $this->hasRole(['super_admin', 'admin']);
     }
 
     public function isBranchManager(): bool
@@ -66,14 +66,30 @@ class User extends Authenticatable
     }
 
     /**
-     * Scope a query to users belonging to a specific branch.
-     * Super admins always pass through regardless of branch.
+     * The branch the user is currently "operating in".
+     * For admins/super-admins this is driven by the session (branch switcher in topbar).
+     * For all other roles it is their permanently assigned branch.
      */
+    public function activeBranchId(): ?int
+    {
+        if ($this->isSuperAdmin()) {
+            $id = session('active_branch_id');
+            return $id ? (int) $id : $this->branch_id;
+        }
+        return $this->branch_id;
+    }
+
+    public function activeBranch(): ?Branch
+    {
+        $id = $this->activeBranchId();
+        return $id ? Branch::find($id) : null;
+    }
+
     public function scopeForBranch($query, int $branchId)
     {
         return $query->where(function ($q) use ($branchId) {
             $q->where('branch_id', $branchId)
-              ->orWhereHas('roles', fn ($r) => $r->where('name', 'super_admin'));
+              ->orWhereHas('roles', fn ($r) => $r->whereIn('name', ['super_admin', 'admin']));
         });
     }
 

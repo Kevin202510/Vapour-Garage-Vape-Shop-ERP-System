@@ -1,6 +1,6 @@
 <x-app-layout title="Sales">
 
-    <x-page-header overline="Commerce" title="Sales History" subtitle="Transaction log · {{ now()->format('F Y') }}">
+    <x-page-header overline="Commerce" title="Sales History" :subtitle="$activeBranchLabel . ' · Transaction log · ' . now()->format('F Y')">
         <x-slot:actions>
             <x-btn variant="ghost" size="sm">Filter</x-btn>
             @can('export reports')
@@ -29,9 +29,9 @@
             @endforeach
         </div>
         @if(auth()->user()->isSuperAdmin())
-            <x-form-select name="branch_id" label="" placeholder="All Branches" class="min-w-[140px]">
+            <x-form-select name="branch_id" label="" placeholder="All Branches" class="min-w-[160px]">
                 @foreach($branches as $branch)
-                    <option value="{{ $branch->id }}" {{ request('branch_id') == $branch->id ? 'selected' : '' }}>
+                    <option value="{{ $branch->id }}" {{ $effectiveBranchId == $branch->id ? 'selected' : '' }}>
                         {{ $branch->name }}
                     </option>
                 @endforeach

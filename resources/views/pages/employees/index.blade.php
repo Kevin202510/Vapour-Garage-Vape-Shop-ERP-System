@@ -1,7 +1,7 @@
 <x-app-layout title="Employees">
 
     <x-page-header overline="Human Resources" title="Employees"
-                   :subtitle="$employees->total() . ' active staff · ' . $presentToday . ' present today · ' . $onLeave . ' on leave'">
+                   :subtitle="$activeBranchLabel . ' · ' . $employees->total() . ' staff · ' . $presentToday . ' present · ' . $onLeave . ' on leave'">
         <x-slot:actions>
             @can('create employees')
             <x-btn variant="primary" size="sm" :href="route('employees.create')">
@@ -26,9 +26,9 @@
                    class="bg-transparent border-none outline-none text-[12px] font-sans text-ink placeholder-ink4 w-full">
         </div>
         @if(auth()->user()->isSuperAdmin())
-            <x-form-select name="branch_id" label="" placeholder="All Branches" class="min-w-[140px]">
+            <x-form-select name="branch_id" label="" placeholder="All Branches" class="min-w-[160px]">
                 @foreach($branches as $branch)
-                    <option value="{{ $branch->id }}" {{ request('branch_id') == $branch->id ? 'selected' : '' }}>
+                    <option value="{{ $branch->id }}" {{ $effectiveBranchId == $branch->id ? 'selected' : '' }}>
                         {{ $branch->name }}
                     </option>
                 @endforeach

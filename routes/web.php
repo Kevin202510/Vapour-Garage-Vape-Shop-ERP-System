@@ -52,6 +52,18 @@ require __DIR__ . '/auth.php';
 // ── Authenticated web routes ───────────────────────────────────────────────
 Route::middleware(['auth', 'verified'])->group(function () {
 
+    // Branch switcher (admin / super_admin only)
+    Route::post('/switch-branch', function (\Illuminate\Http\Request $request) {
+        if (! auth()->user()->isSuperAdmin()) abort(403);
+        if ($request->input('branch_id') === 'all') {
+            session()->forget('active_branch_id');
+        } else {
+            $request->validate(['branch_id' => 'required|exists:branches,id']);
+            session(['active_branch_id' => (int) $request->branch_id]);
+        }
+        return back();
+    })->name('branch.switch');
+
     // Dashboard
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/export', [DashboardController::class, 'export'])->name('dashboard.export');
@@ -63,7 +75,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('products', ProductWebController::class);
 
     // Inventory
-    Route::get('/inventory', [InventoryWebController::class, 'index'])->name('inventory.index');
+    Route::get('/inventory',        [InventoryWebController::class, 'index'])->name('inventory.index');
+    Route::post('/inventory/adjust', [InventoryWebController::class, 'adjust'])->name('inventory.adjust');
 
     // Stock Transfers
     Route::prefix('transfers')->name('transfers.')->group(function () {

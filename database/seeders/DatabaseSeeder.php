@@ -32,12 +32,14 @@ class DatabaseSeeder extends Seeder
             InventorySeeder::class,
             CustomerSeeder::class,
             DiscountSeeder::class,
-            // SalesTransactionSeeder::class,
-            // PurchaseOrderSeeder::class,
-            // StockTransferSeeder::class,
+            SalesTransactionSeeder::class,
+            OnlineOrderSeeder::class,
+            PurchaseOrderSeeder::class,
+            StockTransferSeeder::class,
             AttendanceAndPayrollSeeder::class,
             RolesAndPermissionsSeeder::class,
             UserSeeder::class,
+            AdminUserSeeder::class,
         ]);
 
         $this->command->info('');

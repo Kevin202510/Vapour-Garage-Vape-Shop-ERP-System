@@ -16,13 +16,22 @@ class OnlineOrderWebController extends Controller
     public function index(Request $request)
     {
         $filters = $request->only(['status', 'branch_id', 'date_from', 'date_to', 'search']);
+        $user    = auth()->user();
+        $effectiveBranchId = $user->isSuperAdmin()
+            ? (request()->has('branch_id') ? (request('branch_id') ?: null) : $user->activeBranchId())
+            : $user->branch_id;
+
+        $branches = Branch::where('is_active', true)->orderBy('name')->get();
+        $activeBranchLabel = $effectiveBranchId
+            ? ($branches->firstWhere('id', $effectiveBranchId)?->name ?? 'Selected Branch')
+            : 'All Branches';
 
         $orders = OnlineOrder::with(['items', 'branch'])
             ->when(isset($filters['status']) && $filters['status'] !== 'all', fn ($q) => $q->where('status', $filters['status']))
-            ->when(! empty($filters['branch_id']),  fn ($q) => $q->where('pickup_branch_id', $filters['branch_id']))
-            ->when(! empty($filters['date_from']),  fn ($q) => $q->whereDate('created_at', '>=', $filters['date_from']))
-            ->when(! empty($filters['date_to']),    fn ($q) => $q->whereDate('created_at', '<=', $filters['date_to']))
-            ->when(! empty($filters['search']),     fn ($q) => $q->where(fn ($s) =>
+            ->when($effectiveBranchId,             fn ($q) => $q->where('pickup_branch_id', $effectiveBranchId))
+            ->when(! empty($filters['date_from']), fn ($q) => $q->whereDate('created_at', '>=', $filters['date_from']))
+            ->when(! empty($filters['date_to']),   fn ($q) => $q->whereDate('created_at', '<=', $filters['date_to']))
+            ->when(! empty($filters['search']),    fn ($q) => $q->where(fn ($s) =>
                 $s->where('order_number', 'like', "%{$filters['search']}%")
                   ->orWhere('first_name',  'like', "%{$filters['search']}%")
                   ->orWhere('last_name',   'like', "%{$filters['search']}%")
@@ -32,17 +41,15 @@ class OnlineOrderWebController extends Controller
             ->latest()
             ->paginate(20);
 
-        $branches       = Branch::where('is_active', true)->orderBy('name')->get();
-        $totalPending   = OnlineOrder::where('status', 'pending')->count();
-        $totalConfirmed = OnlineOrder::where('status', 'confirmed')->count();
-        $totalReady     = OnlineOrder::where('status', 'ready')->count();
-        $totalToday     = OnlineOrder::whereDate('created_at', today())->count();
-        $todayRevenue   = OnlineOrder::whereDate('created_at', today())
-            ->whereNotIn('status', ['cancelled'])
-            ->sum('total_amount');
+        $totalPending   = OnlineOrder::when($effectiveBranchId, fn ($q) => $q->where('pickup_branch_id', $effectiveBranchId))->where('status', 'pending')->count();
+        $totalConfirmed = OnlineOrder::when($effectiveBranchId, fn ($q) => $q->where('pickup_branch_id', $effectiveBranchId))->where('status', 'confirmed')->count();
+        $totalReady     = OnlineOrder::when($effectiveBranchId, fn ($q) => $q->where('pickup_branch_id', $effectiveBranchId))->where('status', 'ready')->count();
+        $totalToday     = OnlineOrder::when($effectiveBranchId, fn ($q) => $q->where('pickup_branch_id', $effectiveBranchId))->whereDate('created_at', today())->count();
+        $todayRevenue   = OnlineOrder::when($effectiveBranchId, fn ($q) => $q->where('pickup_branch_id', $effectiveBranchId))->whereDate('created_at', today())->whereNotIn('status', ['cancelled'])->sum('total_amount');
 
         return view('pages.online-orders.index', compact(
-            'orders', 'branches', 'totalPending', 'totalConfirmed', 'totalReady', 'totalToday', 'todayRevenue'
+            'orders', 'branches', 'totalPending', 'totalConfirmed', 'totalReady', 'totalToday', 'todayRevenue',
+            'effectiveBranchId', 'activeBranchLabel'
         ));
     }
 

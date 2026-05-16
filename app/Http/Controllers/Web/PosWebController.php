@@ -3,26 +3,40 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
-use App\Services\ProductService;
+use App\Models\Product;
 use App\Services\ProductCategoryService;
 use App\Services\BranchService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class PosWebController extends Controller
 {
     public function __construct(
-        protected ProductService         $productService,
         protected ProductCategoryService $categoryService,
         protected BranchService          $branchService,
     ) {}
 
-    public function index()
+    public function index(Request $request)
     {
-        $branchId   = auth()->user()->branch_id;
-        $categories = $this->categoryService->all();
+        $user     = auth()->user();
+        $branches = $user->isSuperAdmin() ? $this->branchService->allActive() : collect();
 
-        // Products with branch stock
-        $products = $this->productService->list(['is_active' => true])
+        // Admins/super-admins: honour ?branch_id= param first, then session active branch, then first branch.
+        // Regular users are locked to their assigned branch.
+        $branchId = $user->isSuperAdmin()
+            ? ($request->integer('branch_id') ?: $user->activeBranchId() ?? $branches->first()?->id)
+            : $user->branch_id;
+
+        $activeBranch = $branches->firstWhere('id', $branchId) ?? $user->branch;
+        $categories   = $this->categoryService->all();
+
+        // Load ALL active products with inventory eager-loaded.
+        // Must not paginate here — the entire catalogue is passed to the
+        // client-side Alpine app for search/filter to work correctly.
+        $products = Product::with(['category', 'inventory'])
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get()
             ->map(fn ($p) => [
                 'id'            => $p->id,
                 'name'          => $p->name,
@@ -78,6 +92,6 @@ class PosWebController extends Controller
                 ];
             });
 
-        return view('pages.pos.index', compact('products', 'categories', 'customers'));
+        return view('pages.pos.index', compact('products', 'categories', 'customers', 'branchId', 'activeBranch', 'branches'));
     }
 }

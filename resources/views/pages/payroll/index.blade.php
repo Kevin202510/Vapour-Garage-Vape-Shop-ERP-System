@@ -1,7 +1,7 @@
 <x-app-layout title="Payroll">
 
     <x-page-header overline="Compensation" title="Payroll"
-                   :subtitle="'Period: ' . $periodLabel . ' · ' . $totalCount . ' records'">
+                   :subtitle="$activeBranchLabel . ' · Period: ' . $periodLabel . ' · ' . $totalCount . ' records'">
         <x-slot:actions>
             @can('process payroll')
             <x-btn variant="ghost" size="sm" x-on:click="$dispatch('open-modal', 'generate-payroll')">
@@ -23,9 +23,9 @@
         <span class="text-ink4 text-sm">to</span>
         <x-form-input name="period_end"   type="date" label="" :value="request('period_end',   now()->format('Y-m-d'))"               class="min-w-[140px]" />
         @if(auth()->user()->isSuperAdmin())
-            <x-form-select name="branch_id" label="" placeholder="All Branches" class="min-w-[140px]">
+            <x-form-select name="branch_id" label="" placeholder="All Branches" class="min-w-[160px]">
                 @foreach($branches as $branch)
-                    <option value="{{ $branch->id }}" {{ request('branch_id') == $branch->id ? 'selected' : '' }}>
+                    <option value="{{ $branch->id }}" {{ $effectiveBranchId == $branch->id ? 'selected' : '' }}>
                         {{ $branch->name }}
                     </option>
                 @endforeach

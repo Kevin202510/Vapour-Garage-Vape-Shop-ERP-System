@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Contracts\Repositories\ProductRepositoryInterface;
+use App\Models\Branch;
+use App\Models\BranchInventory;
 use App\Models\Product;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
@@ -31,7 +33,18 @@ class ProductService
     public function create(array $data): Product
     {
         $this->guardDuplicateSku($data['sku']);
-        return $this->repo->create($data);
+        $product = $this->repo->create($data);
+
+        // Create a zero-stock inventory record for every active branch so the
+        // product appears in the inventory list and POS immediately after creation.
+        Branch::where('is_active', true)->each(function (Branch $branch) use ($product) {
+            BranchInventory::firstOrCreate(
+                ['branch_id' => $branch->id, 'product_id' => $product->id],
+                ['quantity_on_hand' => 0, 'quantity_reserved' => 0]
+            );
+        });
+
+        return $product;
     }
 
     public function update(int $id, array $data): Product

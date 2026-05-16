@@ -1,7 +1,7 @@
 <x-app-layout title="Purchasing">
 
     <x-page-header overline="Procurement" title="Purchase Orders"
-                   :subtitle="$suppliers->count() . ' suppliers · ' . $activePoCount . ' active POs'">
+                   :subtitle="$activeBranchLabel . ' · ' . $activePoCount . ' active POs'">
         <x-slot:actions>
             @can('create purchase orders')
             <x-btn variant="primary" size="sm" :href="route('purchasing.create')">
@@ -22,9 +22,9 @@
             @endforeach
         </x-form-select>
         @if(auth()->user()->isSuperAdmin())
-        <x-form-select name="branch_id" label="" placeholder="All Branches" class="min-w-[140px]">
+        <x-form-select name="branch_id" label="" placeholder="All Branches" class="min-w-[160px]">
             @foreach($branches as $branch)
-                <option value="{{ $branch->id }}" {{ request('branch_id') == $branch->id ? 'selected' : '' }}>
+                <option value="{{ $branch->id }}" {{ $effectiveBranchId == $branch->id ? 'selected' : '' }}>
                     {{ $branch->name }}
                 </option>
             @endforeach
