@@ -86,19 +86,33 @@ class PurchasingWebController extends Controller
     public function receiveForm(int $id)
     {
         $po = $this->poService->findOrFail($id);
+
+        if (! in_array($po->status, ['approved', 'sent', 'partial'])) {
+            return redirect()->route('purchasing.show', $id)
+                ->with('error', 'This purchase order cannot be received in its current status.');
+        }
+
         return view('pages.purchasing.receive', compact('po'));
     }
 
     public function receive(Request $request, int $id)
     {
         $this->authorize('receive purchase orders');
+
         $validated = $request->validate([
             'items'                     => 'required|array',
-            'items.*.product_id'        => 'required|integer',
+            'items.*.product_id'        => 'required|integer|exists:products,id',
             'items.*.quantity_received' => 'required|integer|min:0',
         ]);
-        $this->poService->receive($id, $validated['items']);
-        return redirect()->route('purchasing.index')->with('success', 'Items received. Inventory updated.');
+
+        try {
+            $po     = $this->poService->receive($id, $validated['items']);
+            $status = $po->status === 'received' ? 'fully received' : 'partially received';
+            return redirect()->route('purchasing.show', $id)
+                ->with('success', "Purchase order {$status}. Inventory updated at {$po->branch->name}.");
+        } catch (\RuntimeException $e) {
+            return back()->withErrors(['receive' => $e->getMessage()]);
+        }
     }
 
     public function cancel(int $id)

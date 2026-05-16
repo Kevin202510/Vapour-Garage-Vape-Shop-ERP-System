@@ -69,17 +69,22 @@ class PurchaseOrderRepository extends BaseRepository implements PurchaseOrderRep
     {
         return DB::transaction(function () use ($po, $receivedItems) {
             foreach ($receivedItems as $item) {
+                $qty = (int) ($item['quantity_received'] ?? 0);
+                if ($qty <= 0) continue;
+
+                // INCREMENT — do not replace; each receive call adds to the running total
                 PurchaseOrderItem::where('po_id', $po->id)
                     ->where('product_id', $item['product_id'])
-                    ->update(['quantity_received' => $item['quantity_received']]);
+                    ->increment('quantity_received', $qty);
             }
 
-            // Determine new status: all items fully received → 'received', otherwise 'partial'
+            // Reload to get updated totals then determine status
             $po->load('items');
             $allReceived = $po->items->every(fn ($i) => $i->quantity_received >= $i->quantity_ordered);
+            $anyReceived = $po->items->some(fn ($i)  => $i->quantity_received > 0);
 
             $po->update([
-                'status'        => $allReceived ? 'received' : 'partial',
+                'status'        => $allReceived ? 'received' : ($anyReceived ? 'partial' : $po->status),
                 'received_date' => $allReceived ? now()->toDateString() : null,
             ]);
 

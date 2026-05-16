@@ -75,6 +75,7 @@ class PurchaseOrderService
     public function receive(int $id, array $receivedItems): PurchaseOrder
     {
         $po = $this->findOrFail($id);
+        $po->load('items.product');
 
         if (! in_array($po->status, ['approved', 'sent', 'partial'])) {
             throw new RuntimeException("Purchase order must be approved or sent before receiving.");
@@ -82,13 +83,22 @@ class PurchaseOrderService
 
         return DB::transaction(function () use ($po, $receivedItems) {
             foreach ($receivedItems as $item) {
-                if (($item['quantity_received'] ?? 0) > 0) {
-                    $this->inventoryRepo->incrementStock(
-                        $po->branch_id,
-                        $item['product_id'],
-                        $item['quantity_received']
-                    );
+                $qty = (int) ($item['quantity_received'] ?? 0);
+                if ($qty <= 0) continue;
+
+                // Guard: cannot receive more than what remains
+                $poItem = $po->items->firstWhere('product_id', $item['product_id']);
+                if ($poItem) {
+                    $remaining = $poItem->remaining_quantity;
+                    if ($qty > $remaining) {
+                        $name = $poItem->product->name ?? "Product #{$item['product_id']}";
+                        throw new RuntimeException(
+                            "Cannot receive {$qty} units of \"{$name}\" — only {$remaining} remaining."
+                        );
+                    }
                 }
+
+                $this->inventoryRepo->incrementStock($po->branch_id, $item['product_id'], $qty);
             }
 
             return $this->poRepo->receive($po, $receivedItems);

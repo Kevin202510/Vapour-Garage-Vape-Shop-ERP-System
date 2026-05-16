@@ -70,22 +70,22 @@ class SupplierAndProductSeeder extends Seeder
             ['sku' => 'ACC-004', 'name' => '18650 Battery Wrap (10pcs)',         'category_id' => $catAccessories->id, 'supplier_id' => $createdSuppliers[0]->id, 'unit_cost' => 30,  'selling_price' => 70,  'reorder_level' => 20, 'uom' => 'pack'],
         ];
 
-        foreach ($products as $p) {
-            Product::create([
-                'sku'                       => $p['sku'],
-                'name'                      => $p['name'],
-                'description'               => null,
-                'category_id'               => $p['category_id'],
-                'supplier_id'               => $p['supplier_id'],
-                'unit_cost'                 => $p['unit_cost'],
-                'selling_price'             => $p['selling_price'],
-                'tax_rate'                  => 12.00,
-                'unit_of_measure'           => $p['uom'],
-                'reorder_level'             => $p['reorder_level'],
-                'requires_age_verification' => ! str_starts_with($p['sku'], 'ACC'),
-                'is_active'                 => true,
-            ]);
-        }
+        // foreach ($products as $p) {
+        //     Product::create([
+        //         'sku'                       => $p['sku'],
+        //         'name'                      => $p['name'],
+        //         'description'               => null,
+        //         'category_id'               => $p['category_id'],
+        //         'supplier_id'               => $p['supplier_id'],
+        //         'unit_cost'                 => $p['unit_cost'],
+        //         'selling_price'             => $p['selling_price'],
+        //         'tax_rate'                  => 12.00,
+        //         'unit_of_measure'           => $p['uom'],
+        //         'reorder_level'             => $p['reorder_level'],
+        //         'requires_age_verification' => ! str_starts_with($p['sku'], 'ACC'),
+        //         'is_active'                 => true,
+        //     ]);
+        // }
 
         $this->command->info('✔ ' . count($createdSuppliers) . ' suppliers and ' . count($products) . ' products seeded.');
     }
