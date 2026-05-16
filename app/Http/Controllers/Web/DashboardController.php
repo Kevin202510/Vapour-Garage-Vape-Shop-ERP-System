@@ -66,6 +66,7 @@ class DashboardController extends Controller
 
         $branchRevenue = DB::table('sales_transactions')
             ->join('branches', 'sales_transactions.branch_id', '=', 'branches.id')
+            ->whereNull('branches.deleted_at')
             ->whereBetween(DB::raw('DATE(transaction_date)'), [$dateFrom, $dateTo])
             ->where('status', 'completed')
             ->when($effectiveBranchId, fn ($q) => $q->where('sales_transactions.branch_id', $effectiveBranchId))
@@ -80,6 +81,7 @@ class DashboardController extends Controller
             ->join('sales_transactions', 'sales_transaction_items.transaction_id', '=', 'sales_transactions.id')
             ->join('products', 'sales_transaction_items.product_id', '=', 'products.id')
             ->join('product_categories', 'products.category_id', '=', 'product_categories.id')
+            ->whereNull('products.deleted_at')
             ->whereBetween(DB::raw('DATE(sales_transactions.transaction_date)'), [$dateFrom, $dateTo])
             ->where('sales_transactions.status', 'completed')
             ->when($effectiveBranchId, fn ($q) => $q->where('sales_transactions.branch_id', $effectiveBranchId))
@@ -97,6 +99,8 @@ class DashboardController extends Controller
 
         $lowStockCount = DB::table('branch_inventory')
             ->join('products', 'branch_inventory.product_id', '=', 'products.id')
+            ->whereNull('products.deleted_at')
+            ->where('products.is_active', true)
             ->when($effectiveBranchId, fn ($q) => $q->where('branch_inventory.branch_id', $effectiveBranchId))
             ->whereRaw('(branch_inventory.quantity_on_hand - branch_inventory.quantity_reserved) <= products.reorder_level')
             ->count();
@@ -130,6 +134,7 @@ class DashboardController extends Controller
             ->join('branches', 'sales_transactions.branch_id', '=', 'branches.id')
             ->leftJoin('employees as cashiers', 'sales_transactions.cashier_id', '=', 'cashiers.id')
             ->leftJoin('customers', 'sales_transactions.customer_id', '=', 'customers.id')
+            ->whereNull('branches.deleted_at')
             ->whereBetween(DB::raw('DATE(transaction_date)'), [$dateFrom, $dateTo])
             ->where('sales_transactions.status', 'completed')
             ->when($effectiveBranchId, fn ($q) => $q->where('sales_transactions.branch_id', $effectiveBranchId))
@@ -233,6 +238,7 @@ class DashboardController extends Controller
     private function getRangeNewCustomers(string $from, string $to, ?int $branchId): int
     {
         return DB::table('customers')
+            ->whereNull('deleted_at')
             ->whereBetween(DB::raw('DATE(created_at)'), [$from, $to])
             ->when($branchId, fn ($q) => $q->where('registered_branch_id', $branchId))
             ->count();

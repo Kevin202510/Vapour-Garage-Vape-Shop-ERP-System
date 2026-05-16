@@ -59,7 +59,7 @@
             </x-form-select>
         </div>
 
-        <div class="flex items-center gap-6 mb-6">
+        <div class="flex flex-wrap items-center gap-6 mb-6">
             <label class="flex items-center gap-2.5 cursor-pointer">
                 <input type="checkbox" name="requires_age_verification" value="1"
                        {{ old('requires_age_verification', $product->requires_age_verification ?? true) ? 'checked' : '' }}
@@ -70,8 +70,58 @@
                 <input type="checkbox" name="is_active" value="1"
                        {{ old('is_active', $product->is_active ?? true) ? 'checked' : '' }}
                        class="w-4 h-4 rounded border-cream3 text-terra focus:ring-terra/30">
-                <span class="text-[13px] text-ink2">Active (visible in POS)</span>
+                <span class="text-[13px] text-ink2">Active (visible in POS &amp; shop)</span>
             </label>
+            <label class="flex items-center gap-2.5 cursor-pointer">
+                <input type="checkbox" name="is_new_arrival" value="1"
+                       {{ old('is_new_arrival', $product->is_new_arrival ?? false) ? 'checked' : '' }}
+                       class="w-4 h-4 rounded border-cream3 text-terra focus:ring-terra/30">
+                <span class="text-[13px] text-ink2">New Arrival</span>
+            </label>
+            <label class="flex items-center gap-2.5 cursor-pointer">
+                <input type="checkbox" name="is_best_seller" value="1"
+                       {{ old('is_best_seller', $product->is_best_seller ?? false) ? 'checked' : '' }}
+                       class="w-4 h-4 rounded border-cream3 text-terra focus:ring-terra/30">
+                <span class="text-[13px] text-ink2">Best Seller</span>
+            </label>
+            <label class="flex items-center gap-2.5 cursor-pointer">
+                <input type="checkbox" name="is_hot" value="1"
+                       {{ old('is_hot', $product->is_hot ?? false) ? 'checked' : '' }}
+                       class="w-4 h-4 rounded border-cream3 text-terra focus:ring-terra/30">
+                <span class="text-[13px] text-ink2">Hot / Trending</span>
+            </label>
+        </div>
+
+        {{-- Sale pricing --}}
+        <div class="bg-warn/5 border border-warn/20 rounded-lg p-5 mb-6" x-data="{ onSale: {{ old('is_on_sale', $product->is_on_sale ?? false) ? 'true' : 'false' }} }">
+            <label class="flex items-center gap-2.5 cursor-pointer mb-4">
+                <input type="checkbox" name="is_on_sale" value="1" x-model="onSale"
+                       {{ old('is_on_sale', $product->is_on_sale ?? false) ? 'checked' : '' }}
+                       class="w-4 h-4 rounded border-warn/40 text-warn focus:ring-warn/20">
+                <span class="text-[13px] font-semibold text-ink">On Sale</span>
+                <span class="font-mono text-[9px] text-ink4 uppercase tracking-widest">— show discounted price on shop</span>
+            </label>
+            <div x-show="onSale" x-cloak>
+                <x-form-input label="Sale Price (₱)" name="sale_price" type="number" step="0.01" min="0"
+                              :value="old('sale_price', $product->sale_price ?? '')"
+                              placeholder="Discounted selling price" />
+            </div>
+        </div>
+
+        {{-- Wholesale --}}
+        <div class="bg-purple/[0.04] border border-purple/20 rounded-lg p-5 mb-6" x-data="{ wholesale: {{ old('is_wholesale', $product->is_wholesale ?? false) ? 'true' : 'false' }} }">
+            <label class="flex items-center gap-2.5 cursor-pointer mb-4">
+                <input type="checkbox" name="is_wholesale" value="1" x-model="wholesale"
+                       {{ old('is_wholesale', $product->is_wholesale ?? false) ? 'checked' : '' }}
+                       class="w-4 h-4 rounded border-purple/40 text-purple focus:ring-purple/20">
+                <span class="text-[13px] font-semibold text-ink">Wholesale / Bulk</span>
+                <span class="font-mono text-[9px] text-ink4 uppercase tracking-widest">— show in wholesale section</span>
+            </label>
+            <div x-show="wholesale" x-cloak>
+                <x-form-input label="Minimum Order Quantity" name="min_order_qty" type="number" min="1"
+                              :value="old('min_order_qty', $product->min_order_qty ?? '')"
+                              placeholder="e.g. 10 pieces minimum" />
+            </div>
         </div>
 
         <div class="mb-8">

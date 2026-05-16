@@ -89,6 +89,14 @@ class ProductRepository extends BaseRepository implements ProductRepositoryInter
                   ->orWhere('sku',  'like', '%' . $filters['search'] . '%')
                   ->orWhere('description', 'like', '%' . $filters['search'] . '%')
             ))
+            ->when(! empty($filters['low_stock']), fn ($q) =>
+                $q->whereExists(fn ($sub) =>
+                    $sub->selectRaw('1')
+                        ->from('branch_inventory')
+                        ->whereColumn('branch_inventory.product_id', 'products.id')
+                        ->whereRaw('(branch_inventory.quantity_on_hand - branch_inventory.quantity_reserved) <= products.reorder_level')
+                )
+            )
             ->orderBy($filters['sort_by'] ?? 'name', $filters['sort_order'] ?? 'asc');
     }
 }

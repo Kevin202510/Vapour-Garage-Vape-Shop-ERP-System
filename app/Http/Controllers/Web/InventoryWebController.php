@@ -35,6 +35,7 @@ class InventoryWebController extends Controller
         $products = Product::where('is_active', true)->orderBy('name')->get();
 
         $inventory = \App\Models\BranchInventory::with(['product.category', 'branch'])
+            ->whereHas('product')  // exclude rows whose product was soft-deleted
             ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->when($search,   fn ($q) => $q->whereHas('product', fn ($p) =>
                 $p->where('name', 'like', "%{$search}%")->orWhere('sku', 'like', "%{$search}%")
@@ -44,18 +45,26 @@ class InventoryWebController extends Controller
         $totalRecords  = $inventory->total();
         $criticalCount = DB::table('branch_inventory')
             ->join('products', 'branch_inventory.product_id', '=', 'products.id')
+            ->whereNull('products.deleted_at')
+            ->where('products.is_active', true)
             ->whereRaw('(branch_inventory.quantity_on_hand - branch_inventory.quantity_reserved) <= 0')
             ->count();
         $lowCount = DB::table('branch_inventory')
             ->join('products', 'branch_inventory.product_id', '=', 'products.id')
+            ->whereNull('products.deleted_at')
+            ->where('products.is_active', true)
             ->whereRaw('(branch_inventory.quantity_on_hand - branch_inventory.quantity_reserved) > 0')
             ->whereRaw('(branch_inventory.quantity_on_hand - branch_inventory.quantity_reserved) <= products.reorder_level')
             ->count();
 
         $branchHealth = \App\Models\Branch::all()->map(function ($branch) {
-            $total   = \App\Models\BranchInventory::where('branch_id', $branch->id)->count();
+            $total   = \App\Models\BranchInventory::where('branch_id', $branch->id)
+                ->whereHas('product', fn ($q) => $q->where('is_active', true))
+                ->count();
             $healthy = \App\Models\BranchInventory::where('branch_id', $branch->id)
                 ->join('products', 'branch_inventory.product_id', '=', 'products.id')
+                ->whereNull('products.deleted_at')
+                ->where('products.is_active', true)
                 ->whereRaw('(branch_inventory.quantity_on_hand - branch_inventory.quantity_reserved) > products.reorder_level')
                 ->count();
             $branch->health_pct = $total > 0 ? round(($healthy / $total) * 100) : 0;
@@ -65,6 +74,9 @@ class InventoryWebController extends Controller
         $reorderAlerts = DB::table('branch_inventory')
             ->join('products', 'branch_inventory.product_id', '=', 'products.id')
             ->join('branches', 'branch_inventory.branch_id', '=', 'branches.id')
+            ->whereNull('products.deleted_at')
+            ->whereNull('branches.deleted_at')
+            ->where('products.is_active', true)
             ->whereRaw('(branch_inventory.quantity_on_hand - branch_inventory.quantity_reserved) <= products.reorder_level')
             ->select(
                 'products.id as product_id',

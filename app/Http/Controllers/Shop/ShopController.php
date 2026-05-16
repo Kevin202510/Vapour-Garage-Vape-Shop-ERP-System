@@ -26,8 +26,11 @@ class ShopController extends Controller
                   ->orWhere('sku', 'like', "%{$request->search}%")
                   ->orWhere('description', 'like', "%{$request->search}%")
             ))
-            ->when($request->sort === 'price_asc',  fn ($q) => $q->orderBy('selling_price', 'asc'))
-            ->when($request->sort === 'price_desc', fn ($q) => $q->orderBy('selling_price', 'desc'))
+            ->when($request->boolean('is_on_sale'),   fn ($q) => $q->where('is_on_sale', true)->whereNotNull('sale_price'))
+            ->when($request->boolean('is_wholesale'), fn ($q) => $q->where('is_wholesale', true))
+            ->when($request->sort === 'price_asc',   fn ($q) => $q->orderBy('selling_price', 'asc'))
+            ->when($request->sort === 'price_desc',  fn ($q) => $q->orderBy('selling_price', 'desc'))
+            ->when($request->sort === 'newest',      fn ($q) => $q->latest())
             ->when(!$request->sort, fn ($q) => $q->orderBy('name'))
             ->paginate(16)
             ->withQueryString();

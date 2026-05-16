@@ -39,14 +39,19 @@ class EmployeeWebController extends Controller
             : 'All Branches';
 
         $totalActive  = DB::table('employees')
+            ->whereNull('deleted_at')
             ->when($effectiveBranchId, fn ($q) => $q->where('branch_id', $effectiveBranchId))
             ->where('is_active', true)->count();
         $presentToday = DB::table('attendances')
-            ->when($effectiveBranchId, fn ($q) => $q->where('branch_id', $effectiveBranchId))
-            ->where('work_date', now()->toDateString())->where('status', 'present')->count();
+            ->join('employees', 'attendances.employee_id', '=', 'employees.id')
+            ->whereNull('employees.deleted_at')
+            ->when($effectiveBranchId, fn ($q) => $q->where('employees.branch_id', $effectiveBranchId))
+            ->where('attendances.work_date', now()->toDateString())->where('attendances.status', 'present')->count();
         $onLeave      = DB::table('attendances')
-            ->when($effectiveBranchId, fn ($q) => $q->where('branch_id', $effectiveBranchId))
-            ->where('work_date', now()->toDateString())->where('status', 'leave')->count();
+            ->join('employees', 'attendances.employee_id', '=', 'employees.id')
+            ->whereNull('employees.deleted_at')
+            ->when($effectiveBranchId, fn ($q) => $q->where('employees.branch_id', $effectiveBranchId))
+            ->where('attendances.work_date', now()->toDateString())->where('attendances.status', 'leave')->count();
 
         return view('pages.employees.index', compact('employees', 'branches', 'totalActive', 'presentToday', 'onLeave', 'effectiveBranchId', 'activeBranchLabel'));
     }

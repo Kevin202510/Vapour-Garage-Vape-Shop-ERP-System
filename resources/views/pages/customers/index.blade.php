@@ -1,7 +1,7 @@
 <x-app-layout title="Customers">
 
     <x-page-header overline="Loyalty & CRM" title="Customers"
-                   :subtitle="$customers->total() . ' registered members · Loyalty program active'">
+                   :subtitle="$activeBranchLabel . ' · ' . $customers->total() . ' registered members'">
         <x-slot:actions>
             @can('create customers')
             <x-btn variant="primary" size="sm" :href="route('customers.create')">
@@ -28,6 +28,15 @@
                 </a>
             @endforeach
         </div>
+        @if(auth()->user()->isSuperAdmin())
+        <x-form-select name="branch_id" label="" placeholder="All Branches" class="min-w-[160px]">
+            @foreach($branches as $branch)
+                <option value="{{ $branch->id }}" {{ $effectiveBranchId == $branch->id ? 'selected' : '' }}>
+                    {{ $branch->name }}
+                </option>
+            @endforeach
+        </x-form-select>
+        @endif
         <div class="flex items-center gap-2 bg-white border border-cream3 rounded-md px-3 py-[7px] flex-1 max-w-xs focus-within:border-terra transition-colors">
             <x-icon name="filter" class="w-3.5 h-3.5 text-ink4 flex-shrink-0" />
             <input type="text" name="search" value="{{ request('search') }}"

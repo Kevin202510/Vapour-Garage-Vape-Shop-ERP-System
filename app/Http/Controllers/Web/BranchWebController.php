@@ -49,6 +49,20 @@ class BranchWebController extends Controller
     public function show(int $id)
     {
         $branch = $this->branchService->findOrFail($id);
+
+        // Eager-load relationships, excluding inventory rows whose product was deleted/archived.
+        $branch->load([
+            'inventory' => fn ($q) => $q->whereHas('product', fn ($p) => $p->where('is_active', true))
+                                        ->with('product'),
+            'employees' => fn ($q) => $q->where('is_active', true)
+                                        ->with(['attendance' => fn ($a) => $a->where('work_date', now()->toDateString())]),
+        ]);
+
+        $branch->today_revenue   = $branch->salesTransactions()
+            ->whereDate('transaction_date', today())->where('status', 'completed')->sum('total_amount');
+        $branch->today_txn_count = $branch->salesTransactions()
+            ->whereDate('transaction_date', today())->where('status', 'completed')->count();
+
         return view('pages.branches.show', compact('branch'));
     }
 

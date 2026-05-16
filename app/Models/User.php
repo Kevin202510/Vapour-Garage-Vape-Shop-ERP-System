@@ -73,8 +73,15 @@ class User extends Authenticatable
     public function activeBranchId(): ?int
     {
         if ($this->isSuperAdmin()) {
-            $id = session('active_branch_id');
-            return $id ? (int) $id : $this->branch_id;
+            $stored = session('active_branch_id');
+
+            if ($stored === null) {
+                // No preference stored yet — default to the user's assigned branch.
+                return $this->branch_id;
+            }
+
+            // 0 is the sentinel for "All Branches" (explicitly selected).
+            return (int) $stored === 0 ? null : (int) $stored;
         }
         return $this->branch_id;
     }

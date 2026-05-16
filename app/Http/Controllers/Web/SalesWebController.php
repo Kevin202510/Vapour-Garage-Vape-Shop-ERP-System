@@ -96,6 +96,7 @@ class SalesWebController extends Controller
             ->join('branches', 'sales_transactions.branch_id', '=', 'branches.id')
             ->leftJoin('employees as cashiers', 'sales_transactions.cashier_id', '=', 'cashiers.id')
             ->leftJoin('customers', 'sales_transactions.customer_id', '=', 'customers.id')
+            ->whereNull('branches.deleted_at')
             ->when(isset($filters['branch_id']),      fn ($q) => $q->where('sales_transactions.branch_id', $filters['branch_id']))
             ->when(isset($filters['status']),         fn ($q) => $q->where('sales_transactions.status', $filters['status']))
             ->when(isset($filters['payment_method']), fn ($q) => $q->where('sales_transactions.payment_method', $filters['payment_method']))

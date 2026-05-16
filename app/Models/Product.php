@@ -13,27 +13,35 @@ class Product extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'sku',
-        'name',
-        'description',
-        'category_id',
-        'supplier_id',
-        'unit_cost',
-        'selling_price',
-        'tax_rate',
-        'unit_of_measure',
-        'reorder_level',
-        'requires_age_verification',
-        'is_active',
+        'sku', 'name', 'description',
+        'category_id', 'supplier_id',
+        'unit_cost', 'selling_price', 'tax_rate',
+        'unit_of_measure', 'reorder_level',
+        'requires_age_verification', 'is_active',
+        'is_new_arrival', 'is_best_seller', 'is_hot',
+        'is_on_sale', 'sale_price',
+        'is_wholesale', 'min_order_qty',
     ];
 
     protected $casts = [
         'unit_cost'                => 'decimal:2',
         'selling_price'            => 'decimal:2',
+        'sale_price'               => 'decimal:2',
         'tax_rate'                 => 'decimal:2',
         'requires_age_verification'=> 'boolean',
         'is_active'                => 'boolean',
+        'is_new_arrival'           => 'boolean',
+        'is_best_seller'           => 'boolean',
+        'is_hot'                   => 'boolean',
+        'is_on_sale'               => 'boolean',
+        'is_wholesale'             => 'boolean',
     ];
+
+    public function getDiscountPercentAttribute(): int
+    {
+        if (! $this->is_on_sale || ! $this->sale_price || $this->selling_price <= 0) return 0;
+        return (int) round((1 - $this->sale_price / $this->selling_price) * 100);
+    }
 
     public function getPriceWithTaxAttribute(): float
     {

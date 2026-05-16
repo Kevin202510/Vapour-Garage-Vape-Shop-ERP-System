@@ -56,7 +56,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/switch-branch', function (\Illuminate\Http\Request $request) {
         if (! auth()->user()->isSuperAdmin()) abort(403);
         if ($request->input('branch_id') === 'all') {
-            session()->forget('active_branch_id');
+            // Store 0 as an explicit "All Branches" sentinel.
+            // Forgetting the key would cause activeBranchId() to fall back to
+            // the user's assigned branch_id instead of returning null.
+            session(['active_branch_id' => 0]);
         } else {
             $request->validate(['branch_id' => 'required|exists:branches,id']);
             session(['active_branch_id' => (int) $request->branch_id]);
@@ -72,6 +75,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/pos', [PosWebController::class, 'index'])->name('pos.index');
 
     // Products
+    Route::post('products/{id}/archive', [ProductWebController::class, 'archive'])->name('products.archive');
+    Route::post('products/{id}/restore', [ProductWebController::class, 'restore'])->name('products.restore');
     Route::resource('products', ProductWebController::class);
 
     // Inventory

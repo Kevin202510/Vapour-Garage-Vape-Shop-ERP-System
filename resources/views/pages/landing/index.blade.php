@@ -796,6 +796,43 @@
             border-right: 1px solid rgba(124, 34, 212, 0.35)
         }
 
+        /* ─── LIVE PRODUCT SECTIONS ─── */
+        .psec { padding: 80px 60px; background: var(--dark2); border-top: 1px solid rgba(124,34,212,0.12); }
+        .psec.alt { background: var(--dark); }
+        .psec-head { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:36px; }
+        .psec-left .stag { margin-bottom:8px; }
+        .psec-left .stitle { font-size:clamp(30px,4vw,52px); }
+        .psec-viewall { font-family:var(--mono); font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); text-decoration:none; border:1px solid rgba(124,34,212,0.25); padding:8px 18px; border-radius:3px; transition:all 0.2s; white-space:nowrap; }
+        .psec-viewall:hover { color:var(--green); border-color:rgba(57,255,20,0.35); }
+        .pscroll { display:grid; grid-template-columns:repeat(4,1fr); gap:2px; background:rgba(124,34,212,0.1); }
+        @media(max-width:900px){ .pscroll{ grid-template-columns:repeat(2,1fr); } }
+
+        /* Product card */
+        .lpc { background:var(--dark2); padding:24px 20px; border:1px solid transparent; position:relative; overflow:hidden; cursor:pointer; transition:all 0.2s; text-decoration:none; display:block; }
+        .psec.alt .lpc { background:var(--dark); }
+        .lpc::after { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,var(--purple3),var(--green)); transform:scaleX(0); transform-origin:left; transition:transform 0.3s; }
+        .lpc:hover { border-color:rgba(124,34,212,0.3); }
+        .lpc:hover::after { transform:scaleX(1); }
+        .lpc-n { font-family:var(--display); font-size:44px; color:rgba(255,255,255,0.03); position:absolute; top:10px; right:12px; line-height:1; }
+        .lpc-badges { display:flex; flex-wrap:wrap; gap:4px; margin-bottom:12px; min-height:18px; }
+        .lpc-badge { font-family:var(--mono); font-size:8px; letter-spacing:0.12em; text-transform:uppercase; padding:2px 7px; border-radius:2px; }
+        .badge-new  { background:rgba(57,255,20,0.12); color:var(--green); border:1px solid rgba(57,255,20,0.3); }
+        .badge-hot  { background:rgba(255,80,50,0.12); color:#ff5a32; border:1px solid rgba(255,80,50,0.3); }
+        .badge-sale { background:rgba(201,148,58,0.15); color:var(--warn); border:1px solid rgba(201,148,58,0.35); }
+        .badge-bulk { background:rgba(124,34,212,0.18); color:var(--purple2); border:1px solid rgba(124,34,212,0.35); }
+        .badge-bs   { background:rgba(57,255,20,0.08); color:var(--green); border:1px solid rgba(57,255,20,0.2); }
+        .lpc-cat  { font-family:var(--mono); font-size:8px; letter-spacing:0.2em; text-transform:uppercase; color:var(--purple2); margin-bottom:10px; }
+        .lpc-name { font-family:var(--display); font-size:16px; letter-spacing:0.03em; color:var(--white); margin-bottom:5px; line-height:1.15; }
+        .lpc-sku  { font-family:var(--mono); font-size:9px; color:var(--muted); margin-bottom:16px; letter-spacing:0.08em; }
+        .lpc-price { font-family:var(--display); font-size:20px; color:var(--green); letter-spacing:0.02em; }
+        .lpc-price-orig { font-family:var(--mono); font-size:11px; color:var(--muted); text-decoration:line-through; margin-bottom:2px; }
+        .lpc-price-sale { font-family:var(--display); font-size:20px; color:var(--warn); letter-spacing:0.02em; }
+        .lpc-price-disc { font-family:var(--mono); font-size:9px; color:var(--warn); margin-left:6px; }
+        .lpc-moq { font-family:var(--mono); font-size:9px; color:var(--muted); margin-top:4px; letter-spacing:0.06em; }
+        .lpc-cta { display:inline-block; margin-top:14px; font-family:var(--mono); font-size:9px; letter-spacing:0.12em; text-transform:uppercase; color:var(--purple2); border:1px solid rgba(124,34,212,0.3); padding:5px 12px; border-radius:2px; transition:all 0.2s; }
+        .lpc:hover .lpc-cta { background:rgba(124,34,212,0.15); color:var(--green); border-color:rgba(57,255,20,0.35); }
+        .psec-empty { padding:60px 0; text-align:center; font-family:var(--mono); font-size:11px; letter-spacing:0.12em; color:var(--muted); text-transform:uppercase; }
+
         /* BRANCHES */
         .bgrd {
             display: grid;
@@ -1441,7 +1478,10 @@
     <nav id="nav">
         <div class="nbrand">VAPOUR GARAGE</div>
         <div class="nlinks">
-            <a href="#products">Products</a>
+            <a href="{{ route('shop.index') }}">Shop</a>
+            <a href="#new-arrivals">New In</a>
+            <a href="#sale-products">Sale</a>
+            <a href="#wholesale-products">Wholesale</a>
             <a href="#branches">Locations</a>
             <a href="#loyalty">Rewards</a>
             <a href="{{ route('login') }}" class="ncta">Staff Login</a>
@@ -1674,6 +1714,192 @@
                 Browse in Shop
             </a>
         </div>
+    </section>
+
+    @php
+    function lpBadges($p) {
+        $b = [];
+        if ($p->is_new_arrival) $b[] = '<span class="lpc-badge badge-new">New</span>';
+        if ($p->is_best_seller) $b[] = '<span class="lpc-badge badge-bs">Best Seller</span>';
+        if ($p->is_hot)         $b[] = '<span class="lpc-badge badge-hot">🔥 Hot</span>';
+        if ($p->is_on_sale)     $b[] = '<span class="lpc-badge badge-sale">Sale</span>';
+        if ($p->is_wholesale)   $b[] = '<span class="lpc-badge badge-bulk">Wholesale</span>';
+        return implode('', $b);
+    }
+    @endphp
+
+    {{-- ══════════════════════════════════════
+         SECTION 1: NEW ARRIVALS
+    ══════════════════════════════════════ --}}
+    <section class="psec" id="new-arrivals">
+        <div class="psec-head reveal">
+            <div class="psec-left">
+                <div class="stag">Just In</div>
+                <h2 class="stitle" style="color:var(--white)">NEW <span style="color:var(--green)">ARRIVALS</span></h2>
+            </div>
+            <a href="{{ route('shop.index', ['sort' => 'newest']) }}" class="psec-viewall">View All →</a>
+        </div>
+        @if($newArrivals->isEmpty())
+            <p class="psec-empty">No products yet — check back soon.</p>
+        @else
+        <div class="pscroll reveal">
+            @foreach($newArrivals as $i => $product)
+            <a href="{{ route('shop.product', $product) }}" class="lpc">
+                <div class="lpc-n">{{ str_pad($i + 1, 2, '0', STR_PAD_LEFT) }}</div>
+                <div class="lpc-badges">{!! lpBadges($product) !!}<span class="lpc-badge badge-new">New</span></div>
+                <div class="lpc-cat">{{ $product->category->name ?? 'Product' }}</div>
+                <div class="lpc-name">{{ $product->name }}</div>
+                <div class="lpc-sku">{{ $product->sku }}</div>
+                <div class="lpc-price">₱{{ number_format($product->selling_price, 0) }}</div>
+                <span class="lpc-cta">View Product</span>
+            </a>
+            @endforeach
+        </div>
+        @endif
+    </section>
+
+    {{-- ══════════════════════════════════════
+         SECTION 2: BEST SELLERS
+    ══════════════════════════════════════ --}}
+    <section class="psec alt" id="best-sellers">
+        <div class="psec-head reveal">
+            <div class="psec-left">
+                <div class="stag">Top Picks</div>
+                <h2 class="stitle" style="color:var(--white)">BEST <span style="color:var(--purple2)">SELLERS</span></h2>
+            </div>
+            <a href="{{ route('shop.index') }}" class="psec-viewall">View All →</a>
+        </div>
+        @if($bestSellers->isEmpty())
+            <p class="psec-empty">Sales data loading — check back soon.</p>
+        @else
+        <div class="pscroll reveal">
+            @foreach($bestSellers as $i => $product)
+            <a href="{{ route('shop.product', $product) }}" class="lpc">
+                <div class="lpc-n">{{ str_pad($i + 1, 2, '0', STR_PAD_LEFT) }}</div>
+                <div class="lpc-badges"><span class="lpc-badge badge-bs">#{{ $i + 1 }} Seller</span></div>
+                <div class="lpc-cat">{{ $product->category->name ?? 'Product' }}</div>
+                <div class="lpc-name">{{ $product->name }}</div>
+                <div class="lpc-sku">{{ $product->sku }}</div>
+                <div class="lpc-price">₱{{ number_format($product->selling_price, 0) }}</div>
+                @if($product->total_sold > 0)
+                <div class="lpc-moq">{{ number_format($product->total_sold) }} units sold</div>
+                @endif
+                <span class="lpc-cta">View Product</span>
+            </a>
+            @endforeach
+        </div>
+        @endif
+    </section>
+
+    {{-- ══════════════════════════════════════
+         SECTION 3: HOT PRODUCTS
+    ══════════════════════════════════════ --}}
+    <section class="psec" id="hot-products">
+        <div class="psec-head reveal">
+            <div class="psec-left">
+                <div class="stag">Trending Now</div>
+                <h2 class="stitle" style="color:var(--white)">🔥 HOT <span style="color:#ff5a32">PRODUCTS</span></h2>
+            </div>
+            <a href="{{ route('shop.index') }}" class="psec-viewall">View All →</a>
+        </div>
+        @if($hotProducts->isEmpty())
+            <p class="psec-empty">Trending data loading — check back soon.</p>
+        @else
+        <div class="pscroll reveal">
+            @foreach($hotProducts as $i => $product)
+            <a href="{{ route('shop.product', $product) }}" class="lpc">
+                <div class="lpc-n">{{ str_pad($i + 1, 2, '0', STR_PAD_LEFT) }}</div>
+                <div class="lpc-badges"><span class="lpc-badge badge-hot">🔥 Hot</span></div>
+                <div class="lpc-cat">{{ $product->category->name ?? 'Product' }}</div>
+                <div class="lpc-name">{{ $product->name }}</div>
+                <div class="lpc-sku">{{ $product->sku }}</div>
+                <div class="lpc-price">₱{{ number_format($product->selling_price, 0) }}</div>
+                @if($product->total_revenue > 0)
+                <div class="lpc-moq">₱{{ number_format($product->total_revenue, 0) }} sold this month</div>
+                @endif
+                <span class="lpc-cta">View Product</span>
+            </a>
+            @endforeach
+        </div>
+        @endif
+    </section>
+
+    {{-- ══════════════════════════════════════
+         SECTION 4: SALE PRODUCTS
+    ══════════════════════════════════════ --}}
+    <section class="psec alt" id="sale-products">
+        <div class="psec-head reveal">
+            <div class="psec-left">
+                <div class="stag">Limited Deals</div>
+                <h2 class="stitle" style="color:var(--white)">ON <span style="color:var(--warn)">SALE</span></h2>
+            </div>
+            <a href="{{ route('shop.index', ['is_on_sale' => 1]) }}" class="psec-viewall">View All Deals →</a>
+        </div>
+        @if($saleProducts->isEmpty())
+            <p class="psec-empty">// No active promotions right now — follow us for updates.</p>
+        @else
+        <div class="pscroll reveal">
+            @foreach($saleProducts as $i => $product)
+            @php
+                $orig = (float) $product->selling_price;
+                $sale = (float) $product->sale_price;
+                $disc = $orig > 0 ? (int) round((1 - $sale / $orig) * 100) : 0;
+            @endphp
+            <a href="{{ route('shop.product', $product) }}" class="lpc">
+                <div class="lpc-n">{{ str_pad($i + 1, 2, '0', STR_PAD_LEFT) }}</div>
+                <div class="lpc-badges">
+                    <span class="lpc-badge badge-sale">Sale</span>
+                    @if($disc > 0)<span class="lpc-badge badge-sale">−{{ $disc }}%</span>@endif
+                </div>
+                <div class="lpc-cat">{{ $product->category->name ?? 'Product' }}</div>
+                <div class="lpc-name">{{ $product->name }}</div>
+                <div class="lpc-sku">{{ $product->sku }}</div>
+                <div class="lpc-price-orig">₱{{ number_format($orig, 0) }}</div>
+                <div>
+                    <span class="lpc-price-sale">₱{{ number_format($sale, 0) }}</span>
+                    @if($disc > 0)<span class="lpc-price-disc">save {{ $disc }}%</span>@endif
+                </div>
+                <span class="lpc-cta">Grab Deal</span>
+            </a>
+            @endforeach
+        </div>
+        @endif
+    </section>
+
+    {{-- ══════════════════════════════════════
+         SECTION 5: WHOLESALE PRODUCTS
+    ══════════════════════════════════════ --}}
+    <section class="psec" id="wholesale-products">
+        <div class="psec-head reveal">
+            <div class="psec-left">
+                <div class="stag">Bulk Orders</div>
+                <h2 class="stitle" style="color:var(--white)">WHOLESALE <span style="color:var(--purple2)">PRODUCTS</span></h2>
+            </div>
+            <a href="{{ route('shop.index', ['is_wholesale' => 1]) }}" class="psec-viewall">View All →</a>
+        </div>
+        <p class="reveal" style="font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:0.08em;margin-top:-20px;margin-bottom:32px">
+            Bulk pricing available · Contact your nearest branch for dealer rates
+        </p>
+        @if($wholesaleProducts->isEmpty())
+            <p class="psec-empty">// Wholesale catalogue coming soon — contact us for bulk pricing.</p>
+        @else
+        <div class="pscroll reveal">
+            @foreach($wholesaleProducts as $i => $product)
+            <a href="{{ route('shop.product', $product) }}" class="lpc">
+                <div class="lpc-n">{{ str_pad($i + 1, 2, '0', STR_PAD_LEFT) }}</div>
+                <div class="lpc-badges"><span class="lpc-badge badge-bulk">Wholesale</span></div>
+                <div class="lpc-cat">{{ $product->category->name ?? 'Product' }}</div>
+                <div class="lpc-name">{{ $product->name }}</div>
+                <div class="lpc-sku">{{ $product->sku }}</div>
+                <div class="lpc-price">₱{{ number_format($product->selling_price, 0) }} <span>/ pc</span></div>
+                @if($product->min_order_qty)
+                <div class="lpc-moq">Min. order: {{ number_format($product->min_order_qty) }} pcs</div>
+                @endif
+                <span class="lpc-cta">Inquire</span>
+            </a>
+            @endforeach
+        </div>
+        @endif
     </section>
 
     <section class="sec" id="branches">

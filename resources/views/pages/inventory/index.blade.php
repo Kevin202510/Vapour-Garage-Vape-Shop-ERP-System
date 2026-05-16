@@ -122,19 +122,23 @@
         </x-slot:head>
 
         @forelse($inventory as $item)
-            @php $available = $item->quantity_on_hand - $item->quantity_reserved; @endphp
+            @php
+                $available   = $item->quantity_on_hand - $item->quantity_reserved;
+                $product     = $item->product;
+                if (! $product) continue; // guard against any remaining orphan rows
+            @endphp
             <tr class="hover:bg-cream transition-colors">
-                <x-td><span class="font-mono text-[11px] text-ink3">{{ $item->product->sku }}</span></x-td>
-                <x-td class="font-medium text-ink">{{ $item->product->name }}</x-td>
+                <x-td><span class="font-mono text-[11px] text-ink3">{{ $product->sku }}</span></x-td>
+                <x-td class="font-medium text-ink">{{ $product->name }}</x-td>
                 <x-td class="text-ink3">{{ $item->branch->name }}</x-td>
                 <x-td><span class="font-mono font-semibold text-ink">{{ $item->quantity_on_hand }}</span></x-td>
                 <x-td><span class="font-mono text-ink4">{{ $item->quantity_reserved }}</span></x-td>
                 <x-td>
-                    <span class="font-mono font-semibold {{ $available <= 0 ? 'text-danger' : ($available <= $item->product->reorder_level ? 'text-warn' : 'text-ok') }}">
+                    <span class="font-mono font-semibold {{ $available <= 0 ? 'text-danger' : ($available <= $product->reorder_level ? 'text-warn' : 'text-ok') }}">
                         {{ $available }}
                     </span>
                 </x-td>
-                <x-td><span class="font-mono text-ink4">{{ $item->product->reorder_level }}</span></x-td>
+                <x-td><span class="font-mono text-ink4">{{ $product->reorder_level }}</span></x-td>
                 <x-td>
                     <span class="font-mono text-[10px] text-ink4">
                         {{ $item->last_updated ? $item->last_updated->diffForHumans() : '—' }}
@@ -143,7 +147,7 @@
                 <x-td>
                     @if($available <= 0)
                         <x-badge variant="error">Critical</x-badge>
-                    @elseif($available <= $item->product->reorder_level)
+                    @elseif($available <= $product->reorder_level)
                         <x-badge variant="warn">Low</x-badge>
                     @else
                         <x-badge variant="ok">OK</x-badge>
@@ -152,7 +156,7 @@
                 @can('adjust inventory')
                 <x-td>
                     <x-btn variant="ghost" size="sm"
-                        @click="openAdjust({ branch_id: {{ $item->branch_id }}, branch_name: '{{ addslashes($item->branch->name) }}', product_id: {{ $item->product->id }}, product_name: '{{ addslashes($item->product->name) }}', sku: '{{ $item->product->sku }}', current_qty: {{ $item->quantity_on_hand }} })">
+                        @click="openAdjust({ branch_id: {{ $item->branch_id }}, branch_name: '{{ addslashes($item->branch->name) }}', product_id: {{ $product->id }}, product_name: '{{ addslashes($product->name) }}', sku: '{{ $product->sku }}', current_qty: {{ $item->quantity_on_hand }} })">
                         Adjust
                     </x-btn>
                 </x-td>
