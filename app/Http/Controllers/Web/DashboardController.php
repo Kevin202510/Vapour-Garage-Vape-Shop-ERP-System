@@ -9,11 +9,13 @@ use App\Contracts\Repositories\BranchInventoryRepositoryInterface;
 use App\Contracts\Repositories\StockTransferRepositoryInterface;
 use App\Contracts\Repositories\ProductCategoryRepositoryInterface;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
     use AuthorizesRequests;
+
     public function __construct(
         protected BranchRepositoryInterface              $branchRepo,
         protected SalesTransactionRepositoryInterface    $salesRepo,
@@ -22,33 +24,39 @@ class DashboardController extends Controller
         protected ProductCategoryRepositoryInterface     $categoryRepo,
     ) {}
 
-    public function index()
+    public function index(Request $request)
     {
-        $user     = auth()->user();
+        $user  = auth()->user();
+        $range = $request->input('range', 'today');
+
+        [$dateFrom, $dateTo, $prevFrom, $prevTo, $deltaLabel] = $this->resolveDateRange($range);
+
         $branches = $this->branchRepo->getActive();
 
-        // Yesterday / today revenue for delta calculation
-        $todayRev     = $this->getDayRevenue(now()->toDateString(),           $user);
-        $yesterdayRev = $this->getDayRevenue(now()->subDay()->toDateString(), $user);
-        $todayTxn     = $this->getDayTransactionCount(now()->toDateString(),  $user);
-        $yestTxn      = $this->getDayTransactionCount(now()->subDay()->toDateString(), $user);
+        $currentRev  = $this->getRangeRevenue($dateFrom, $dateTo, $user);
+        $previousRev = $this->getRangeRevenue($prevFrom, $prevTo, $user);
+        $currentTxn  = $this->getRangeTxnCount($dateFrom, $dateTo, $user);
+        $previousTxn = $this->getRangeTxnCount($prevFrom, $prevTo, $user);
+        $currentItems    = $this->getRangeItemsSold($dateFrom, $dateTo, $user);
+        $previousItems   = $this->getRangeItemsSold($prevFrom, $prevTo, $user);
+        $currentCustomers  = $this->getRangeNewCustomers($dateFrom, $dateTo, $user);
+        $previousCustomers = $this->getRangeNewCustomers($prevFrom, $prevTo, $user);
 
         $stats = [
-            'revenue_today'        => $todayRev,
-            'revenue_delta'        => $yesterdayRev > 0 ? round(($todayRev - $yesterdayRev) / $yesterdayRev * 100, 1) : 0,
-            'transactions_today'   => $todayTxn,
-            'transactions_delta'   => $yestTxn > 0 ? round(($todayTxn - $yestTxn) / $yestTxn * 100, 1) : 0,
-            'items_sold'           => $this->getItemsSold(now()->toDateString(), $user),
-            'items_delta'          => 0,
-            'new_customers'        => $this->getNewCustomers(now()->toDateString(), $user),
-            'customers_delta'      => 0,
-            'avg_basket'           => $todayTxn > 0 ? round($todayRev / $todayTxn) : 0,
+            'revenue_today'      => $currentRev,
+            'revenue_delta'      => $previousRev > 0 ? round(($currentRev - $previousRev) / $previousRev * 100, 1) : 0,
+            'transactions_today' => $currentTxn,
+            'transactions_delta' => $previousTxn > 0 ? round(($currentTxn - $previousTxn) / $previousTxn * 100, 1) : 0,
+            'items_sold'         => $currentItems,
+            'items_delta'        => $previousItems > 0 ? round(($currentItems - $previousItems) / $previousItems * 100, 1) : 0,
+            'new_customers'      => $currentCustomers,
+            'customers_delta'    => $previousCustomers > 0 ? round(($currentCustomers - $previousCustomers) / $previousCustomers * 100, 1) : 0,
+            'avg_basket'         => $currentTxn > 0 ? round($currentRev / $currentTxn) : 0,
         ];
 
-        // Revenue per branch today
         $branchRevenue = DB::table('sales_transactions')
             ->join('branches', 'sales_transactions.branch_id', '=', 'branches.id')
-            ->whereDate('transaction_date', now())
+            ->whereBetween(DB::raw('DATE(transaction_date)'), [$dateFrom, $dateTo])
             ->where('status', 'completed')
             ->when(! $user->isSuperAdmin(), fn ($q) => $q->where('sales_transactions.branch_id', $user->branch_id))
             ->select('branches.name', DB::raw('SUM(total_amount) as revenue'))
@@ -58,13 +66,13 @@ class DashboardController extends Controller
 
         $topBranch = $branchRevenue->first();
 
-        // Category sales today
         $categorySales = DB::table('sales_transaction_items')
             ->join('sales_transactions', 'sales_transaction_items.transaction_id', '=', 'sales_transactions.id')
             ->join('products', 'sales_transaction_items.product_id', '=', 'products.id')
             ->join('product_categories', 'products.category_id', '=', 'product_categories.id')
-            ->whereDate('sales_transactions.transaction_date', now())
+            ->whereBetween(DB::raw('DATE(sales_transactions.transaction_date)'), [$dateFrom, $dateTo])
             ->where('sales_transactions.status', 'completed')
+            ->when(! $user->isSuperAdmin(), fn ($q) => $q->where('sales_transactions.branch_id', $user->branch_id))
             ->select('product_categories.name', DB::raw('SUM(sales_transaction_items.subtotal) as total'))
             ->groupBy('product_categories.id', 'product_categories.name')
             ->orderByDesc('total')
@@ -76,7 +84,7 @@ class DashboardController extends Controller
             'sort_order' => 'desc',
         ])->withQueryString();
 
-        $lowStockCount    = DB::table('branch_inventory')
+        $lowStockCount = DB::table('branch_inventory')
             ->join('products', 'branch_inventory.product_id', '=', 'products.id')
             ->whereRaw('(branch_inventory.quantity_on_hand - branch_inventory.quantity_reserved) <= products.reorder_level')
             ->count();
@@ -85,43 +93,127 @@ class DashboardController extends Controller
 
         return view('pages.dashboard.index', compact(
             'branches', 'stats', 'branchRevenue', 'topBranch',
-            'categorySales', 'recentTransactions', 'lowStockCount', 'pendingTransfers'
+            'categorySales', 'recentTransactions', 'lowStockCount', 'pendingTransfers',
+            'range', 'dateFrom', 'dateTo', 'deltaLabel'
         ));
     }
 
-    private function getDayRevenue(string $date, $user): float
+    public function export(Request $request)
     {
-        return DB::table('sales_transactions')
-            ->whereDate('transaction_date', $date)
-            ->where('status', 'completed')
-            ->when(! $user->isSuperAdmin(), fn ($q) => $q->where('branch_id', $user->branch_id))
-            ->sum('total_amount') ?? 0;
+        $this->authorize('export reports');
+
+        $user  = auth()->user();
+        $range = $request->input('range', 'today');
+        [$dateFrom, $dateTo] = $this->resolveDateRange($range);
+
+        $transactions = DB::table('sales_transactions')
+            ->join('branches', 'sales_transactions.branch_id', '=', 'branches.id')
+            ->leftJoin('employees as cashiers', 'sales_transactions.cashier_id', '=', 'cashiers.id')
+            ->leftJoin('customers', 'sales_transactions.customer_id', '=', 'customers.id')
+            ->whereBetween(DB::raw('DATE(transaction_date)'), [$dateFrom, $dateTo])
+            ->where('sales_transactions.status', 'completed')
+            ->when(! $user->isSuperAdmin(), fn ($q) => $q->where('sales_transactions.branch_id', $user->branch_id))
+            ->select(
+                'sales_transactions.transaction_number',
+                'sales_transactions.transaction_date',
+                'branches.name as branch',
+                DB::raw("TRIM(CONCAT(COALESCE(cashiers.first_name,''), ' ', COALESCE(cashiers.last_name,''))) as cashier"),
+                DB::raw("COALESCE(TRIM(CONCAT(COALESCE(customers.first_name,''), ' ', COALESCE(customers.last_name,''))), 'Walk-in') as customer"),
+                'sales_transactions.payment_method',
+                'sales_transactions.subtotal',
+                'sales_transactions.tax_amount',
+                'sales_transactions.discount_amount',
+                'sales_transactions.total_amount',
+            )
+            ->orderBy('transaction_date')
+            ->get();
+
+        $filename = "dashboard-{$range}-{$dateFrom}-to-{$dateTo}.csv";
+
+        return response()->streamDownload(function () use ($transactions, $dateFrom, $dateTo, $range) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ["Vapour Garage Main — Sales Report ({$range}: {$dateFrom} to {$dateTo})"]);
+            fputcsv($handle, []);
+            fputcsv($handle, ['TXN Number', 'Date & Time', 'Branch', 'Cashier', 'Customer', 'Payment', 'Subtotal', 'Tax', 'Discount', 'Total']);
+            foreach ($transactions as $txn) {
+                fputcsv($handle, [
+                    $txn->transaction_number,
+                    $txn->transaction_date,
+                    $txn->branch,
+                    $txn->cashier ?: 'N/A',
+                    $txn->customer,
+                    ucfirst(str_replace('_', ' ', $txn->payment_method)),
+                    number_format($txn->subtotal, 2),
+                    number_format($txn->tax_amount, 2),
+                    number_format($txn->discount_amount, 2),
+                    number_format($txn->total_amount, 2),
+                ]);
+            }
+            fclose($handle);
+        }, $filename, ['Content-Type' => 'text/csv']);
     }
 
-    private function getDayTransactionCount(string $date, $user): int
+    // -------------------------------------------------------------------------
+
+    private function resolveDateRange(string $range): array
+    {
+        return match($range) {
+            'week' => [
+                now()->startOfWeek()->toDateString(),
+                now()->toDateString(),
+                now()->subWeek()->startOfWeek()->toDateString(),
+                now()->subWeek()->endOfWeek()->toDateString(),
+                'vs last week',
+            ],
+            'month' => [
+                now()->startOfMonth()->toDateString(),
+                now()->toDateString(),
+                now()->subMonth()->startOfMonth()->toDateString(),
+                now()->subMonth()->endOfMonth()->toDateString(),
+                'vs last month',
+            ],
+            default => [
+                now()->toDateString(),
+                now()->toDateString(),
+                now()->subDay()->toDateString(),
+                now()->subDay()->toDateString(),
+                'vs yesterday',
+            ],
+        };
+    }
+
+    private function getRangeRevenue(string $from, string $to, $user): float
+    {
+        return (float) DB::table('sales_transactions')
+            ->whereBetween(DB::raw('DATE(transaction_date)'), [$from, $to])
+            ->where('status', 'completed')
+            ->when(! $user->isSuperAdmin(), fn ($q) => $q->where('branch_id', $user->branch_id))
+            ->sum('total_amount');
+    }
+
+    private function getRangeTxnCount(string $from, string $to, $user): int
     {
         return DB::table('sales_transactions')
-            ->whereDate('transaction_date', $date)
+            ->whereBetween(DB::raw('DATE(transaction_date)'), [$from, $to])
             ->where('status', 'completed')
             ->when(! $user->isSuperAdmin(), fn ($q) => $q->where('branch_id', $user->branch_id))
             ->count();
     }
 
-    private function getItemsSold(string $date, $user): int
+    private function getRangeItemsSold(string $from, string $to, $user): int
     {
-        return DB::table('sales_transaction_items')
+        return (int) DB::table('sales_transaction_items')
             ->join('sales_transactions', 'sales_transaction_items.transaction_id', '=', 'sales_transactions.id')
-            ->whereDate('sales_transactions.transaction_date', $date)
+            ->whereBetween(DB::raw('DATE(sales_transactions.transaction_date)'), [$from, $to])
             ->where('sales_transactions.status', 'completed')
             ->when(! $user->isSuperAdmin(), fn ($q) => $q->where('sales_transactions.branch_id', $user->branch_id))
-            ->sum('sales_transaction_items.quantity') ?? 0;
+            ->sum('sales_transaction_items.quantity');
     }
 
-    private function getNewCustomers(string $date, $user): int
+    private function getRangeNewCustomers(string $from, string $to, $user): int
     {
-        info($date);
         return DB::table('customers')
-            ->whereDate('created_at', $date)
+            ->whereBetween(DB::raw('DATE(created_at)'), [$from, $to])
             ->when(! $user->isSuperAdmin(), fn ($q) => $q->where('registered_branch_id', $user->branch_id))
             ->count();
     }

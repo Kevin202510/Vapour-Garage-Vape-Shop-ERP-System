@@ -63,4 +63,63 @@ class SalesWebController extends Controller
         $this->salesService->void($id, $validated['reason']);
         return back()->with('success', 'Transaction voided.');
     }
+
+    public function export(Request $request)
+    {
+        $this->authorize('export reports');
+
+        $filters = $request->only(['branch_id', 'cashier_id', 'status', 'payment_method', 'date_from', 'date_to', 'search']);
+        $user    = auth()->user();
+        if (! $user->isSuperAdmin()) $filters['branch_id'] = $user->branch_id;
+        if (($filters['status'] ?? 'all') === 'all') unset($filters['status']);
+
+        $rows = DB::table('sales_transactions')
+            ->join('branches', 'sales_transactions.branch_id', '=', 'branches.id')
+            ->leftJoin('employees as cashiers', 'sales_transactions.cashier_id', '=', 'cashiers.id')
+            ->leftJoin('customers', 'sales_transactions.customer_id', '=', 'customers.id')
+            ->when(isset($filters['branch_id']),      fn ($q) => $q->where('sales_transactions.branch_id', $filters['branch_id']))
+            ->when(isset($filters['status']),         fn ($q) => $q->where('sales_transactions.status', $filters['status']))
+            ->when(isset($filters['payment_method']), fn ($q) => $q->where('sales_transactions.payment_method', $filters['payment_method']))
+            ->when(! empty($filters['date_from']),    fn ($q) => $q->whereDate('transaction_date', '>=', $filters['date_from']))
+            ->when(! empty($filters['date_to']),      fn ($q) => $q->whereDate('transaction_date', '<=', $filters['date_to']))
+            ->when(! empty($filters['search']),       fn ($q) => $q->where('sales_transactions.transaction_number', 'like', "%{$filters['search']}%"))
+            ->select(
+                'sales_transactions.transaction_number',
+                'sales_transactions.transaction_date',
+                'branches.name as branch',
+                DB::raw("TRIM(CONCAT(COALESCE(cashiers.first_name,''), ' ', COALESCE(cashiers.last_name,''))) as cashier"),
+                DB::raw("COALESCE(TRIM(CONCAT(COALESCE(customers.first_name,''), ' ', COALESCE(customers.last_name,''))), 'Walk-in') as customer"),
+                'sales_transactions.payment_method',
+                'sales_transactions.status',
+                'sales_transactions.subtotal',
+                'sales_transactions.tax_amount',
+                'sales_transactions.discount_amount',
+                'sales_transactions.total_amount',
+            )
+            ->orderBy('transaction_date')
+            ->get();
+
+        $filename = 'sales-' . now()->format('Y-m-d') . '.csv';
+
+        return response()->streamDownload(function () use ($rows) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['TXN Number', 'Date & Time', 'Branch', 'Cashier', 'Customer', 'Payment', 'Status', 'Subtotal', 'Tax', 'Discount', 'Total']);
+            foreach ($rows as $row) {
+                fputcsv($handle, [
+                    $row->transaction_number,
+                    $row->transaction_date,
+                    $row->branch,
+                    $row->cashier ?: 'N/A',
+                    $row->customer,
+                    ucfirst(str_replace('_', ' ', $row->payment_method)),
+                    ucfirst($row->status),
+                    number_format($row->subtotal, 2),
+                    number_format($row->tax_amount, 2),
+                    number_format($row->discount_amount, 2),
+                    number_format($row->total_amount, 2),
+                ]);
+            }
+            fclose($handle);
+        }, $filename, ['Content-Type' => 'text/csv']);
+    }
 }

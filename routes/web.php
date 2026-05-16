@@ -54,6 +54,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Dashboard
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/export', [DashboardController::class, 'export'])->name('dashboard.export');
 
     // Point of Sale
     Route::get('/pos', [PosWebController::class, 'index'])->name('pos.index');
@@ -77,6 +78,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Sales
     Route::prefix('sales')->name('sales.')->group(function () {
         Route::get('/',             [SalesWebController::class, 'index'])->name('index');
+        Route::get('/export',       [SalesWebController::class, 'export'])->name('export');
         Route::get('/{id}',        [SalesWebController::class, 'show'])->name('show');
         Route::post('/{id}/void',  [SalesWebController::class, 'void'])->name('void');
     });

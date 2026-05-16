@@ -3,20 +3,20 @@
     <x-page-header
         overline="Overview · {{ now()->format('l, F d Y') }}"
         title="Good morning,<br><em>Operations.</em>"
-        :subtitle="(auth()->user()->isSuperAdmin() ? 'All ' . $branches->count() . ' branches' : (auth()->user()->branch->name ?? 'Your branch')) . ' · Last sync just now'"
+        :subtitle="(auth()->user()->isSuperAdmin() ? 'All ' . $branches->count() . ' branches' : (auth()->user()->branch->name ?? 'Your branch')) . ' · ' . ucfirst($range) . ' view'"
     >
         <x-slot:actions>
-            <div class="flex gap-1 bg-cream border border-cream3 rounded-md p-[3px]" x-data="{ range: 'today' }">
+            <div class="flex gap-1 bg-cream border border-cream3 rounded-md p-[3px]">
                 @foreach(['today' => 'Today', 'week' => 'Week', 'month' => 'Month'] as $val => $lbl)
-                    <button @click="range = '{{ $val }}'"
-                            :class="range === '{{ $val }}' ? 'bg-white text-ink shadow-sm' : 'text-ink4'"
-                            class="px-3.5 py-[5px] rounded text-[11px] font-mono tracking-wide transition-all">
+                    <a href="{{ route('dashboard', ['range' => $val]) }}"
+                       class="px-3.5 py-[5px] rounded text-[11px] font-mono tracking-wide transition-all
+                              {{ $range === $val ? 'bg-white text-ink shadow-sm' : 'text-ink4 hover:text-ink' }}">
                         {{ $lbl }}
-                    </button>
+                    </a>
                 @endforeach
             </div>
             @can('export reports')
-            <x-btn variant="ghost" size="sm">
+            <x-btn :href="route('dashboard.export', ['range' => $range])" variant="ghost" size="sm">
                 <x-icon name="download" class="w-3 h-3" /> Export
             </x-btn>
             @endcan
@@ -25,15 +25,27 @@
 
     {{-- KPI Cards --}}
     <div class="grid grid-cols-4 gap-4 mb-7">
-        <x-kpi-card label="Revenue Today"  :value="'₱' . number_format($stats['revenue_today'])"       delta="{{ number_format($stats['revenue_delta'], 1) }}% vs yesterday"      :deltaUp="$stats['revenue_delta'] >= 0"      bgChar="₱"  color="terra" />
-        <x-kpi-card label="Transactions"   :value="number_format($stats['transactions_today'])"          delta="{{ number_format($stats['transactions_delta'], 1) }}% vs yesterday"  :deltaUp="$stats['transactions_delta'] >= 0" bgChar="—"  color="navy" />
-        <x-kpi-card label="Items Sold"     :value="number_format($stats['items_sold'])"                  delta="{{ number_format($stats['items_delta'], 1) }}% vs yesterday"         :deltaUp="$stats['items_delta'] >= 0"        bgChar="1k" color="gold" />
-        <x-kpi-card label="New Customers"  :value="number_format($stats['new_customers'])"               delta="{{ number_format($stats['customers_delta'], 1) }}% vs yesterday"     :deltaUp="$stats['customers_delta'] >= 0"    bgChar="—"  color="sage" />
+        <x-kpi-card :label="$range === 'today' ? 'Revenue Today' : ($range === 'week' ? 'Revenue This Week' : 'Revenue This Month')"
+                    :value="'₱' . number_format($stats['revenue_today'])"
+                    delta="{{ number_format($stats['revenue_delta'], 1) }}% {{ $deltaLabel }}"
+                    :deltaUp="$stats['revenue_delta'] >= 0" bgChar="₱" color="terra" />
+        <x-kpi-card label="Transactions"
+                    :value="number_format($stats['transactions_today'])"
+                    delta="{{ number_format($stats['transactions_delta'], 1) }}% {{ $deltaLabel }}"
+                    :deltaUp="$stats['transactions_delta'] >= 0" bgChar="—" color="navy" />
+        <x-kpi-card label="Items Sold"
+                    :value="number_format($stats['items_sold'])"
+                    delta="{{ number_format($stats['items_delta'], 1) }}% {{ $deltaLabel }}"
+                    :deltaUp="$stats['items_delta'] >= 0" bgChar="1k" color="gold" />
+        <x-kpi-card label="New Customers"
+                    :value="number_format($stats['new_customers'])"
+                    delta="{{ number_format($stats['customers_delta'], 1) }}% {{ $deltaLabel }}"
+                    :deltaUp="$stats['customers_delta'] >= 0" bgChar="—" color="sage" />
     </div>
 
     {{-- Charts --}}
     <div class="grid grid-cols-[1fr_320px] gap-4 mb-7">
-        <x-card title="Revenue by Branch" subtitle="TODAY · COMPLETED TRANSACTIONS">
+        <x-card title="Revenue by Branch" :subtitle="strtoupper($dateFrom === $dateTo ? $dateFrom : $dateFrom . ' – ' . $dateTo) . ' · COMPLETED TRANSACTIONS'">
             <div class="grid grid-cols-2 gap-3 mb-5">
                 <div class="bg-cream rounded-lg px-4 py-3">
                     <p class="font-mono text-[9px] tracking-[0.14em] uppercase text-ink4 mb-1">Highest Branch</p>
@@ -66,7 +78,7 @@
             </div>
         </x-card>
 
-        <x-card title="Sales Mix" subtitle="BY CATEGORY · TODAY">
+        <x-card title="Sales Mix" :subtitle="'BY CATEGORY · ' . strtoupper($range)">
             <div class="flex justify-center my-2">
                 <svg width="110" height="110" viewBox="0 0 110 110">
                     <circle cx="55" cy="55" r="42" fill="none" stroke="#e3dccf" stroke-width="16"/>

@@ -4,7 +4,7 @@
         <x-slot:actions>
             <x-btn variant="ghost" size="sm">Filter</x-btn>
             @can('export reports')
-            <x-btn variant="ghost" size="sm">
+            <x-btn :href="route('sales.export', request()->query())" variant="ghost" size="sm">
                 <x-icon name="download" class="w-3 h-3" /> Export CSV
             </x-btn>
             @endcan
