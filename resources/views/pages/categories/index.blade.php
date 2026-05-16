@@ -78,16 +78,17 @@
                     <x-btn :href="route('categories.edit', $cat)" variant="ghost" size="sm">Edit</x-btn>
                     @endcan
                     @can('delete categories')
-                    @if($cat->products_count === 0 && $cat->children->count() === 0)
-                    <form method="POST" action="{{ route('categories.destroy', $cat) }}">
-                        @csrf @method('DELETE')
-                        <x-btn type="submit" variant="danger" size="sm"
-                               onclick="return confirm('Delete \"{{ $cat->name }}\"?')">Delete</x-btn>
-                    </form>
-                    @else
-                    <span class="font-mono text-[9px] text-ink4 self-center px-2">
-                        {{ $cat->products_count > 0 ? 'Has products' : 'Has children' }}
-                    </span>
+                        @if($cat->products_count === 0 && $cat->children->count() === 0)
+                            <form method="POST" action="{{ route('categories.destroy', $cat) }}">
+                                @csrf @method('DELETE')
+                                <x-btn type="submit" variant="danger" size="sm"
+                                       onclick="return confirm('Delete this category?')">Delete</x-btn>
+                            </form>
+                        @else
+                            <span class="font-mono text-[9px] text-ink4 self-center">
+                                {{ $cat->products_count > 0 ? 'Has products' : 'Has sub-categories' }}
+                            </span>
+                        @endif
                     @endcan
                 </div>
             </x-td>
