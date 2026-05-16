@@ -383,10 +383,10 @@
                 <x-form-input label="Email" name="email" type="email" />
             </div>
             <x-form-input label="Date of Birth" name="birth_date" type="date" help="Must be 18+" class="mb-0" />
-            <x-slot:footer>
+            <div class="flex items-center justify-end gap-3 pt-3 mt-3 border-t border-cream3">
                 <x-btn type="button" variant="ghost" size="sm" x-on:click="$dispatch('close-modal', 'quick-add-customer')">Cancel</x-btn>
                 <x-btn type="submit" variant="primary" size="sm">Register & Select</x-btn>
-            </x-slot:footer>
+            </div>
         </form>
     </x-modal>
 

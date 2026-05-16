@@ -15,6 +15,7 @@ use App\Http\Controllers\Web\PurchasingWebController;
 use App\Http\Controllers\Web\SalesWebController;
 use App\Http\Controllers\Web\TransferWebController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Web\SalesPeriodController;
 
 /*
 |--------------------------------------------------------------------------
@@ -44,7 +45,7 @@ Route::get('/', function () {
         : redirect('/home');
 });
  
- Route::post('/chatbot', [ChatBotController::class, 'chat']);
+Route::post('/chatbot', [ChatBotController::class, 'chat'])->middleware('throttle:20,1');
 
 // ── Auth routes (provided by Laravel Breeze / Fortify / Sanctum) ──────────
 require __DIR__ . '/auth.php';
@@ -89,8 +90,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/{id}',               [TransferWebController::class, 'show'])->name('show');
         Route::post('/',                   [TransferWebController::class, 'store'])->name('store');
         Route::post('/{id}/approve',       [TransferWebController::class, 'approve'])->name('approve');
+        Route::post('/{id}/dispatch',      [TransferWebController::class, 'dispatch'])->name('dispatch');
         Route::post('/{id}/reject',        [TransferWebController::class, 'reject'])->name('reject');
         Route::post('/{id}/receive',       [TransferWebController::class, 'receive'])->name('receive');
+        Route::post('/{id}/cancel',        [TransferWebController::class, 'cancel'])->name('cancel');
     });
 
     // Sales
@@ -99,6 +102,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/export',       [SalesWebController::class, 'export'])->name('export');
         Route::get('/{id}',        [SalesWebController::class, 'show'])->name('show');
         Route::post('/{id}/void',  [SalesWebController::class, 'void'])->name('void');
+    });
+
+    // Sales Period Closing (Reset Schedule)
+    Route::prefix('sales-periods')->name('sales-periods.')->group(function () {
+        Route::get('/',      [SalesPeriodController::class, 'index'])->name('index');
+        Route::post('/close', [SalesPeriodController::class, 'close'])->name('close');
     });
 
     // Purchasing (Purchase Orders)

@@ -7,39 +7,76 @@
     >
         <x-slot:actions>
             <x-btn :href="route('transfers.index')" variant="ghost" size="sm">← All Transfers</x-btn>
+
             @if($transfer->status === 'pending')
                 @can('approve stock transfers')
-                    <form method="POST" action="{{ route('transfers.approve', $transfer->id) }}" class="inline">
-                        @csrf @method('POST')
-                        <x-btn type="submit" variant="primary" size="sm">Approve</x-btn>
-                    </form>
-                    <button onclick="window.dispatchEvent(new CustomEvent('open-modal', { detail: 'reject-transfer' }))"
-                            class="inline-flex items-center px-3 py-[5px] text-[11px] font-medium text-danger/70 border border-danger/20 rounded-md hover:bg-danger/5 transition-colors">
-                        Reject
-                    </button>
+                <form method="POST" action="{{ route('transfers.approve', $transfer->id) }}" class="inline">
+                    @csrf
+                    <x-btn type="submit" variant="primary" size="sm">Approve</x-btn>
+                </form>
+                <button onclick="window.dispatchEvent(new CustomEvent('open-modal', { detail: 'reject-transfer' }))"
+                        class="inline-flex items-center px-3 py-[5px] text-[11px] font-medium text-danger/70 border border-danger/20 rounded-md hover:bg-danger/5 transition-colors">
+                    Reject
+                </button>
                 @endcan
-            @elseif(in_array($transfer->status, ['approved', 'in_transit']))
+                @can('create stock transfers')
+                <form method="POST" action="{{ route('transfers.cancel', $transfer->id) }}" class="inline">
+                    @csrf
+                    <x-btn type="submit" variant="danger" size="sm"
+                           onclick="return confirm('Cancel this transfer?')">Cancel</x-btn>
+                </form>
+                @endcan
+
+            @elseif($transfer->status === 'approved')
+                @can('approve stock transfers')
+                <form method="POST" action="{{ route('transfers.dispatch', $transfer->id) }}" class="inline">
+                    @csrf
+                    <x-btn type="submit" variant="ghost" size="sm">Mark Dispatched</x-btn>
+                </form>
+                @endcan
                 @can('receive stock transfers')
-                    <form method="POST" action="{{ route('transfers.receive', $transfer->id) }}" class="inline">
-                        @csrf @method('POST')
-                        <x-btn type="submit" variant="primary" size="sm">Mark as Received</x-btn>
-                    </form>
+                <form method="POST" action="{{ route('transfers.receive', $transfer->id) }}" class="inline">
+                    @csrf
+                    <x-btn type="submit" variant="primary" size="sm">Mark Received</x-btn>
+                </form>
+                @endcan
+                @can('approve stock transfers')
+                <form method="POST" action="{{ route('transfers.cancel', $transfer->id) }}" class="inline">
+                    @csrf
+                    <x-btn type="submit" variant="danger" size="sm"
+                           onclick="return confirm('Cancel this approved transfer?')">Cancel</x-btn>
+                </form>
+                @endcan
+
+            @elseif($transfer->status === 'in_transit')
+                @can('receive stock transfers')
+                <form method="POST" action="{{ route('transfers.receive', $transfer->id) }}" class="inline">
+                    @csrf
+                    <x-btn type="submit" variant="primary" size="sm">Mark Received</x-btn>
+                </form>
                 @endcan
             @endif
         </x-slot:actions>
     </x-page-header>
 
+    @if($errors->has('transfer'))
+        <x-alert type="error" :message="$errors->first('transfer')" class="mb-5" />
+    @endif
+    @if(session('success'))
+        <x-alert type="success" :message="session('success')" class="mb-5" />
+    @endif
+
     {{-- Reject modal --}}
     <x-modal name="reject-transfer" title="Reject Transfer" max-width="sm">
         <form method="POST" action="{{ route('transfers.reject', $transfer->id) }}">
-            @csrf @method('POST')
+            @csrf
             <x-form-input label="Reason for rejection" name="reason" required class="mb-4"
                           placeholder="Explain why this transfer is being rejected…" />
-            <x-slot:footer>
+            <div class="flex items-center justify-end gap-3 pt-3 border-t border-cream3">
                 <x-btn type="button" variant="ghost" size="sm"
                        x-on:click="$dispatch('close-modal', 'reject-transfer')">Cancel</x-btn>
                 <x-btn type="submit" variant="danger" size="sm">Confirm Reject</x-btn>
-            </x-slot:footer>
+            </div>
         </form>
     </x-modal>
 
@@ -82,9 +119,14 @@
             @endforeach
         </div>
         @if($transfer->status === 'rejected')
-            <div class="mt-4 pt-4 border-t border-cream2">
-                <p class="font-mono text-[9px] tracking-[0.14em] uppercase text-danger mb-1">Rejected</p>
+            <div class="mt-4 pt-4 border-t border-cream3">
+                <p class="font-mono text-[9px] tracking-[0.14em] uppercase text-danger mb-1">Rejection Reason</p>
                 <p class="text-[12.5px] text-ink3">{{ $transfer->rejection_reason }}</p>
+            </div>
+        @elseif($transfer->status === 'cancelled')
+            <div class="mt-4 pt-4 border-t border-cream3">
+                <p class="font-mono text-[9px] tracking-[0.14em] uppercase text-ink4 mb-1">Cancelled</p>
+                <p class="text-[12.5px] text-ink4">This transfer was cancelled. All reserved stock has been released.</p>
             </div>
         @endif
     </div>

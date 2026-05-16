@@ -35,4 +35,20 @@ return [
         ],
     ],
 
+    // ── Payment collection accounts ─────────────────────────────────────────
+    // Set these in your .env file:
+    //   GCASH_NUMBER=09XXXXXXXXX
+    //   GCASH_NAME="Vapour Garage Main"
+    //   MAYA_NUMBER=09XXXXXXXXX
+    //   MAYA_NAME="Vapour Garage Main"
+    'gcash' => [
+        'number' => env('GCASH_NUMBER', '09XX-XXX-XXXX'),
+        'name'   => env('GCASH_NAME',   'Vapour Garage Main'),
+    ],
+
+    'maya' => [
+        'number' => env('MAYA_NUMBER', '09XX-XXX-XXXX'),
+        'name'   => env('MAYA_NAME',   'Vapour Garage Main'),
+    ],
+
 ];

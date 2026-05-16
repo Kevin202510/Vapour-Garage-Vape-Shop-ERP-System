@@ -13,103 +13,87 @@
         href="https://fonts.googleapis.com/css2?family=Russo+One&family=Exo+2:ital,wght@0,300;0,400;0,600;0,800;1,300;1,600&family=Share+Tech+Mono&display=swap"
         rel="stylesheet">
     <style>
-        #chatbot-toggle {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            width: 60px;
-            height: 60px;
+        /* ── FAQ ── */
+        .faq-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0 40px;
+            margin-top: 56px;
+        }
+
+        @media(max-width:860px) {
+            .faq-grid { grid-template-columns: 1fr; }
+        }
+
+        .faq-col {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .faq-item {
+            border-bottom: 1px solid rgba(124,34,212,0.2);
+            overflow: hidden;
+        }
+
+        .faq-q {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 22px 0;
+            cursor: pointer;
+            font-family: var(--display);
+            font-size: clamp(14px, 1.5vw, 17px);
+            letter-spacing: 0.03em;
+            color: var(--white);
+            transition: color 0.2s;
+            user-select: none;
+        }
+
+        .faq-q:hover { color: var(--green); }
+
+        .faq-icon {
+            width: 26px;
+            height: 26px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #7c22d4, #39ff14);
+            border: 1px solid rgba(124,34,212,0.4);
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
-            z-index: 9999;
-            font-size: 24px;
-            box-shadow: 0 0 25px rgba(124, 34, 212, .6);
+            flex-shrink: 0;
+            font-size: 18px;
+            color: var(--purple2);
+            line-height: 1;
+            transition: transform 0.3s, border-color 0.2s, color 0.2s;
         }
 
-        #chatbot-box {
-            position: fixed;
-            bottom: 95px;
-            right: 24px;
-            width: 340px;
-            background: #130f1e;
-            border: 1px solid rgba(124, 34, 212, .4);
-            border-radius: 10px;
+        .faq-item.open .faq-icon {
+            transform: rotate(45deg);
+            border-color: var(--green);
+            color: var(--green);
+        }
+
+        .faq-a {
+            max-height: 0;
             overflow: hidden;
-            display: none;
-            z-index: 9999;
-            box-shadow: 0 0 35px rgba(124, 34, 212, .35);
+            transition: max-height 0.38s ease, padding 0.25s;
+            font-size: 13.5px;
+            color: var(--muted);
+            line-height: 1.75;
+            padding-bottom: 0;
         }
 
-        #chatbot-header {
-            padding: 14px;
-            background: #7c22d4;
-            color: white;
-            font-family: 'Russo One', sans-serif;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .faq-item.open .faq-a {
+            max-height: 400px;
+            padding-bottom: 22px;
         }
 
-        #chatbot-header span {
-            cursor: pointer;
+        .faq-a a {
+            color: var(--green);
+            text-decoration: none;
         }
 
-        #chatbot-messages {
-            height: 300px;
-            overflow-y: auto;
-            padding: 14px;
-            font-size: 13px;
-            color: #fff;
-        }
-
-        .bot-msg {
-            background: #1a1428;
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            line-height: 1.5;
-        }
-
-        .user-msg {
-            background: #39ff14;
-            color: #000;
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            text-align: right;
-        }
-
-        #chatbot-input-wrap {
-            display: flex;
-            border-top: 1px solid rgba(255, 255, 255, .08);
-        }
-
-        #chatbot-input {
-            flex: 1;
-            background: #0d0b14;
-            border: none;
-            padding: 14px;
-            color: white;
-            outline: none;
-        }
-
-        #chatbot-input-wrap button {
-            background: #39ff14;
-            border: none;
-            padding: 0 18px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        .justify-end {
-            margin-top: 10px;
-            display: flex;
-            justify-content: flex-end;
-        }
+        .faq-a a:hover { text-decoration: underline; }
 
         *,
         *::before,
@@ -923,6 +907,70 @@
             flex-shrink: 0
         }
 
+        .bchours-closed {
+            color: var(--muted);
+        }
+
+        .bchours-closed::before {
+            background: var(--muted);
+            box-shadow: none;
+            animation: none;
+        }
+
+        .bchours-disabled {
+            color: #e05050;
+        }
+
+        .bchours-disabled::before {
+            background: #e05050;
+            box-shadow: 0 0 6px rgba(224,80,80,0.5);
+            animation: none;
+        }
+
+        .bc-disabled {
+            opacity: 0.6;
+        }
+
+        .bc-disabled .bcname {
+            color: var(--muted);
+        }
+
+        .ticker-open {
+            font-family: var(--mono);
+            font-size: 9px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--green);
+        }
+
+        .ticker-closed {
+            font-family: var(--mono);
+            font-size: 9px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .ticker-disabled {
+            font-family: var(--mono);
+            font-size: 9px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: #e05050;
+        }
+
+        .hdot-closed {
+            background: var(--muted) !important;
+            box-shadow: none !important;
+            animation: none !important;
+        }
+
+        .hdot-disabled {
+            background: #e05050 !important;
+            box-shadow: 0 0 6px rgba(224,80,80,0.5) !important;
+            animation: none !important;
+        }
+
         /* LOYALTY */
         .lbg {
             background: var(--dark2)
@@ -1484,6 +1532,7 @@
             <a href="#wholesale-products">Wholesale</a>
             <a href="#branches">Locations</a>
             <a href="#loyalty">Rewards</a>
+            <a href="#faq">FAQ</a>
             <a href="{{ route('login') }}" class="ncta">Staff Login</a>
         </div>
     </nav>
@@ -1534,23 +1583,20 @@
             <div class="hbranches">
 
                 @foreach ($branches as $index => $branch)
+                @php
+                    $withinHours = now()->hour >= 10 && now()->hour < 21;
+                    $isOpen      = $branch->is_active && $withinHours;
+                    $dotClass    = ! $branch->is_active ? 'hdot hdot-disabled'
+                                  : ($isOpen ? 'hdot' : 'hdot-closed');
+                    $tickerClass = ! $branch->is_active ? 'ticker-disabled'
+                                  : ($isOpen ? 'ticker-open' : 'ticker-closed');
+                    $label       = ! $branch->is_active ? 'Closed'
+                                  : ($isOpen ? 'Open' : 'Closed');
+                @endphp
                     <div class="hbi">
-
-                        <span class="hdot" style="animation-delay: {{ $index * 0.3 }}s"></span>
-
-                        <span class="hbn">
-
-                            {{ str_replace('Vapour Garage - ', '', $branch['name']) }}
-
-                        </span>
-
-                        <span
-                            class="ticker-status {{ $branch['is_active'] && now()->hour >= 10 && now()->hour < 21 ? 'open' : 'closed' }}">
-
-                            {{ $branch['is_active'] && now()->hour >= 10 && now()->hour < 21 ? 'Open now' : 'Closed' }}
-
-                        </span>
-
+                        <span class="{{ $dotClass }}" style="animation-delay: {{ $index * 0.3 }}s"></span>
+                        <span class="hbn">{{ str_replace('Vapour Garage - ', '', $branch->name) }}</span>
+                        <span class="{{ $tickerClass }}">{{ $label }}</span>
                     </div>
                 @endforeach
 
@@ -1908,12 +1954,22 @@
                 style="color:var(--purple2)">BRANCH</span></h2>
         <div class="bgrd">
             @foreach ($branches as $index => $branch)
-                <div class="bc reveal">
+            @php
+                $withinHours = now()->hour >= 10 && now()->hour < 21;
+                $isOpen      = $branch->is_active && $withinHours;
+            @endphp
+                <div class="bc reveal {{ ! $branch->is_active ? 'bc-disabled' : '' }}">
                     <div class="bcnum">{{ $index + 1 }}</div>
                     <div>
                         <div class="bcname">{{ $branch->name }}</div>
                         <div class="bcaddr">{{ $branch->city }}</div>
-                        <div class="bchours">10AM - 9PM Daily</div>
+                        @if(! $branch->is_active)
+                            <div class="bchours bchours-disabled">Temporarily Closed</div>
+                        @elseif($isOpen)
+                            <div class="bchours">Open · 10AM – 9PM</div>
+                        @else
+                            <div class="bchours bchours-closed">Closed · Opens 10AM</div>
+                        @endif
                     </div>
                 </div>
             @endforeach
@@ -1955,29 +2011,90 @@
         </div>
     </section>
 
-    <!-- CHATBOT -->
-    <div id="chatbot-toggle">
-        💬
-    </div>
+    <!-- FAQ SECTION -->
+    <section class="sec" id="faq" style="background:var(--dark2)">
+        <div class="stag reveal">Help</div>
+        <h2 class="stitle reveal" style="color:var(--white)">FREQUENTLY ASKED <span style="color:var(--purple2)">QUESTIONS</span></h2>
 
-    <div id="chatbot-box">
-        <div id="chatbot-header">
-            VAPOUR AI
-            <span onclick="closeChat()">✕</span>
-        </div>
+        @php
+        $faqs = [
+            // Left column (0–4)
+            [
+                'q' => 'What products do you sell?',
+                'a' => 'We carry a full range of vaping products: Disposable vapes (Dispods) from ₱280, Pod systems from ₱1,200, Box mods from ₱2,800, Salt nicotine &amp; freebase e-liquids, Coils, pods, wires, cotton, batteries, and accessories. We always have fresh stock across all our branches.',
+            ],
+            [
+                'q' => 'Where are your branches located?',
+                'a' => 'We have multiple branches across Nueva Ecija — visit the <a href="#branches">Locations</a> section on this page to see all of them. All branches are open 10AM – 9PM daily.',
+            ],
+            [
+                'q' => 'Do you have an online shop?',
+                'a' => 'Yes! You can browse and order at <a href="/shop">our online shop</a>. We accept GCash, Maya, Bank Transfer, and Cash on Pickup. After placing your order you can <a href="/shop/track">track its status</a> anytime.',
+            ],
+            [
+                'q' => 'What are your payment options?',
+                'a' => 'In-store we accept cash. Online orders can be paid via GCash, Maya, Bank Transfer, or Cash on Pickup. Payment instructions are sent to your email automatically after placing an order.',
+            ],
+            [
+                'q' => 'How does the Loyalty Rewards program work?',
+                'a' => 'Earn 1 point for every ₱10 spent. As you accumulate points you move up tiers: Bronze → Silver → Gold → Platinum. Higher tiers unlock discounts up to 15% off, free monthly coils, VIP events, and more! Visit the <a href="#loyalty">Rewards</a> section to learn more.',
+            ],
+            // Right column (5–9)
+            [
+                'q' => 'Do you offer wholesale or bulk pricing?',
+                'a' => 'Yes, we offer wholesale pricing for bulk orders. Visit the <a href="/shop?is_wholesale=1">Wholesale</a> section of our shop or go directly to any branch and speak with a staff member for dealer rates.',
+            ],
+            [
+                'q' => 'Is there an age restriction to purchase?',
+                'a' => 'Yes — you must be 18 years or older to purchase any of our products. We strictly comply with Philippine Republic Act No. 11467. Age verification is required both in-store and for online orders.',
+            ],
+            [
+                'q' => 'How do I track my online order?',
+                'a' => 'Go to <a href="/shop/track">our order tracker</a>, enter your Order Number and email address. Your order status updates in real time as staff confirm, process, and prepare it for pickup.',
+            ],
+            [
+                'q' => 'Can I return or exchange an item?',
+                'a' => 'We accept exchanges within 3 days for manufacturer defects on devices. E-liquids, pods, and disposables are non-returnable once opened for health and safety reasons. Please visit the branch where you purchased and bring your receipt.',
+            ],
+            [
+                'q' => 'How do I contact you?',
+                'a' => 'The easiest way is to message us on Facebook, or visit any branch during operating hours (10AM – 9PM daily). You can also place orders and track them through our <a href="/shop">online shop</a>.',
+            ],
+        ];
+        $left  = array_slice($faqs, 0, 5);
+        $right = array_slice($faqs, 5, 5);
+        @endphp
 
-        <div id="chatbot-messages">
-            <div class="bot-msg">
-                Welcome to Vapour Garage 🔥<br>
-                Ask about products, branches, promos, or rewards.
+        <div class="faq-grid reveal">
+
+            {{-- Left column --}}
+            <div class="faq-col">
+                @foreach($left as $faq)
+                <div class="faq-item" onclick="toggleFaq(this)">
+                    <div class="faq-q">
+                        <span>{{ $faq['q'] }}</span>
+                        <span class="faq-icon">+</span>
+                    </div>
+                    <div class="faq-a">{!! $faq['a'] !!}</div>
+                </div>
+                @endforeach
             </div>
-        </div>
 
-        <div id="chatbot-input-wrap">
-            <input type="text" id="chatbot-input" placeholder="Type message...">
-            <button onclick="sendMessage()">Send</button>
+            {{-- Right column --}}
+            <div class="faq-col">
+                @foreach($right as $faq)
+                <div class="faq-item" onclick="toggleFaq(this)">
+                    <div class="faq-q">
+                        <span>{{ $faq['q'] }}</span>
+                        <span class="faq-icon">+</span>
+                    </div>
+                    <div class="faq-a">{!! $faq['a'] !!}</div>
+                </div>
+                @endforeach
+            </div>
+
         </div>
-    </div>
+    </section>
 
     <footer>
         <div class="fgrid">
@@ -1989,9 +2106,10 @@
             <div>
                 <p class="fct">Navigation</p>
                 <ul class="flinks">
-                    <li><a href="#products">Products</a></li>
+                    <li><a href="{{ route('shop.index') }}">Shop</a></li>
                     <li><a href="#branches">Locations</a></li>
                     <li><a href="#loyalty">Rewards</a></li>
+                    <li><a href="#faq">FAQ</a></li>
                     <li><a href="{{ route('login') }}">Staff Login</a></li>
                 </ul>
             </div>
@@ -2039,122 +2157,13 @@
         document.querySelectorAll('.reveal').forEach(el => io.observe(el));
     </script>
     <script>
-        const toggle = document.getElementById('chatbot-toggle');
-        const box = document.getElementById('chatbot-box');
-        const input = document.getElementById('chatbot-input');
-        const messages = document.getElementById('chatbot-messages');
-
-        toggle.addEventListener('click', () => {
-            box.style.display = 'block';
-        });
-
-        function closeChat() {
-            box.style.display = 'none';
-        }
-
-        input.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                sendMessage();
-            }
-        });
-
-        async function sendMessage() {
-
-            const text = input.value.trim();
-
-            if (!text) return;
-
-            appendUserMessage(text);
-
-            input.value = '';
-
-            const loadingId = appendBotMessage('Typing...');
-
-            try {
-
-                const csrf = document
-                    .querySelector('meta[name="csrf-token"]')
-                    .getAttribute('content');
-
-                const response = await fetch('/chatbot', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': csrf
-                    },
-                    body: JSON.stringify({
-                        message: text
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error('HTTP Error: ' + response.status);
-                }
-
-                const data = await response.json();
-
-                removeMessage(loadingId);
-
-                appendBotMessage(data.reply ?? 'No reply from AI.');
-
-            } catch (error) {
-
-                console.error('Chatbot Error:', error);
-
-                removeMessage(loadingId);
-
-                appendBotMessage(
-                    'Server error. Check Laravel logs or chatbot route.'
-                );
-            }
-
-            scrollBottom();
-        }
-
-        function appendUserMessage(text) {
-
-            const div = document.createElement('div');
-
-            div.className = 'user-msg';
-
-            div.innerText = text;
-
-            messages.appendChild(div);
-
-            scrollBottom();
-        }
-
-        function appendBotMessage(text) {
-
-            const id = 'msg-' + Date.now();
-
-            const div = document.createElement('div');
-
-            div.className = 'bot-msg';
-
-            div.id = id;
-
-            div.innerText = text;
-
-            messages.appendChild(div);
-
-            scrollBottom();
-
-            return id;
-        }
-
-        function removeMessage(id) {
-
-            const el = document.getElementById(id);
-
-            if (el) {
-                el.remove();
-            }
-        }
-
-        function scrollBottom() {
-            messages.scrollTop = messages.scrollHeight;
+        function toggleFaq(item) {
+            const isOpen = item.classList.contains('open');
+            // Close others in the same column only
+            const col = item.closest('.faq-col');
+            if (col) col.querySelectorAll('.faq-item.open').forEach(el => el.classList.remove('open'));
+            else document.querySelectorAll('.faq-item.open').forEach(el => el.classList.remove('open'));
+            if (!isOpen) item.classList.add('open');
         }
     </script>
     <script>

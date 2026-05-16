@@ -130,11 +130,11 @@
                               :value="now()->format('Y-m') . ' First Half'" required
                               placeholder="e.g. 2026-04 First Half" />
             </div>
-            <x-slot:footer>
+            <div class="flex items-center justify-end gap-3 pt-3 mt-3 border-t border-cream3">
                 <x-btn variant="ghost" size="sm" type="button"
                        x-on:click="$dispatch('close-modal', 'generate-payroll')">Cancel</x-btn>
                 <x-btn variant="primary" size="sm" type="submit">Generate</x-btn>
-            </x-slot:footer>
+            </div>
         </form>
     </x-modal>
 

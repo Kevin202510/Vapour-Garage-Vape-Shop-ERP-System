@@ -7,13 +7,14 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class Product extends Model
 {
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'sku', 'name', 'description',
+        'sku', 'name', 'description', 'image_path',
         'category_id', 'supplier_id',
         'unit_cost', 'selling_price', 'tax_rate',
         'unit_of_measure', 'reorder_level',
@@ -22,6 +23,11 @@ class Product extends Model
         'is_on_sale', 'sale_price',
         'is_wholesale', 'min_order_qty',
     ];
+
+    public function getImageUrlAttribute(): ?string
+    {
+        return $this->image_path ? Storage::url($this->image_path) : null;
+    }
 
     protected $casts = [
         'unit_cost'                => 'decimal:2',

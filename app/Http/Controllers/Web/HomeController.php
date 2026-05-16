@@ -19,7 +19,8 @@ class HomeController extends Controller
 
     public function index()
     {
-        $branches = $this->branchRepo->getActive();
+        // Load ALL non-deleted branches so disabled ones still appear as "Closed"
+        $branches = \App\Models\Branch::orderBy('name')->get();
 
         // ── New Arrivals — most recently added active products ────────────────
         $newArrivals = Product::with('category')

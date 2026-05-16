@@ -27,11 +27,11 @@
             </p>
             <x-form-input label="Reason for void" name="reason" required
                           placeholder="e.g. Customer changed mind, wrong item scanned…" />
-            <x-slot:footer>
+            <div class="flex items-center justify-end gap-3 pt-3 mt-2 border-t border-cream3">
                 <x-btn type="button" variant="ghost" size="sm"
                        x-on:click="$dispatch('close-modal', 'void-txn')">Cancel</x-btn>
                 <x-btn type="submit" variant="danger" size="sm">Confirm Void</x-btn>
-            </x-slot:footer>
+            </div>
         </form>
     </x-modal>
 

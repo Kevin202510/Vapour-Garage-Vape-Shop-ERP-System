@@ -38,10 +38,11 @@
   .font-mono    { font-family: 'Share Tech Mono', monospace; }
   .font-body    { font-family: 'Exo 2', sans-serif; }
 
+  /* No transform — transforms on ancestors break position:fixed in modals */
   .page-enter { animation: page-rise 0.25s ease both; }
   @keyframes page-rise {
-    from { opacity: 0; transform: translateY(8px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; }
+    to   { opacity: 1; }
   }
 
   /* Live dot */

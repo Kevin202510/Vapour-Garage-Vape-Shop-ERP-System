@@ -42,6 +42,9 @@
         @can('view sales')
             <x-nav-item route="sales.index"          icon="activity"      label="Sales" />
         @endcan
+        @can('view sales reports')
+            <x-nav-item route="sales-periods.index"  icon="activity"      label="Period History" />
+        @endcan
         @can('view purchase orders')
             <x-nav-item route="purchasing.index"     icon="shopping-bag"  label="Purchasing" />
         @endcan
@@ -50,7 +53,7 @@
         @endcan
         @can('view sales')
             <x-nav-item route="online-orders.index"  icon="shopping-bag"  label="Online Orders"
-                :badge="\App\Models\OnlineOrder::where('status','pending')->count()" />
+                :badge="$pendingOnlineOrders ?? 0" />
         @endcan
 
         @canany(['view employees','view payroll','view branches'])

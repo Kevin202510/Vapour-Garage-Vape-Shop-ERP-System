@@ -177,8 +177,7 @@
          ADJUST STOCK MODAL (custom Alpine, not x-modal)
     ═══════════════════════════════════════════════════════ --}}
     <div x-show="adjustOpen" x-cloak
-         class="fixed inset-0 z-50 flex items-center justify-center p-4"
-         style="background:rgba(28,24,48,0.7);backdrop-filter:blur(4px)"
+         class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-ink/40 backdrop-blur-sm"
          @click.self="closeAdjust()">
         <div class="bg-white rounded-xl border border-cream3 shadow-card w-full max-w-md overflow-hidden"
              x-transition:enter="transition ease-out duration-200"
@@ -322,10 +321,10 @@
 
             <x-form-input label="Notes (optional)" name="notes" placeholder="Reason for transfer…" />
 
-            <x-slot:footer>
+            <div class="flex items-center justify-end gap-3 pt-3 mt-2 border-t border-cream3">
                 <x-btn type="button" variant="ghost" size="sm" x-on:click="$dispatch('close-modal', 'request-transfer')">Cancel</x-btn>
                 <x-btn type="submit" variant="primary" size="sm">Submit Request</x-btn>
-            </x-slot:footer>
+            </div>
         </form>
     </x-modal>
     @endcan

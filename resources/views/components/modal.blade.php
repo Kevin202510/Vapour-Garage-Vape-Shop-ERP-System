@@ -1,7 +1,7 @@
 @props(['name', 'title', 'maxWidth' => 'lg'])
 
 @php
-$widths = ['sm' => '420px', 'md' => '560px', 'lg' => '680px', 'xl' => '800px', '2xl' => '960px'];
+$widths = ['sm' => '440px', 'md' => '580px', 'lg' => '700px', 'xl' => '860px', '2xl' => '980px'];
 $mw = $widths[$maxWidth] ?? $widths['lg'];
 @endphp
 
@@ -15,37 +15,42 @@ $mw = $widths[$maxWidth] ?? $widths['lg'];
      x-transition:leave="transition ease-in duration-150"
      x-transition:leave-start="opacity-100"
      x-transition:leave-end="opacity-0"
-     style="position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:16px"
+     class="fixed inset-0 z-[200] flex items-center justify-center p-4 overflow-y-auto"
+     @keydown.escape.window="open = false"
      x-cloak>
 
     {{-- Backdrop --}}
-    <div @click="open = false" style="position:absolute;inset:0;background:rgba(6,6,8,0.85);backdrop-filter:blur(8px)"></div>
+    <div @click="open = false"
+         class="fixed inset-0 bg-ink/40 backdrop-blur-sm"></div>
 
     {{-- Panel --}}
-    <div style="position:relative;z-index:10;width:100%;max-width:{{ $mw }};background:#130f1e;border:1px solid rgba(124,34,212,0.4);border-radius:6px;box-shadow:0 8px 60px rgba(0,0,0,0.8),0 0 40px rgba(124,34,212,0.2);overflow:hidden"
+    <div class="relative z-10 w-full bg-white rounded-xl shadow-[0_20px_60px_rgba(28,24,48,0.2)] overflow-hidden my-auto"
+         style="max-width:{{ $mw }}"
          x-transition:enter="transition ease-out duration-200"
-         x-transition:enter-start="opacity-0 translate-y-4 scale-95"
-         x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+         x-transition:enter-start="opacity-0 scale-95 translate-y-2"
+         x-transition:enter-end="opacity-100 scale-100 translate-y-0"
          @click.stop>
 
-        {{-- Top accent --}}
-        <div style="height:2px;background:linear-gradient(90deg,#5b16a0,#39ff14,#5b16a0)"></div>
+        {{-- Top accent line --}}
+        <div class="h-0.5 bg-gradient-to-r from-purple-3 via-purple to-purple-2"></div>
 
         {{-- Header --}}
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid rgba(124,34,212,0.2)">
-            <h2 style="font-family:'Russo One',sans-serif;font-size:14px;letter-spacing:0.08em;color:#e8e4f0;text-transform:uppercase">{{ $title }}</h2>
-            <button @click="open = false" style="color:#7a7490;background:transparent;border:none;cursor:pointer;transition:color 0.2s"
-                    onmouseover="this.style.color='#39ff14'" onmouseout="this.style.color='#7a7490'">
-                <svg style="width:14px;height:14px" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <div class="flex items-center justify-between px-6 py-4 border-b border-cream3">
+            <h2 class="font-display text-[13px] tracking-wide text-ink uppercase">{{ $title }}</h2>
+            <button @click="open = false"
+                    class="text-ink4 hover:text-ink transition-colors w-7 h-7 flex items-center justify-center rounded-md hover:bg-cream">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
             </button>
         </div>
 
         {{-- Body --}}
-        <div style="padding:20px">{{ $slot }}</div>
+        <div class="px-6 py-5">{{ $slot }}</div>
 
         {{-- Footer --}}
         @if(isset($footer))
-        <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid rgba(124,34,212,0.2);background:rgba(0,0,0,0.2)">
+        <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-cream3 bg-cream/50">
             {{ $footer }}
         </div>
         @endif

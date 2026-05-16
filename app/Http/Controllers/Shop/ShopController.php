@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Shop;
 
 use App\Http\Controllers\Controller;
+use App\Mail\PaymentInstructionsMail;
 use App\Models\BranchInventory;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\OnlineOrder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 
@@ -196,6 +198,22 @@ class ShopController extends Controller
         });
 
         session()->forget('vgm_cart');
+
+        // Send payment instructions email for GCash and Maya orders
+        if (in_array($order->payment_method, ['gcash', 'maya'])) {
+            try {
+                Mail::to($order->email, $order->full_name)
+                    ->send(new PaymentInstructionsMail($order->load('items', 'branch')));
+            } catch (\Exception $e) {
+                // Non-fatal — order was placed; log the failure but don't block the redirect
+                logger()->error('Payment instructions email failed', [
+                    'order'   => $order->order_number,
+                    'email'   => $order->email,
+                    'error'   => $e->getMessage(),
+                ]);
+            }
+        }
+
         return redirect()->route('shop.confirmation', $order->order_number);
     }
 

@@ -59,6 +59,7 @@
 
     <x-data-table>
         <x-slot:head>
+            <x-th></x-th>
             <x-th>SKU</x-th>
             <x-th>Product Name</x-th>
             <x-th>Category</x-th>
@@ -81,6 +82,18 @@
             @endphp
             <tr class="hover:bg-cream transition-colors {{ !$isArchived ? 'cursor-pointer' : '' }}"
                 @if(!$isArchived) onclick="window.location='{{ route('products.show', $product) }}'" @endif>
+                <x-td>
+                    @if($product->image_url)
+                        <img src="{{ $product->image_url }}" alt="{{ $product->name }}"
+                             class="w-10 h-10 rounded-md object-cover border border-cream3">
+                    @else
+                        <div class="w-10 h-10 rounded-md bg-cream2 border border-cream3 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-ink4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8"/>
+                            </svg>
+                        </div>
+                    @endif
+                </x-td>
                 <x-td><span class="font-mono text-[11px] text-ink3">{{ $product->sku }}</span></x-td>
                 <x-td class="font-semibold max-w-[200px]">
                     {{ $product->name }}
@@ -148,8 +161,8 @@
                          x-on:open-modal.window="$event.detail === 'archive-{{ $product->id }}' && (open = true)"
                          x-on:close-modal.window="$event.detail === 'archive-{{ $product->id }}' && (open = false)"
                          x-show="open" x-cloak
-                         class="fixed inset-0 z-50 flex items-center justify-center p-4"
-                         style="background:rgba(28,24,48,0.6);backdrop-filter:blur(3px)">
+                         class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-ink/40 backdrop-blur-sm"
+                         @click.self="open = false">
                         <div class="bg-white rounded-xl border border-cream3 shadow-card w-full max-w-sm overflow-hidden" @click.stop>
                             <div class="px-6 py-4 border-b border-cream3">
                                 <h3 class="font-display text-[13px] uppercase tracking-wide text-ink">Archive Product</h3>
@@ -179,8 +192,8 @@
                          x-on:open-modal.window="$event.detail === 'perm-delete-{{ $product->id }}' && (open = true)"
                          x-on:close-modal.window="$event.detail === 'perm-delete-{{ $product->id }}' && (open = false)"
                          x-show="open" x-cloak
-                         class="fixed inset-0 z-50 flex items-center justify-center p-4"
-                         style="background:rgba(28,24,48,0.6);backdrop-filter:blur(3px)">
+                         class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-ink/40 backdrop-blur-sm"
+                         @click.self="open = false">
                         <div class="bg-white rounded-xl border border-cream3 shadow-card w-full max-w-sm overflow-hidden" @click.stop>
                             <div class="px-6 py-4 border-b border-danger/20 bg-danger/5">
                                 <h3 class="font-display text-[13px] uppercase tracking-wide text-danger">Permanently Delete</h3>

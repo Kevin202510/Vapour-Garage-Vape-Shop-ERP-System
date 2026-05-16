@@ -12,7 +12,8 @@
 
     <form method="POST"
           action="{{ isset($product) ? route('products.update', $product) : route('products.store') }}"
-          class="max-w-3xl">
+          class="max-w-3xl"
+          enctype="multipart/form-data">
         @csrf
         @if(isset($product)) @method('PUT') @endif
 
@@ -122,6 +123,56 @@
                               :value="old('min_order_qty', $product->min_order_qty ?? '')"
                               placeholder="e.g. 10 pieces minimum" />
             </div>
+        </div>
+
+        {{-- Product Image --}}
+        <div class="mb-6"
+             x-data="{
+                 preview: '{{ isset($product) && $product->image_url ? $product->image_url : '' }}',
+                 removed: false,
+                 pick(e) {
+                     const f = e.target.files[0];
+                     if (f) { this.preview = URL.createObjectURL(f); this.removed = false; }
+                 },
+                 remove() { this.preview = ''; this.removed = true; this.$refs.file.value = ''; }
+             }">
+            <label class="erp-label mb-2 block">Product Image</label>
+
+            {{-- Current / preview image --}}
+            <div x-show="preview" class="mb-3 relative inline-block">
+                <img :src="preview" alt="Product image"
+                     class="w-40 h-40 object-cover rounded-lg border border-cream3">
+                <button type="button" @click="remove()"
+                        class="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-danger text-white text-[13px] flex items-center justify-center hover:bg-red-700 transition-colors">
+                    ✕
+                </button>
+            </div>
+
+            {{-- Remove flag (only relevant in edit mode when image existed) --}}
+            @if(isset($product) && $product->image_path)
+                <input type="hidden" name="remove_image" :value="removed ? '1' : '0'">
+            @endif
+
+            {{-- Drop zone --}}
+            <label for="product_image"
+                   class="flex flex-col items-center justify-center gap-2 w-full h-32 border-2 border-dashed border-cream3
+                          rounded-lg cursor-pointer bg-cream hover:bg-cream2 hover:border-purple/40 transition-all"
+                   @dragover.prevent @drop.prevent="pick({ target: { files: $event.dataTransfer.files } })">
+                <svg class="w-7 h-7 text-ink4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <path d="M12 16v-8m-4 4l4-4 4 4"/><rect x="3" y="3" width="18" height="18" rx="2"/>
+                </svg>
+                <span class="font-mono text-[10px] text-ink4 uppercase tracking-widest">
+                    Click or drag to upload
+                </span>
+                <span class="font-mono text-[9px] text-ink4">JPG, PNG, WEBP, GIF · max 5 MB</span>
+                <input id="product_image" type="file" name="image" x-ref="file"
+                       accept="image/jpeg,image/png,image/webp,image/gif"
+                       class="hidden" @change="pick($event)">
+            </label>
+
+            @error('image')
+                <p class="erp-field-error mt-1">{{ $message }}</p>
+            @enderror
         </div>
 
         <div class="mb-8">

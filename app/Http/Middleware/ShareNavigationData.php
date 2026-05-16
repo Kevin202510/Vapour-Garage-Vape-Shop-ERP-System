@@ -7,14 +7,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\View;
 
-/**
- * Shares badge counts with every authenticated view.
- *
- * Register in bootstrap/app.php:
- *   ->withMiddleware(function (Middleware $m) {
- *       $m->web(append: [\App\Http\Middleware\ShareNavigationData::class]);
- *   })
- */
 class ShareNavigationData
 {
     public function handle(Request $request, Closure $next): mixed
@@ -22,28 +14,35 @@ class ShareNavigationData
         if (auth()->check()) {
             $user = auth()->user();
 
+            // Use the session-active branch for admins, the assigned branch for everyone else.
+            // When a non-admin has no branch (edge case), fall back to no filter (show all).
+            $branchId = $user->isSuperAdmin()
+                ? $user->activeBranchId()
+                : $user->branch_id;
+
             $lowStockCount = DB::table('branch_inventory')
                 ->join('products', 'branch_inventory.product_id', '=', 'products.id')
-                ->whereRaw('(branch_inventory.quantity_on_hand - branch_inventory.quantity_reserved) <= products.reorder_level')
+                ->whereNull('products.deleted_at')
                 ->where('products.is_active', true)
-                ->when(! $user->isSuperAdmin() && $user->branch_id,
-                    fn ($q) => $q->where('branch_inventory.branch_id', $user->branch_id)
-                )
+                ->whereRaw('(branch_inventory.quantity_on_hand - branch_inventory.quantity_reserved) <= products.reorder_level')
+                ->when($branchId, fn ($q) => $q->where('branch_inventory.branch_id', $branchId))
                 ->distinct('products.id')
                 ->count('products.id');
 
             $pendingTransfers = DB::table('stock_transfers')
                 ->where('status', 'pending')
-                ->when(! $user->isSuperAdmin() && $user->branch_id,
-                    fn ($q) => $q->where(fn ($s) => $s
-                        ->where('from_branch_id', $user->branch_id)
-                        ->orWhere('to_branch_id', $user->branch_id)
-                    )
-                )
+                ->when($branchId, fn ($q) => $q->where(fn ($s) =>
+                    $s->where('from_branch_id', $branchId)->orWhere('to_branch_id', $branchId)
+                ))
                 ->count();
 
-            View::share('lowStockCount',    $lowStockCount);
-            View::share('pendingTransfers', $pendingTransfers);
+            $pendingOnlineOrders = \App\Models\OnlineOrder::where('status', 'pending')
+                ->when($branchId, fn ($q) => $q->where('pickup_branch_id', $branchId))
+                ->count();
+
+            View::share('lowStockCount',       $lowStockCount);
+            View::share('pendingTransfers',    $pendingTransfers);
+            View::share('pendingOnlineOrders', $pendingOnlineOrders);
         }
 
         return $next($request);

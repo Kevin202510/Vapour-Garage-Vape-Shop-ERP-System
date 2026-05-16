@@ -9,6 +9,7 @@ use App\Services\SupplierService;
 use App\Contracts\Repositories\BranchInventoryRepositoryInterface;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class ProductWebController extends Controller
 {
@@ -53,6 +54,7 @@ class ProductWebController extends Controller
             'sku'                       => 'required|string|max:50|unique:products,sku',
             'name'                      => 'required|string|max:255',
             'description'               => 'nullable|string',
+            'image'                     => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:5120',
             'category_id'               => 'nullable|exists:product_categories,id',
             'supplier_id'               => 'nullable|exists:suppliers,id',
             'unit_cost'                 => 'required|numeric|min:0',
@@ -81,6 +83,10 @@ class ProductWebController extends Controller
         if (! $validated['is_on_sale'])  $validated['sale_price']    = null;
         if (! $validated['is_wholesale']) $validated['min_order_qty'] = null;
 
+        if ($request->hasFile('image')) {
+            $validated['image_path'] = $request->file('image')->store('products', 'public');
+        }
+
         $this->productService->create($validated);
 
         return redirect()->route('products.index')
@@ -108,6 +114,8 @@ class ProductWebController extends Controller
             'sku'                       => "sometimes|string|max:50|unique:products,sku,{$id}",
             'name'                      => 'sometimes|string|max:255',
             'description'               => 'nullable|string',
+            'image'                     => 'nullable|image|mimes:jpg,jpeg,png,webp,gif|max:5120',
+            'remove_image'              => 'sometimes|boolean',
             'category_id'               => 'nullable|exists:product_categories,id',
             'supplier_id'               => 'nullable|exists:suppliers,id',
             'unit_cost'                 => 'sometimes|numeric|min:0',
@@ -136,6 +144,17 @@ class ProductWebController extends Controller
         if (! $validated['is_on_sale'])   $validated['sale_price']    = null;
         if (! $validated['is_wholesale']) $validated['min_order_qty'] = null;
 
+        if ($request->hasFile('image')) {
+            // Delete old image before storing the new one
+            if ($product->image_path) {
+                Storage::disk('public')->delete($product->image_path);
+            }
+            $validated['image_path'] = $request->file('image')->store('products', 'public');
+        } elseif ($request->boolean('remove_image') && $product->image_path) {
+            Storage::disk('public')->delete($product->image_path);
+            $validated['image_path'] = null;
+        }
+
         $this->productService->update($id, $validated);
 
         return redirect()->route('products.index')
@@ -162,6 +181,9 @@ class ProductWebController extends Controller
     {
         $this->authorize('delete products');
         $product = $this->productService->findOrFail($id);
+        if ($product->image_path) {
+            Storage::disk('public')->delete($product->image_path);
+        }
         $this->productService->delete($id);
         return redirect()->route('products.index', ['filter' => 'archived'])
                          ->with('success', "\"{$product->name}\" permanently deleted.");

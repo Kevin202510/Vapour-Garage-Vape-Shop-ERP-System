@@ -6,6 +6,7 @@ use App\Contracts\Repositories\BranchInventoryRepositoryInterface;
 use App\Contracts\Repositories\StockTransferRepositoryInterface;
 use App\Contracts\Repositories\AuditLogRepositoryInterface;
 use App\Models\BranchInventory;
+use App\Models\Product;
 use App\Models\StockTransfer;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -76,12 +77,16 @@ class InventoryService
                 'notes'           => $data['notes'] ?? null,
             ]);
 
+            // Pre-load product unit costs to avoid N+1
+            $productIds = collect($data['items'])->pluck('product_id')->unique();
+            $costs      = Product::whereIn('id', $productIds)->pluck('unit_cost', 'id');
+
             foreach ($data['items'] as $item) {
                 $transfer->items()->create([
                     'product_id'         => $item['product_id'],
                     'quantity_requested' => $item['quantity_requested'],
                     'quantity_sent'      => 0,
-                    'unit_cost'          => $item['unit_cost'] ?? 0,
+                    'unit_cost'          => $costs[$item['product_id']] ?? 0,
                 ]);
             }
 
@@ -131,6 +136,48 @@ class InventoryService
             }
 
             return $this->transferRepo->complete($transfer);
+        });
+    }
+
+    /**
+     * Mark an approved transfer as dispatched (in transit).
+     */
+    public function dispatchTransfer(int $transferId): StockTransfer
+    {
+        $transfer = $this->transferRepo->findById($transferId)
+            ?? throw new ModelNotFoundException("Transfer [{$transferId}] not found.");
+
+        if ($transfer->status !== 'approved') {
+            throw new \RuntimeException("Only approved transfers can be marked as dispatched.");
+        }
+
+        $transfer->update(['status' => 'in_transit']);
+        return $transfer->fresh(['fromBranch', 'toBranch']);
+    }
+
+    /**
+     * Cancel a pending or approved transfer and release reserved stock.
+     */
+    public function cancelTransfer(int $transferId): StockTransfer
+    {
+        return DB::transaction(function () use ($transferId) {
+            $transfer = $this->transferRepo->findById($transferId, ['items'])
+                ?? throw new ModelNotFoundException("Transfer [{$transferId}] not found.");
+
+            if (! in_array($transfer->status, ['pending', 'approved'])) {
+                throw new \RuntimeException("Only pending or approved transfers can be cancelled.");
+            }
+
+            foreach ($transfer->items as $item) {
+                $this->inventoryRepo->releaseReserved(
+                    $transfer->from_branch_id,
+                    $item->product_id,
+                    $item->quantity_requested
+                );
+            }
+
+            $transfer->update(['status' => 'cancelled']);
+            return $transfer->fresh(['fromBranch', 'toBranch']);
         });
     }
 
