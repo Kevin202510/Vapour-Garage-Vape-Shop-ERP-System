@@ -23,6 +23,10 @@ class User extends Authenticatable
         'password',
         'is_active',
         'last_login_at',
+        'two_factor_secret',
+        'two_factor_enabled',
+        'two_factor_confirmed_at',
+        'two_factor_recovery_codes',
     ];
 
     protected $hidden = [
@@ -31,10 +35,13 @@ class User extends Authenticatable
     ];
 
     protected $casts = [
-        'email_verified_at' => 'datetime',
-        'last_login_at'     => 'datetime',
-        'is_active'         => 'boolean',
-        'password'          => 'hashed',
+        'email_verified_at'       => 'datetime',
+        'last_login_at'           => 'datetime',
+        'two_factor_confirmed_at' => 'datetime',
+        'two_factor_enabled'      => 'boolean',
+        'two_factor_recovery_codes' => 'array',
+        'is_active'               => 'boolean',
+        'password'                => 'hashed',
     ];
 
     // -------------------------------------------------------------------------

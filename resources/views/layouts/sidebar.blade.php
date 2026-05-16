@@ -108,6 +108,11 @@
                     @endif
                 </div>
             </div>
+            <a href="{{ route('2fa.security') }}" title="Security & 2FA" class="vg-sidebar-logout" style="text-decoration:none">
+                <svg class="w-[13px] h-[13px]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+            </a>
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
                 <button type="submit" title="Sign out" class="vg-sidebar-logout">

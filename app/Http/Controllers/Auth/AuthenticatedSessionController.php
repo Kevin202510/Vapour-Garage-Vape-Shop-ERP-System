@@ -19,15 +19,20 @@ class AuthenticatedSessionController extends Controller
         return view('auth.login');
     }
 
-    /**
-     * Handle an incoming authentication request.
-     */
     public function store(LoginRequest $request): RedirectResponse
     {
         $request->authenticate();
 
-        $request->session()->regenerate();
+        $user = Auth::user();
 
+        // If 2FA is enabled, log back out and route to OTP challenge
+        if ($user->two_factor_enabled && $user->two_factor_confirmed_at) {
+            $request->session()->put('2fa_user_id', $user->id);
+            Auth::guard('web')->logout();
+            return redirect()->route('2fa.challenge');
+        }
+
+        $request->session()->regenerate();
         return redirect()->intended(route('dashboard', absolute: false));
     }
 

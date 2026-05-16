@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\TwoFactorController;
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
 use App\Http\Controllers\Auth\EmailVerificationPromptController;
@@ -10,6 +11,22 @@ use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
+
+// ── Two-Factor Authentication ────────────────────────────────────────────────
+// Challenge: shown after password login when 2FA is required (no auth yet)
+Route::middleware('guest')->group(function () {
+    Route::get( '2fa/challenge',        [TwoFactorController::class, 'showChallenge'])->name('2fa.challenge');
+    Route::post('2fa/challenge',        [TwoFactorController::class, 'verifyChallenge'])->name('2fa.verify');
+});
+
+// 2FA management: shown to already-authenticated users
+Route::middleware('auth')->group(function () {
+    Route::get( '2fa/security',         [TwoFactorController::class, 'security'])->name('2fa.security');
+    Route::get( '2fa/setup',            [TwoFactorController::class, 'showSetup'])->name('2fa.setup');
+    Route::post('2fa/setup',            [TwoFactorController::class, 'confirmSetup'])->name('2fa.setup.confirm');
+    Route::get( '2fa/recovery-codes',   [TwoFactorController::class, 'showRecoveryCodes'])->name('2fa.recovery-codes');
+    Route::post('2fa/disable',          [TwoFactorController::class, 'disable'])->name('2fa.disable');
+});
 
 Route::middleware('guest')->group(function () {
     Route::get('register', [RegisteredUserController::class, 'create'])
