@@ -14,7 +14,8 @@
         "pragmarx/google2fa-laravel": "^3.0",
         "predis/predis": "^3.4",
         "resend/resend-laravel": "^1.4",
-        "spatie/laravel-permission": "^7.2"
+        "spatie/laravel-permission": "^7.2",
+        "symfony/brevo-mailer": "^7.4"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
