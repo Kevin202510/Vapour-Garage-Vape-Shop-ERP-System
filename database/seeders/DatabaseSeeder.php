@@ -28,7 +28,7 @@ class DatabaseSeeder extends Seeder
             BranchSeeder::class,
             DepartmentSeeder::class,
             // EmployeeSeeder::class,
-            SupplierAndProductSeeder::class,
+            // SupplierAndProductSeeder::class,
             // InventorySeeder::class,
             // CustomerSeeder::class,
             DiscountSeeder::class,
