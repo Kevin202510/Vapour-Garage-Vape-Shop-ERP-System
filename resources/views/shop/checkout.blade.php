@@ -103,10 +103,9 @@
                     </div>
                     <div style="padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
                         @foreach([
-                            ['gcash',         'GCash',          'Mobile wallet payment','#39ff14'],
-                            ['maya',          'Maya (PayMaya)', 'Mobile wallet payment','#39ff14'],
-                            ['bank_transfer', 'Bank Transfer',  'BPI / BDO / Unionbank','#9b3df0'],
-                            ['cod',           'Cash on Pickup', 'Pay when you collect', '#c9943a'],
+                            ['gcash', 'GCash',          'Mobile wallet payment','#39ff14'],
+                            ['maya',  'Maya (PayMaya)', 'Mobile wallet payment','#39ff14'],
+                            ['cod',   'Cash on Pickup', 'Pay when you collect', '#c9943a'],
                         ] as [$val, $lbl, $sub, $col])
                         <label style="display:flex;align-items:flex-start;gap:12px;padding:14px;border-radius:4px;border:1px solid rgba(124,34,212,0.2);cursor:pointer;transition:all 0.2s;background:#0d0b14"
                                onmouseover="this.style.borderColor='rgba(124,34,212,0.5)'" onmouseout="this.style.borderColor=this.querySelector('input').checked?'rgba(124,34,212,0.6)':'rgba(124,34,212,0.2)'">
@@ -126,7 +125,7 @@
                     <div style="padding:0 20px 20px">
                         <div style="padding:12px 14px;background:rgba(124,34,212,0.08);border:1px solid rgba(124,34,212,0.2);border-radius:4px">
                             <p style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:0.04em;line-height:1.6">
-                                📋 After placing your order, you will receive payment instructions via email. For GCash/Maya/Bank Transfer, your order will be confirmed once payment is verified. Cash on Pickup orders are confirmed upon collection.
+                                📋 After placing your order, you will receive payment instructions via email. For GCash/Maya, your order will be confirmed once payment is verified. Cash on Pickup orders are confirmed upon collection.
                             </p>
                         </div>
                     </div>

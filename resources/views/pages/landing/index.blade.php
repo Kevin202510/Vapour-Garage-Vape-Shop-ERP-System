@@ -2149,11 +2149,11 @@
             ],
             [
                 'q' => 'Do you have an online shop?',
-                'a' => 'Yes! You can browse and order at <a href="/shop">our online shop</a>. We accept GCash, Maya, Bank Transfer, and Cash on Pickup. After placing your order you can <a href="/shop/track">track its status</a> anytime.',
+                'a' => 'Yes! You can browse and order at <a href="/shop">our online shop</a>. We accept GCash, Maya, and Cash on Pickup. After placing your order you can <a href="/shop/track">track its status</a> anytime.',
             ],
             [
                 'q' => 'What are your payment options?',
-                'a' => 'In-store we accept cash. Online orders can be paid via GCash, Maya, Bank Transfer, or Cash on Pickup. Payment instructions are sent to your email automatically after placing an order.',
+                'a' => 'In-store we accept cash. Online orders can be paid via GCash, Maya, or Cash on Pickup. Payment instructions are sent to your email automatically after placing an order.',
             ],
             [
                 'q' => 'How does the Loyalty Rewards program work?',

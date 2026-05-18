@@ -111,12 +111,6 @@
                 Use order number <strong style="color:#39ff14">{{ $order->order_number }}</strong> as your reference.<br>
                 Send screenshot to confirm your payment.
             </p>
-        @elseif($order->payment_method === 'bank_transfer')
-            <p style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--muted);line-height:1.7;letter-spacing:0.04em">
-                Transfer to <strong style="color:#e8e4f0">BPI Account: XXXX-XXXX-XX · Vapour Garage Main</strong><br>
-                Use order number <strong style="color:#39ff14">{{ $order->order_number }}</strong> as your reference.<br>
-                Email deposit slip to <strong style="color:#e8e4f0">orders@vapourgarage.ph</strong>
-            </p>
         @endif
     </div>
     @endif

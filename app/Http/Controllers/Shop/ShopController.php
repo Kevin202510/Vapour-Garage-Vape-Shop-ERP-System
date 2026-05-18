@@ -125,7 +125,7 @@ class ShopController extends Controller
             'address'          => 'required|string|max:500',
             'city'             => 'required|string|max:100',
             'pickup_branch_id' => 'nullable|integer|exists:branches,id',
-            'payment_method'   => 'required|in:gcash,maya,cod,bank_transfer',
+            'payment_method'   => 'required|in:gcash,maya,cod',
             'notes'            => 'nullable|string|max:1000',
         ]);
 
@@ -199,13 +199,12 @@ class ShopController extends Controller
 
         session()->forget('vgm_cart');
 
-        // Send payment instructions email for GCash and Maya orders
+        // Send payment instructions email for GCash and Maya orders (queued to avoid blocking the response)
         if (in_array($order->payment_method, ['gcash', 'maya'])) {
             try {
                 Mail::to($order->email, $order->full_name)
-                    ->send(new PaymentInstructionsMail($order->load('items', 'branch')));
+                    ->queue(new PaymentInstructionsMail($order->load('items', 'branch')));
             } catch (\Exception $e) {
-                // Non-fatal — order was placed; log the failure but don't block the redirect
                 logger()->error('Payment instructions email failed', [
                     'order'   => $order->order_number,
                     'email'   => $order->email,

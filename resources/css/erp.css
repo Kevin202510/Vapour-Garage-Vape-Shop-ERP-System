@@ -51,6 +51,12 @@ html.dark {
   --border-medium:  rgba(124,34,212,0.35);
 
   --brand-faint:  rgba(124,34,212,0.15);
+
+  /* Status colors brightened for dark backgrounds */
+  --ok:     #4ade80;
+  --warn:   #fbbf24;
+  --danger: #f87171;
+  --gold:   #fbbf24;
 }
 
 /* ============================================================
@@ -978,14 +984,93 @@ html.dark nav[role="navigation"] a { color: #7a7490; }
 html.dark nav[role="navigation"] a:hover { background: rgba(124,34,212,0.12); border-color: rgba(124,34,212,0.4); color: #9b3df0; }
 html.dark nav[role="navigation"] span { color: rgba(255,255,255,0.2); }
 
-/* Alert dark */
-html.dark .erp-alert-msg { color: #e8e4f0; }
+/* ── Alert dark: brighter backgrounds + text ── */
+html.dark .erp-alert-msg     { color: #e8e4f0; }
+html.dark .erp-alert--success { background: rgba(74,222,128,0.08);  border-color: rgba(74,222,128,0.25); }
+html.dark .erp-alert--error   { background: rgba(248,113,113,0.08); border-color: rgba(248,113,113,0.25); }
+html.dark .erp-alert--warning { background: rgba(251,191,36,0.08);  border-color: rgba(251,191,36,0.25); }
+html.dark .erp-alert--info    { background: rgba(155,61,240,0.08);  border-color: rgba(155,61,240,0.25); }
 
 /* Form labels dark */
 html.dark .erp-label { opacity: 0.85; }
 
-/* Status badges — keep vivid, adjust muted */
-html.dark .erp-badge--muted { background: rgba(255,255,255,0.06); color: #7a7490; border-color: rgba(255,255,255,0.1); }
+/* ── Badges dark: all variants need vivid readable colors ── */
+html.dark .erp-badge--ok     { background: rgba(74,222,128,0.12);  color: #4ade80; border-color: rgba(74,222,128,0.3); }
+html.dark .erp-badge--warn   { background: rgba(251,191,36,0.12);  color: #fbbf24; border-color: rgba(251,191,36,0.3); }
+html.dark .erp-badge--error  { background: rgba(248,113,113,0.12); color: #f87171; border-color: rgba(248,113,113,0.25); }
+html.dark .erp-badge--navy   { background: rgba(155,61,240,0.15);  color: #c084fc; border-color: rgba(155,61,240,0.35); }
+html.dark .erp-badge--terra  { background: rgba(155,61,240,0.15);  color: #c084fc; border-color: rgba(155,61,240,0.35); }
+html.dark .erp-badge--purple { background: rgba(155,61,240,0.15);  color: #c084fc; border-color: rgba(155,61,240,0.35); }
+html.dark .erp-badge--gold   { background: rgba(251,191,36,0.12);  color: #fbbf24; border-color: rgba(251,191,36,0.3); }
+html.dark .erp-badge--green  { background: rgba(74,222,128,0.12);  color: #4ade80; border-color: rgba(74,222,128,0.3); }
+html.dark .erp-badge--muted  { background: rgba(255,255,255,0.06); color: #7a7490; border-color: rgba(255,255,255,0.1); }
+
+/* ── Tailwind status text colors: brighter for dark backgrounds ── */
+html.dark .text-ok     { color: #4ade80 !important; }
+html.dark .text-warn   { color: #fbbf24 !important; }
+html.dark .text-danger { color: #f87171 !important; }
+html.dark .text-gold   { color: #fbbf24 !important; }
+
+/* ── Brand/purple text: brighter in dark ── */
+html.dark .text-purple   { color: #c084fc !important; }
+html.dark .text-purple-2 { color: #e9d5ff !important; }
+html.dark .text-terra    { color: #c084fc !important; }
+
+/* ── Hover text colors ── */
+html.dark .hover\:text-ink:hover    { color: #e8e4f0 !important; }
+html.dark .hover\:text-ink3:hover   { color: #a09ab0 !important; }
+html.dark .hover\:text-purple:hover { color: #c084fc !important; }
+
+/* ── Specific bg+text combos used in status sections ── */
+html.dark .bg-ok\/5,
+html.dark .bg-ok\/8  { background-color: rgba(74,222,128,0.06) !important; }
+html.dark .bg-warn\/5 { background-color: rgba(251,191,36,0.06) !important; }
+html.dark .bg-danger\/5 { background-color: rgba(248,113,113,0.06) !important; }
+html.dark .bg-purple\/5,
+html.dark .bg-purple\/8,
+html.dark .bg-purple\/\[0\.04\] { background-color: rgba(124,34,212,0.1) !important; }
+
+/* Border colors for status sections */
+html.dark .border-ok\/20,
+html.dark .border-ok\/25  { border-color: rgba(74,222,128,0.25) !important; }
+html.dark .border-warn\/20 { border-color: rgba(251,191,36,0.25) !important; }
+html.dark .border-danger\/20,
+html.dark .border-danger\/25 { border-color: rgba(248,113,113,0.25) !important; }
+html.dark .border-purple\/15,
+html.dark .border-purple\/20 { border-color: rgba(124,34,212,0.3) !important; }
+
+/* ── font-semibold / font-bold on plain divs (no explicit text-* class) ── */
+html.dark .font-semibold:not([class*="text-"]) { color: #e8e4f0; }
+html.dark .font-bold:not([class*="text-"]) { color: #e8e4f0; }
+
+/* ── Misc elements that need explicit dark text ── */
+html.dark .erp-card-subtitle { color: rgba(155,61,240,0.7); }
+html.dark .erp-stat-box-label { color: #7a7490; }
+html.dark .erp-stat-box-value { color: #e8e4f0; }
+html.dark .erp-stat-box-value--ok     { color: #4ade80; }
+html.dark .erp-stat-box-value--warn   { color: #fbbf24; }
+html.dark .erp-stat-box-value--danger { color: #f87171; }
+
+/* ── KPI delta colors ── */
+html.dark .erp-kpi-delta--up   { color: #4ade80; }
+html.dark .erp-kpi-delta--down { color: #f87171; }
+
+/* ── Table row hover text ── */
+html.dark tr:hover .erp-td { color: #e8e4f0; }
+
+/* ── Empty state text ── */
+html.dark .erp-page-header-overline { color: rgba(155,61,240,0.65); }
+html.dark .erp-page-header-slash    { color: rgba(124,34,212,0.35); }
+
+/* ── Form error / help text ── */
+html.dark .erp-field-error { color: #f87171; }
+html.dark .erp-field-help  { color: #7a7490; }
+html.dark .erp-required    { color: #c084fc; }
+
+/* ── Button variants ── */
+html.dark .erp-btn--primary { background: #7c22d4; color: #fff; }
+html.dark .erp-btn--danger  { background: rgba(248,113,113,0.12); color: #f87171; border-color: rgba(248,113,113,0.3); }
+html.dark .erp-btn--outline { color: #c084fc; border-color: rgba(124,34,212,0.4); }
 
 /* POS dark overrides */
 html.dark .bg-navy.border.border-cream3 { background: #130f1e !important; border-color: rgba(124,34,212,0.2) !important; }
