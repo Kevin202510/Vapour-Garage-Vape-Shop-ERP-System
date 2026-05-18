@@ -59,6 +59,13 @@
       0 => 'PragmaRX\\Google2FALaravel\\ServiceProvider',
     ),
   ),
+  'resend/resend-laravel' => 
+  array (
+    'providers' => 
+    array (
+      0 => 'Resend\\Laravel\\ResendServiceProvider',
+    ),
+  ),
   'spatie/laravel-permission' => 
   array (
     'providers' => 
