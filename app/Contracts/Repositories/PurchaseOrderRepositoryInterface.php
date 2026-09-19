@@ -20,7 +20,15 @@ interface PurchaseOrderRepositoryInterface extends BaseRepositoryInterface
 
     public function approve(PurchaseOrder $po, int $approverId): PurchaseOrder;
 
-    public function receive(PurchaseOrder $po, array $receivedItems): PurchaseOrder;
+    /**
+     * Row-lock this PO's items for the duration of the caller's transaction.
+     * Must be called from inside a DB::transaction().
+     */
+    public function lockItemsForUpdate(int $poId): Collection;
+
+    public function incrementReceivedQuantity(int $poId, int $productId, int $qty): void;
+
+    public function updateStatus(PurchaseOrder $po, string $status, ?string $receivedDate): PurchaseOrder;
 
     public function cancel(PurchaseOrder $po): PurchaseOrder;
 

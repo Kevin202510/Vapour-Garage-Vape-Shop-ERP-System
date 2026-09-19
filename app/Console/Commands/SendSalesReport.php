@@ -6,7 +6,9 @@ use App\Mail\SalesReportMail;
 use App\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Throwable;
 
 class SendSalesReport extends Command
 {
@@ -89,20 +91,34 @@ class SendSalesReport extends Command
             return self::SUCCESS;
         }
 
+        $queued = 0;
+        $failed = 0;
+
         foreach ($recipients as $user) {
-            Mail::to($user->email, $user->name)->send(new SalesReportMail(
-                period:          $period,
-                dateFrom:        $dateFrom,
-                dateTo:          $dateTo,
-                periodLabel:     $periodLabel,
-                stats:           $stats,
-                branchBreakdown: $branchBreakdown,
-                topProducts:     $topProducts,
-            ));
+            try {
+                // Queued (SalesReportMail implements ShouldQueue) so a slow/down
+                // mail provider doesn't block this command, and Laravel's queue
+                // retry policy applies. One recipient's failure to queue doesn't
+                // stop the rest.
+                Mail::to($user->email, $user->name)->queue(new SalesReportMail(
+                    period:          $period,
+                    dateFrom:        $dateFrom,
+                    dateTo:          $dateTo,
+                    periodLabel:     $periodLabel,
+                    stats:           $stats,
+                    branchBreakdown: $branchBreakdown,
+                    topProducts:     $topProducts,
+                ));
+                $queued++;
+            } catch (Throwable $e) {
+                $failed++;
+                Log::error("sales:send-report failed to queue for {$user->email}: {$e->getMessage()}", ['exception' => $e]);
+                $this->error("  ✗ Failed to queue report for {$user->email}: {$e->getMessage()}");
+            }
         }
 
-        $this->info("Report sent to {$recipients->count()} recipient(s).");
-        return self::SUCCESS;
+        $this->info("Report queued for {$queued} recipient(s)" . ($failed ? ", {$failed} failed." : '.'));
+        return $failed > 0 ? self::FAILURE : self::SUCCESS;
     }
 
     private function resolvePeriod(string $period): array

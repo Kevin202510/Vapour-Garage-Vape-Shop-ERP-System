@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Http\Controllers\Concerns\ResolvesActiveBranch;
 use App\Http\Controllers\Controller;
 use App\Contracts\Repositories\BranchRepositoryInterface;
 use App\Contracts\Repositories\SalesTransactionRepositoryInterface;
@@ -14,7 +15,7 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-    use AuthorizesRequests;
+    use AuthorizesRequests, ResolvesActiveBranch;
 
     public function __construct(
         protected BranchRepositoryInterface              $branchRepo,
@@ -31,9 +32,7 @@ class DashboardController extends Controller
 
         // Resolve the branch whose data to show.
         // Admins: URL ?range= param ignored for branch; use active branch from session unless URL explicitly overrides.
-        $effectiveBranchId = $user->isSuperAdmin()
-            ? (request()->has('branch_id') ? (request('branch_id') ?: null) : $user->activeBranchId())
-            : $user->branch_id;
+        $effectiveBranchId = $this->resolveEffectiveBranchId($user);
 
         $activeBranchLabel = $effectiveBranchId
             ? ($user->activeBranch()?->name ?? 'Selected Branch')

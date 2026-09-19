@@ -75,21 +75,25 @@ class PurchaseOrderService
     public function receive(int $id, array $receivedItems): PurchaseOrder
     {
         $po = $this->findOrFail($id);
-        $po->load('items.product');
 
         if (! in_array($po->status, ['approved', 'sent', 'partial'])) {
             throw new RuntimeException("Purchase order must be approved or sent before receiving.");
         }
 
         return DB::transaction(function () use ($po, $receivedItems) {
+            // Lock the PO's item rows for the rest of this transaction so a
+            // concurrent receive() call can't validate against the same stale
+            // "remaining" quantity and over-receive past what was ordered.
+            $lockedItems = $this->poRepo->lockItemsForUpdate($po->id)->keyBy('product_id');
+
             foreach ($receivedItems as $item) {
                 $qty = (int) ($item['quantity_received'] ?? 0);
                 if ($qty <= 0) continue;
 
                 // Guard: cannot receive more than what remains
-                $poItem = $po->items->firstWhere('product_id', $item['product_id']);
+                $poItem = $lockedItems->get($item['product_id']);
                 if ($poItem) {
-                    $remaining = $poItem->remaining_quantity;
+                    $remaining = $poItem->quantity_ordered - $poItem->quantity_received;
                     if ($qty > $remaining) {
                         $name = $poItem->product->name ?? "Product #{$item['product_id']}";
                         throw new RuntimeException(
@@ -98,10 +102,19 @@ class PurchaseOrderService
                     }
                 }
 
+                $this->poRepo->incrementReceivedQuantity($po->id, $item['product_id'], $qty);
                 $this->inventoryRepo->incrementStock($po->branch_id, $item['product_id'], $qty);
             }
 
-            return $this->poRepo->receive($po, $receivedItems);
+            $freshItems  = $this->poRepo->lockItemsForUpdate($po->id);
+            $allReceived = $freshItems->every(fn ($i) => $i->quantity_received >= $i->quantity_ordered);
+            $anyReceived = $freshItems->some(fn ($i)  => $i->quantity_received > 0);
+
+            return $this->poRepo->updateStatus(
+                $po,
+                $allReceived ? 'received' : ($anyReceived ? 'partial' : $po->status),
+                $allReceived ? now()->toDateString() : null
+            );
         });
     }
 

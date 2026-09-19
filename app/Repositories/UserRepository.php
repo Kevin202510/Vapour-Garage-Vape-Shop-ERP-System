@@ -6,7 +6,6 @@ use App\Contracts\Repositories\UserRepositoryInterface;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Facades\DB;
 
 class UserRepository implements UserRepositoryInterface
 {
@@ -55,46 +54,23 @@ class UserRepository implements UserRepositoryInterface
 
     public function create(array $data): User
     {
-        return DB::transaction(function () use ($data) {
-            $roles       = $data['roles']       ?? [];
-            $permissions = $data['permissions'] ?? [];
+        // Role/permission keys are deliberately ignored here — see
+        // syncRoles()/syncPermissions() below, the only sanctioned path for
+        // granting access, gated separately from basic profile create/update.
+        $user = $this->model->create(
+            collect($data)->except(['roles', 'permissions'])->toArray()
+        );
 
-            $user = $this->model->create(
-                collect($data)->except(['roles', 'permissions'])->toArray()
-            );
-
-            if (! empty($roles)) {
-                $user->syncRoles($roles);
-            }
-
-            if (! empty($permissions)) {
-                $user->syncPermissions($permissions);
-            }
-
-            return $user->load(['roles', 'permissions', 'branch', 'employee']);
-        });
+        return $user->load(['roles', 'permissions', 'branch', 'employee']);
     }
 
     public function update(User $user, array $data): User
     {
-        return DB::transaction(function () use ($user, $data) {
-            $roles       = $data['roles']       ?? null;
-            $permissions = $data['permissions'] ?? null;
+        $user->update(
+            collect($data)->except(['roles', 'permissions'])->toArray()
+        );
 
-            $user->update(
-                collect($data)->except(['roles', 'permissions'])->toArray()
-            );
-
-            if (! is_null($roles)) {
-                $user->syncRoles($roles);
-            }
-
-            if (! is_null($permissions)) {
-                $user->syncPermissions($permissions);
-            }
-
-            return $user->fresh(['roles', 'permissions', 'branch', 'employee']);
-        });
+        return $user->fresh(['roles', 'permissions', 'branch', 'employee']);
     }
 
     public function delete(User $user): bool

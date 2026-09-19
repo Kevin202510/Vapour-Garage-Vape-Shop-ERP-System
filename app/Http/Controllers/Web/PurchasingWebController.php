@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Http\Controllers\Concerns\ResolvesActiveBranch;
 use App\Http\Controllers\Controller;
 use App\Services\PurchaseOrderService;
 use App\Services\SupplierService;
@@ -12,7 +13,7 @@ use Illuminate\Http\Request;
 
 class PurchasingWebController extends Controller
 {
-    use AuthorizesRequests;
+    use AuthorizesRequests, ResolvesActiveBranch;
     public function __construct(
         protected PurchaseOrderService $poService,
         protected SupplierService      $supplierService,
@@ -24,9 +25,7 @@ class PurchasingWebController extends Controller
     {
         $filters = $request->only(['status', 'supplier_id', 'branch_id', 'date_from', 'date_to', 'search']);
         $user    = auth()->user();
-        $effectiveBranchId = $user->isSuperAdmin()
-            ? (request()->has('branch_id') ? (request('branch_id') ?: null) : $user->activeBranchId())
-            : $user->branch_id;
+        $effectiveBranchId = $this->resolveEffectiveBranchId($user);
         if (! $user->isSuperAdmin()) { $filters['branch_id'] = $user->branch_id; }
         elseif ($effectiveBranchId)  { $filters['branch_id'] = $effectiveBranchId; }
         else                         { unset($filters['branch_id']); }
@@ -41,6 +40,39 @@ class PurchasingWebController extends Controller
             : 'All Branches';
 
         return view('pages.purchasing.index', compact('purchaseOrders', 'suppliers', 'branches', 'activePoCount', 'effectiveBranchId', 'activeBranchLabel'));
+    }
+
+    public function export(Request $request)
+    {
+        $this->authorize('view purchase orders');
+
+        $filters = $request->only(['status', 'supplier_id', 'branch_id', 'date_from', 'date_to', 'search']);
+        $user    = auth()->user();
+        $effectiveBranchId = $this->resolveEffectiveBranchId($user);
+        if (! $user->isSuperAdmin()) { $filters['branch_id'] = $user->branch_id; }
+        elseif ($effectiveBranchId)  { $filters['branch_id'] = $effectiveBranchId; }
+        else                         { unset($filters['branch_id']); }
+        if (($filters['status'] ?? 'all') === 'all') unset($filters['status']);
+
+        $orders   = $this->poService->list($filters, 100000);
+        $filename = 'purchase-orders-' . now()->format('Y-m-d') . '.csv';
+
+        return response()->streamDownload(function () use ($orders) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['PO Number', 'Supplier', 'Branch', 'Order Date', 'Expected Date', 'Status', 'Total Amount']);
+            foreach ($orders as $po) {
+                fputcsv($handle, [
+                    $po->po_number,
+                    $po->supplier->company_name ?? 'N/A',
+                    $po->branch->name ?? 'N/A',
+                    optional($po->order_date)->format('Y-m-d'),
+                    optional($po->expected_date)->format('Y-m-d'),
+                    ucfirst($po->status),
+                    number_format($po->total_amount, 2),
+                ]);
+            }
+            fclose($handle);
+        }, $filename, ['Content-Type' => 'text/csv']);
     }
 
     public function create()

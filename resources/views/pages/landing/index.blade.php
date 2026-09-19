@@ -1504,6 +1504,17 @@
 
             /* ── Nav: hamburger ── */
             nav { padding: 14px 20px; flex-wrap: wrap; align-items: center; }
+            /* The base <nav> is transparent until scrolled (nav.scrolled) —
+               at the top of the page that left the opened mobile menu with no
+               backing, so its links rendered on top of / blended into the
+               hero content behind them. Force an opaque background on the
+               whole nav bar (not just .nlinks) whenever the menu is open,
+               regardless of scroll position. */
+            nav.menu-open {
+                background: rgba(6,6,8,0.98);
+                backdrop-filter: blur(20px);
+                border-bottom: 1px solid rgba(124,34,212,0.35);
+            }
             .nlinks {
                 display: none;
                 width: 100%;
@@ -2271,17 +2282,20 @@
         window.addEventListener('scroll', () => document.getElementById('nav').classList.toggle('scrolled', scrollY > 60));
 
         // ── Mobile nav hamburger ──
+        const navEl        = document.getElementById('nav');
         const navHamburger = document.getElementById('nav-hamburger');
         const navLinks     = document.getElementById('nav-links');
         if (navHamburger) {
             navHamburger.addEventListener('click', () => {
                 const isOpen = navLinks.classList.toggle('nav-open');
                 navHamburger.classList.toggle('is-open', isOpen);
+                if (navEl) navEl.classList.toggle('menu-open', isOpen);
             });
         }
         function closeNav() {
             if (navLinks)     navLinks.classList.remove('nav-open');
             if (navHamburger) navHamburger.classList.remove('is-open');
+            if (navEl)        navEl.classList.remove('menu-open');
         }
         // Close nav on outside click
         document.addEventListener('click', e => {

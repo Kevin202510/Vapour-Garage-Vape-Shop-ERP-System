@@ -7,7 +7,6 @@ use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Facades\DB;
 
 class PurchaseOrderRepository extends BaseRepository implements PurchaseOrderRepositoryInterface
 {
@@ -65,31 +64,30 @@ class PurchaseOrderRepository extends BaseRepository implements PurchaseOrderRep
         return $po->fresh(['supplier', 'branch', 'approver', 'items.product']);
     }
 
-    public function receive(PurchaseOrder $po, array $receivedItems): PurchaseOrder
+    public function lockItemsForUpdate(int $poId): Collection
     {
-        return DB::transaction(function () use ($po, $receivedItems) {
-            foreach ($receivedItems as $item) {
-                $qty = (int) ($item['quantity_received'] ?? 0);
-                if ($qty <= 0) continue;
+        return PurchaseOrderItem::with('product')
+            ->where('po_id', $poId)
+            ->lockForUpdate()
+            ->get();
+    }
 
-                // INCREMENT — do not replace; each receive call adds to the running total
-                PurchaseOrderItem::where('po_id', $po->id)
-                    ->where('product_id', $item['product_id'])
-                    ->increment('quantity_received', $qty);
-            }
+    public function incrementReceivedQuantity(int $poId, int $productId, int $qty): void
+    {
+        // INCREMENT — do not replace; each receive call adds to the running total
+        PurchaseOrderItem::where('po_id', $poId)
+            ->where('product_id', $productId)
+            ->increment('quantity_received', $qty);
+    }
 
-            // Reload to get updated totals then determine status
-            $po->load('items');
-            $allReceived = $po->items->every(fn ($i) => $i->quantity_received >= $i->quantity_ordered);
-            $anyReceived = $po->items->some(fn ($i)  => $i->quantity_received > 0);
+    public function updateStatus(PurchaseOrder $po, string $status, ?string $receivedDate): PurchaseOrder
+    {
+        $po->update([
+            'status'        => $status,
+            'received_date' => $receivedDate,
+        ]);
 
-            $po->update([
-                'status'        => $allReceived ? 'received' : ($anyReceived ? 'partial' : $po->status),
-                'received_date' => $allReceived ? now()->toDateString() : null,
-            ]);
-
-            return $po->fresh(['supplier', 'branch', 'items.product']);
-        });
+        return $po->fresh(['supplier', 'branch', 'items.product']);
     }
 
     public function cancel(PurchaseOrder $po): PurchaseOrder

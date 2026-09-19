@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Http\Controllers\Concerns\ResolvesActiveBranch;
 use App\Http\Controllers\Controller;
 use App\Services\CustomerService;
 use App\Services\BranchService;
@@ -10,7 +11,7 @@ use Illuminate\Http\Request;
 
 class CustomerWebController extends Controller
 {
-    use AuthorizesRequests;
+    use AuthorizesRequests, ResolvesActiveBranch;
 
     public function __construct(
         protected CustomerService $customerService,
@@ -21,9 +22,7 @@ class CustomerWebController extends Controller
     {
         $filters = $request->only(['search', 'branch_id', 'tier']);
         $user    = auth()->user();
-        $effectiveBranchId = $user->isSuperAdmin()
-            ? (request()->has('branch_id') ? (request('branch_id') ?: null) : $user->activeBranchId())
-            : $user->branch_id;
+        $effectiveBranchId = $this->resolveEffectiveBranchId($user);
         if (! $user->isSuperAdmin()) { $filters['branch_id'] = $user->branch_id; }
         elseif ($effectiveBranchId)  { $filters['branch_id'] = $effectiveBranchId; }
         else                         { unset($filters['branch_id']); }
@@ -43,6 +42,39 @@ class CustomerWebController extends Controller
             'customers', 'branches', 'totalCount', 'loyalCount', 'avgPoints',
             'effectiveBranchId', 'activeBranchLabel'
         ));
+    }
+
+    public function export(Request $request)
+    {
+        $this->authorize('view customers');
+
+        $filters = $request->only(['search', 'branch_id', 'tier']);
+        $user    = auth()->user();
+        $effectiveBranchId = $this->resolveEffectiveBranchId($user);
+        if (! $user->isSuperAdmin()) { $filters['branch_id'] = $user->branch_id; }
+        elseif ($effectiveBranchId)  { $filters['branch_id'] = $effectiveBranchId; }
+        else                         { unset($filters['branch_id']); }
+        if (($filters['tier'] ?? 'all') === 'all') unset($filters['tier']);
+
+        $customers = $this->customerService->list($filters, 100000);
+        $filename  = 'customers-' . now()->format('Y-m-d') . '.csv';
+
+        return response()->streamDownload(function () use ($customers) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Name', 'Email', 'Phone', 'Tier', 'Loyalty Points', 'Registered Branch', 'Registered Date']);
+            foreach ($customers as $customer) {
+                fputcsv($handle, [
+                    $customer->full_name,
+                    $customer->email,
+                    $customer->phone,
+                    ucfirst($customer->tier),
+                    $customer->loyalty_points,
+                    $customer->registeredBranch->name ?? 'N/A',
+                    optional($customer->created_at)->format('Y-m-d'),
+                ]);
+            }
+            fclose($handle);
+        }, $filename, ['Content-Type' => 'text/csv']);
     }
 
     public function create()

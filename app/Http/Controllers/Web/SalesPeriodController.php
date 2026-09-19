@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Contracts\Repositories\AuditLogRepositoryInterface;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\SalesPeriodSummary;
@@ -12,6 +13,8 @@ use Illuminate\Support\Facades\Artisan;
 class SalesPeriodController extends Controller
 {
     use AuthorizesRequests;
+
+    public function __construct(protected AuditLogRepositoryInterface $auditRepo) {}
 
     public function index(Request $request)
     {
@@ -41,7 +44,7 @@ class SalesPeriodController extends Controller
 
     public function close(Request $request)
     {
-        $this->authorize('view sales reports');
+        $this->authorize('close sales periods');
 
         $validated = $request->validate([
             'period'    => 'required|in:daily,weekly,monthly,yearly',
@@ -64,6 +67,18 @@ class SalesPeriodController extends Controller
         ));
 
         $output = Artisan::output();
+
+        // A manual close always forces an overwrite of any existing summary for
+        // the period — record who triggered it, since the prior snapshot is lost.
+        $this->auditRepo->log(
+            tableName:  'sales_period_summaries',
+            recordId:   $validated['branch_id'] ?? 0,
+            action:     'update',
+            newValues:  ['period_type' => $validated['period'], 'branch_id' => $validated['branch_id'] ?? null, 'forced' => true],
+            employeeId: auth()->user()->employee_id,
+            branchId:   $validated['branch_id'] ?? null,
+            ipAddress:  $request->ip(),
+        );
 
         return back()->with('success', "Period closed successfully. " . trim($output));
     }

@@ -44,7 +44,7 @@
     </div>
 
     {{-- Charts --}}
-    <div class="grid grid-cols-[1fr_320px] gap-4 mb-7">
+    <div class="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 mb-7">
         <x-card title="Revenue by Branch" :subtitle="strtoupper($dateFrom === $dateTo ? $dateFrom : $dateFrom . ' – ' . $dateTo) . ' · COMPLETED TRANSACTIONS'">
             <div class="grid grid-cols-2 gap-3 mb-5">
                 <div class="bg-cream rounded-lg px-4 py-3">

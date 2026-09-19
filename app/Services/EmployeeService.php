@@ -2,16 +2,36 @@
 
 namespace App\Services;
 
+use App\Contracts\Repositories\AuditLogRepositoryInterface;
 use App\Contracts\Repositories\EmployeeRepositoryInterface;
+use App\Contracts\Repositories\UserRepositoryInterface;
 use App\Models\Employee;
+use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 class EmployeeService
 {
-    public function __construct(protected EmployeeRepositoryInterface $repo) {}
+    /**
+     * Employee role → Spatie permission role. Roles not listed here
+     * (e.g. 'admin') get no automatic role grant on account creation.
+     */
+    private const ROLE_MAP = [
+        'branch_manager'  => 'branch_manager',
+        'supervisor'      => 'supervisor',
+        'cashier'         => 'cashier',
+        'inventory_clerk' => 'inventory_clerk',
+    ];
+
+    public function __construct(
+        protected EmployeeRepositoryInterface $repo,
+        protected UserRepositoryInterface $userRepo,
+        protected AuditLogRepositoryInterface $auditRepo,
+    ) {}
 
     public function list(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
@@ -23,13 +43,64 @@ class EmployeeService
         return $this->repo->findById($id) ?? throw new ModelNotFoundException("Employee [{$id}] not found.");
     }
 
-    public function create(array $data): Employee
+    public function create(array $data, ?int $actingEmployeeId = null, ?string $ipAddress = null): Employee
     {
         $this->guardDuplicateCode($data['employee_code'] ?? null);
-        return $this->repo->create($data);
+
+        return DB::transaction(function () use ($data, $actingEmployeeId, $ipAddress) {
+            $employee = $this->repo->create($data);
+
+            $this->auditRepo->log(
+                tableName:  'employees',
+                recordId:   $employee->id,
+                action:     'create',
+                newValues:  $data,
+                employeeId: $actingEmployeeId,
+                branchId:   $employee->branch_id,
+                ipAddress:  $ipAddress,
+            );
+
+            return $employee;
+        });
     }
 
-    public function update(int $id, array $data): Employee
+    /**
+     * Create a login account for an existing employee and grant the role
+     * mapped from their employee role. Runs in the same transaction scope
+     * as the caller when called from within one.
+     */
+    public function createLoginAccount(Employee $employee, string $email, string $password, ?int $actingEmployeeId = null, ?string $ipAddress = null): User
+    {
+        return DB::transaction(function () use ($employee, $email, $password, $actingEmployeeId, $ipAddress) {
+            $user = $this->userRepo->create([
+                'name'              => $employee->full_name,
+                'email'             => $email,
+                'password'          => Hash::make($password),
+                'employee_id'       => $employee->id,
+                'branch_id'         => $employee->branch_id,
+                'is_active'         => true,
+                'email_verified_at' => now(),
+            ]);
+
+            if (isset(self::ROLE_MAP[$employee->role])) {
+                $user = $this->userRepo->syncRoles($user, [self::ROLE_MAP[$employee->role]]);
+            }
+
+            $this->auditRepo->log(
+                tableName:  'users',
+                recordId:   $user->id,
+                action:     'create',
+                newValues:  ['email' => $email, 'employee_id' => $employee->id, 'roles' => $user->roles->pluck('name')->toArray()],
+                employeeId: $actingEmployeeId,
+                branchId:   $employee->branch_id,
+                ipAddress:  $ipAddress,
+            );
+
+            return $user;
+        });
+    }
+
+    public function update(int $id, array $data, ?int $actingEmployeeId = null, ?string $ipAddress = null): Employee
     {
         $employee = $this->findOrFail($id);
 
@@ -37,12 +108,44 @@ class EmployeeService
             $this->guardDuplicateCode($data['employee_code'], $id);
         }
 
-        return $this->repo->update($employee, $data);
+        return DB::transaction(function () use ($employee, $data, $actingEmployeeId, $ipAddress) {
+            $oldValues = $employee->only(array_keys($data));
+            $updated   = $this->repo->update($employee, $data);
+
+            $this->auditRepo->log(
+                tableName:  'employees',
+                recordId:   $employee->id,
+                action:     'update',
+                oldValues:  $oldValues,
+                newValues:  $data,
+                employeeId: $actingEmployeeId,
+                branchId:   $employee->branch_id,
+                ipAddress:  $ipAddress,
+            );
+
+            return $updated;
+        });
     }
 
-    public function delete(int $id): bool
+    public function delete(int $id, ?int $actingEmployeeId = null, ?string $ipAddress = null): bool
     {
-        return $this->repo->delete($this->findOrFail($id));
+        $employee = $this->findOrFail($id);
+
+        return DB::transaction(function () use ($employee, $actingEmployeeId, $ipAddress) {
+            $result = $this->repo->delete($employee);
+
+            $this->auditRepo->log(
+                tableName:  'employees',
+                recordId:   $employee->id,
+                action:     'delete',
+                oldValues:  ['employee_code' => $employee->employee_code, 'full_name' => $employee->full_name],
+                employeeId: $actingEmployeeId,
+                branchId:   $employee->branch_id,
+                ipAddress:  $ipAddress,
+            );
+
+            return $result;
+        });
     }
 
     public function restore(int $id): bool

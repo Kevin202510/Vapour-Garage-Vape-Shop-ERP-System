@@ -8,6 +8,8 @@ use App\Http\Resources\UserResource;
 use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
@@ -18,12 +20,25 @@ class AuthController extends Controller
      */
     public function login(LoginRequest $request): JsonResponse
     {
-        $result = $this->authService->login(
-            email:      $request->email,
-            password:   $request->password,
-            deviceName: $request->input('device_name', 'api')
-        );
-            
+        // LoginRequest already implements per-email+IP rate limiting for the
+        // web login form (ensureIsNotRateLimited/throttleKey) — this path
+        // bypassed it entirely by never calling authenticate(). Reuse the
+        // same, already-proven limiter here instead of duplicating logic.
+        $request->ensureIsNotRateLimited();
+
+        try {
+            $result = $this->authService->login(
+                email:      $request->email,
+                password:   $request->password,
+                deviceName: $request->input('device_name', 'api')
+            );
+        } catch (ValidationException $e) {
+            RateLimiter::hit($request->throttleKey());
+            throw $e;
+        }
+
+        RateLimiter::clear($request->throttleKey());
+
         return response()->json([
             'message'    => 'Login successful.',
             'token'      => $result['token'],

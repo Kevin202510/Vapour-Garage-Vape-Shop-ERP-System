@@ -3,12 +3,14 @@
 namespace App\Services;
 
 use App\Contracts\Repositories\AttendanceRepositoryInterface;
+use App\Contracts\Repositories\AuditLogRepositoryInterface;
 use App\Contracts\Repositories\EmployeeRepositoryInterface;
 use App\Contracts\Repositories\PayrollRepositoryInterface;
 use App\Models\Payroll;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -18,6 +20,7 @@ class PayrollService
         protected PayrollRepositoryInterface   $repo,
         protected EmployeeRepositoryInterface  $employeeRepo,
         protected AttendanceRepositoryInterface $attendanceRepo,
+        protected AuditLogRepositoryInterface  $auditRepo,
     ) {}
 
     public function list(array $filters = [], int $perPage = 15): LengthAwarePaginator
@@ -39,7 +42,7 @@ class PayrollService
     /**
      * Generate payroll for all active employees in a branch for a given period.
      */
-    public function generateForBranch(int $branchId, string $periodStart, string $periodEnd, string $periodLabel): array
+    public function generateForBranch(int $branchId, string $periodStart, string $periodEnd, string $periodLabel, ?int $actingEmployeeId = null, ?string $ipAddress = null): array
     {
         $employees = $this->employeeRepo->getByBranch($branchId, activeOnly: true);
         $created   = [];
@@ -77,30 +80,48 @@ class PayrollService
 
                 $netPay = round($grossPay - $sss - $phic - $pagibig - $wtax, 2);
 
-                $created[] = $this->repo->create([
-                    'employee_id'             => $employee->id,
-                    'period_label'            => $periodLabel,
-                    'period_start'            => $periodStart,
-                    'period_end'              => $periodEnd,
-                    'base_pay'                => $basePay,
-                    'overtime_pay'            => $otPay,
-                    'allowances'              => $allowance,
-                    'gross_pay'               => $grossPay,
-                    'sss_contribution'        => $sss,
-                    'philhealth_contribution' => $phic,
-                    'pagibig_contribution'    => $pagibig,
-                    'withholding_tax'         => $wtax,
-                    'other_deductions'        => 0,
-                    'net_pay'                 => $netPay,
-                    'status'                  => 'draft',
-                ]);
+                try {
+                    $created[] = $this->repo->create([
+                        'employee_id'             => $employee->id,
+                        'period_label'            => $periodLabel,
+                        'period_start'            => $periodStart,
+                        'period_end'              => $periodEnd,
+                        'base_pay'                => $basePay,
+                        'overtime_pay'            => $otPay,
+                        'allowances'              => $allowance,
+                        'gross_pay'               => $grossPay,
+                        'sss_contribution'        => $sss,
+                        'philhealth_contribution' => $phic,
+                        'pagibig_contribution'    => $pagibig,
+                        'withholding_tax'         => $wtax,
+                        'other_deductions'        => 0,
+                        'net_pay'                 => $netPay,
+                        'status'                  => 'draft',
+                    ]);
+                } catch (QueryException $e) {
+                    // Unique (employee_id, period_start, period_end) violation — a
+                    // concurrent generate request already created this record.
+                    if ((string) $e->getCode() !== '23000') {
+                        throw $e;
+                    }
+                }
             }
         });
+
+        $this->auditRepo->log(
+            tableName:  'payroll',
+            recordId:   $branchId,
+            action:     'create',
+            newValues:  ['branch_id' => $branchId, 'period_label' => $periodLabel, 'period_start' => $periodStart, 'period_end' => $periodEnd, 'records_generated' => count($created)],
+            employeeId: $actingEmployeeId,
+            branchId:   $branchId,
+            ipAddress:  $ipAddress,
+        );
 
         return $created;
     }
 
-    public function approve(int $id, int $processedBy): Payroll
+    public function approve(int $id, int $processedBy, ?string $ipAddress = null): Payroll
     {
         $payroll = $this->findOrFail($id);
 
@@ -108,10 +129,23 @@ class PayrollService
             throw new RuntimeException("Only draft payroll records can be approved.");
         }
 
-        return $this->repo->approve($payroll, $processedBy);
+        $approved = $this->repo->approve($payroll, $processedBy);
+
+        $this->auditRepo->log(
+            tableName:  'payroll',
+            recordId:   $payroll->id,
+            action:     'approve',
+            oldValues:  ['status' => 'draft'],
+            newValues:  ['status' => 'approved', 'net_pay' => (string) $payroll->net_pay],
+            employeeId: $processedBy,
+            branchId:   $payroll->employee?->branch_id,
+            ipAddress:  $ipAddress,
+        );
+
+        return $approved;
     }
 
-    public function release(int $id): Payroll
+    public function release(int $id, ?int $actingEmployeeId = null, ?string $ipAddress = null): Payroll
     {
         $payroll = $this->findOrFail($id);
 
@@ -119,10 +153,23 @@ class PayrollService
             throw new RuntimeException("Only approved payroll records can be released.");
         }
 
-        return $this->repo->release($payroll);
+        $released = $this->repo->release($payroll);
+
+        $this->auditRepo->log(
+            tableName:  'payroll',
+            recordId:   $payroll->id,
+            action:     'update',
+            oldValues:  ['status' => 'approved'],
+            newValues:  ['status' => 'released', 'net_pay' => (string) $payroll->net_pay],
+            employeeId: $actingEmployeeId,
+            branchId:   $payroll->employee?->branch_id,
+            ipAddress:  $ipAddress,
+        );
+
+        return $released;
     }
 
-    public function delete(int $id): bool
+    public function delete(int $id, ?int $actingEmployeeId = null, ?string $ipAddress = null): bool
     {
         $payroll = $this->findOrFail($id);
 
@@ -130,7 +177,19 @@ class PayrollService
             throw new RuntimeException("Only draft payroll records can be deleted.");
         }
 
-        return $this->repo->delete($payroll);
+        $result = $this->repo->delete($payroll);
+
+        $this->auditRepo->log(
+            tableName:  'payroll',
+            recordId:   $payroll->id,
+            action:     'delete',
+            oldValues:  ['employee_id' => $payroll->employee_id, 'period_label' => $payroll->period_label, 'net_pay' => (string) $payroll->net_pay],
+            employeeId: $actingEmployeeId,
+            branchId:   $payroll->employee?->branch_id,
+            ipAddress:  $ipAddress,
+        );
+
+        return $result;
     }
 
     // -------------------------------------------------------------------------

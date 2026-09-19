@@ -34,15 +34,21 @@ export default {
                     DEFAULT: '#1c1830',   // primary text (was #e8e4f0, flipped)
                     2:       '#4a4465',   // secondary text
                     3:       '#6b6785',   // tertiary text
-                    4:       '#8b87a3',   // muted / placeholder
+                    // was #8b87a3 (~3.45:1 on white) — below WCAG AA; matches
+                    // erp.css's --text-muted fix, verified ≥4.5:1
+                    4:       '#6d6889',   // muted / placeholder
                 },
                 terra: { DEFAULT: '#7c22d4', light: '#b87ef5', dark: '#5b16a0' },
 
-                // ── Semantic status (vivid for light backgrounds) ─────────────
-                ok:     '#16a34a',
-                warn:   '#d97706',
+                // ── Semantic status ────────────────────────────────────────────
+                // ok/warn/gold darkened from the original #16a34a/#d97706 — those
+                // failed WCAG AA (~3.2:1) as text on a light background. These
+                // values are verified ≥4.5:1 on white and match the shades already
+                // used for badge text.
+                ok:     '#15803d',
+                warn:   '#b45309',
                 danger: '#dc2626',
-                gold:   { DEFAULT: '#d97706', 2: '#f59e0b' },
+                gold:   { DEFAULT: '#b45309', 2: '#f59e0b' },
                 sage:   { DEFAULT: '#16a34a', light: '#22c55e' },
 
                 // ── Sidebar / topbar (intentionally dark) ────────────────────

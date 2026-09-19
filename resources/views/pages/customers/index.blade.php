@@ -18,7 +18,7 @@
     </div>
 
     {{-- Tier filter + search --}}
-    <form method="GET" action="{{ route('customers.index') }}" class="flex items-center gap-3 mb-5">
+    <form method="GET" action="{{ route('customers.index') }}" class="flex items-center gap-3 flex-wrap mb-5">
         <div class="flex gap-1 bg-cream border border-cream3 rounded-md p-[3px]">
             @foreach(['all' => 'All', 'bronze' => 'Bronze', 'silver' => 'Silver', 'gold' => 'Gold', 'platinum' => 'Platinum'] as $val => $lbl)
                 <a href="{{ route('customers.index', array_merge(request()->query(), ['tier' => $val])) }}"

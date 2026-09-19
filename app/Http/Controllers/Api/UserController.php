@@ -145,7 +145,7 @@ class UserController extends Controller
      */
     public function syncRoles(SyncRolesRequest $request, int $id): JsonResponse
     {
-        $user = $this->userService->syncRoles($id, $request->roles);
+        $user = $this->userService->syncRoles($id, $request->roles, $request->user()->employee_id, $request->ip());
 
         return response()->json([
             'message' => 'Roles updated.',
@@ -158,7 +158,7 @@ class UserController extends Controller
      */
     public function syncPermissions(SyncPermissionsRequest $request, int $id): JsonResponse
     {
-        $user = $this->userService->syncPermissions($id, $request->permissions);
+        $user = $this->userService->syncPermissions($id, $request->permissions, $request->user()->employee_id, $request->ip());
 
         return response()->json([
             'message' => 'Permissions updated.',

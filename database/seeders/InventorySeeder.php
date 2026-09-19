@@ -16,12 +16,13 @@ class InventorySeeder extends Seeder
 
         foreach ($branches as $branch) {
             foreach ($products as $product) {
-                BranchInventory::create([
-                    'branch_id'          => $branch->id,
-                    'product_id'         => $product->id,
-                    'quantity_on_hand'   => fake()->numberBetween(0, 100),
-                    'quantity_reserved'  => 0,
-                ]);
+                BranchInventory::updateOrCreate(
+                    ['branch_id' => $branch->id, 'product_id' => $product->id],
+                    [
+                        'quantity_on_hand'   => fake()->numberBetween(0, 100),
+                        'quantity_reserved'  => 0,
+                    ]
+                );
             }
         }
 

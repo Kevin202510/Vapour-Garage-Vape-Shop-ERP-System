@@ -16,10 +16,10 @@
 <div style="position:fixed;top:-20%;left:-10%;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(124,34,212,0.2) 0%,transparent 65%);pointer-events:none;z-index:0"></div>
 <div style="position:fixed;bottom:-10%;right:-5%;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(57,255,20,0.06) 0%,transparent 65%);pointer-events:none;z-index:0"></div>
 
-<div style="position:relative;z-index:10;min-height:100vh;display:grid;grid-template-columns:1fr 480px">
+<div class="vg-login-grid" style="position:relative;z-index:10;min-height:100vh;display:grid;grid-template-columns:1fr 480px">
 
     {{-- Left brand panel --}}
-    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px;position:relative;overflow:hidden">
+    <div class="vg-login-brand" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px;position:relative;overflow:hidden">
         {{-- Corner brackets --}}
         <div style="position:absolute;top:40px;right:40px;width:60px;height:60px;border-top:1.5px solid rgba(57,255,20,0.2);border-right:1.5px solid rgba(57,255,20,0.2)"></div>
         <div style="position:absolute;bottom:40px;left:40px;width:60px;height:60px;border-bottom:1.5px solid rgba(124,34,212,0.3);border-left:1.5px solid rgba(124,34,212,0.3)"></div>
@@ -52,7 +52,7 @@
     </div>
 
     {{-- Right login panel --}}
-    <div style="background:#0d0b14;border-left:1px solid rgba(124,34,212,0.25);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 48px;position:relative;overflow:hidden">
+    <div class="vg-login-panel" style="background:#0d0b14;border-left:1px solid rgba(124,34,212,0.25);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 48px;position:relative;overflow:hidden">
 
         {{-- Top accent --}}
         <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#5b16a0,#39ff14,#5b16a0)"></div>
@@ -134,6 +134,18 @@
 
 <style>
 @keyframes pulse2 { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.8)} }
+
+/* Below ~900px there isn't room for both the decorative brand panel and the
+   login form side-by-side (the brand panel's giant type just gets clipped) —
+   hide the brand panel and let the form take the full, single column. */
+@media (max-width: 900px) {
+    .vg-login-grid  { grid-template-columns: 1fr !important; }
+    .vg-login-brand { display: none !important; }
+    .vg-login-panel { border-left: none !important; padding: 40px 24px !important; min-height: 100vh; }
+}
+@media (max-width: 420px) {
+    .vg-login-panel { padding: 32px 18px !important; }
+}
 </style>
 </body>
 </html>

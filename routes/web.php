@@ -76,17 +76,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/pos', [PosWebController::class, 'index'])->name('pos.index');
 
     // Products
+    Route::get('products/export',        [ProductWebController::class, 'export'])->name('products.export');
     Route::post('products/{id}/archive', [ProductWebController::class, 'archive'])->name('products.archive');
     Route::post('products/{id}/restore', [ProductWebController::class, 'restore'])->name('products.restore');
     Route::resource('products', ProductWebController::class);
 
     // Inventory
     Route::get('/inventory',        [InventoryWebController::class, 'index'])->name('inventory.index');
+    Route::get('/inventory/export', [InventoryWebController::class, 'export'])->name('inventory.export');
     Route::post('/inventory/adjust', [InventoryWebController::class, 'adjust'])->name('inventory.adjust');
 
     // Stock Transfers
     Route::prefix('transfers')->name('transfers.')->group(function () {
         Route::get('/',                    [TransferWebController::class, 'index'])->name('index');
+        Route::get('/export',              [TransferWebController::class, 'export'])->name('export');
         Route::get('/{id}',               [TransferWebController::class, 'show'])->name('show');
         Route::post('/',                   [TransferWebController::class, 'store'])->name('store');
         Route::post('/{id}/approve',       [TransferWebController::class, 'approve'])->name('approve');
@@ -113,6 +116,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Purchasing (Purchase Orders)
     Route::prefix('purchasing')->name('purchasing.')->group(function () {
         Route::get('/',                        [PurchasingWebController::class, 'index'])->name('index');
+        Route::get('/export',                  [PurchasingWebController::class, 'export'])->name('export');
         Route::get('/create',                  [PurchasingWebController::class, 'create'])->name('create');
         Route::post('/',                       [PurchasingWebController::class, 'store'])->name('store');
         Route::get('/{id}',                    [PurchasingWebController::class, 'show'])->name('show');
@@ -126,19 +130,23 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('categories', \App\Http\Controllers\Web\CategoryWebController::class)->except(['show']);
 
     // Suppliers
+    Route::get('suppliers/export', [\App\Http\Controllers\Web\SupplierWebController::class, 'export'])->name('suppliers.export');
     Route::resource('suppliers', \App\Http\Controllers\Web\SupplierWebController::class);
 
     // Customers
+    Route::get('customers/export', [CustomerWebController::class, 'export'])->name('customers.export');
     Route::post('customers/{customer}/add-points',    [CustomerWebController::class, 'addPoints'])->name('customers.add-points');
     Route::post('customers/{customer}/deduct-points', [CustomerWebController::class, 'deductPoints'])->name('customers.deduct-points');
     Route::resource('customers', CustomerWebController::class);
 
     // Employees
+    Route::get('employees/export', [EmployeeWebController::class, 'export'])->name('employees.export');
     Route::resource('employees', EmployeeWebController::class);
 
     // Payroll
     Route::prefix('payroll')->name('payroll.')->group(function () {
         Route::get('/',                 [PayrollWebController::class, 'index'])->name('index');
+        Route::get('/export',           [PayrollWebController::class, 'export'])->name('export');
         Route::get('/{id}',            [PayrollWebController::class, 'show'])->name('show');
         Route::post('/generate',        [PayrollWebController::class, 'generate'])->name('generate');
         Route::post('/{id}/approve',    [PayrollWebController::class, 'approve'])->name('approve');
@@ -154,17 +162,23 @@ Route::middleware(['auth', 'verified'])->group(function () {
 // ── Public shop routes (no auth required) ────────────────────────────────────
 use App\Http\Controllers\Shop\ShopController;
 
-Route::prefix('shop')->name('shop.')->group(function () {
+// Public, unauthenticated surface — every route gets a generous baseline
+// throttle against scraping/DoS, with tighter limits on the endpoints that
+// write data, send email, or could be used to enumerate orders.
+Route::prefix('shop')->name('shop.')->middleware('throttle:120,1')->group(function () {
     Route::get('/',                          [ShopController::class, 'index'])->name('index');
     Route::get('/product/{id}',              [ShopController::class, 'product'])->name('product');
     Route::get('/cart',                      [ShopController::class, 'cart'])->name('cart');
-    Route::post('/cart/{id}',               [ShopController::class, 'addToCart'])->name('cart.add');
-    Route::patch('/cart/{id}',              [ShopController::class, 'updateCart'])->name('cart.update');
-    Route::delete('/cart/{id}',             [ShopController::class, 'removeFromCart'])->name('cart.remove');
+    Route::post('/cart/{id}',               [ShopController::class, 'addToCart'])->middleware('throttle:30,1')->name('cart.add');
+    Route::patch('/cart/{id}',              [ShopController::class, 'updateCart'])->middleware('throttle:30,1')->name('cart.update');
+    Route::delete('/cart/{id}',             [ShopController::class, 'removeFromCart'])->middleware('throttle:30,1')->name('cart.remove');
     Route::get('/checkout',                  [ShopController::class, 'checkout'])->name('checkout');
-    Route::post('/checkout',                 [ShopController::class, 'placeOrder'])->name('order.place');
+    // Creates a real order and queues an email — the highest-value target
+    // for spam/abuse on this public surface.
+    Route::post('/checkout',                 [ShopController::class, 'placeOrder'])->middleware('throttle:5,1')->name('order.place');
     Route::get('/order/{orderNumber}',       [ShopController::class, 'confirmation'])->name('confirmation');
-    Route::get('/track',                     [ShopController::class, 'trackOrder'])->name('track');
+    // order_number + email lookup — throttle to slow down enumeration.
+    Route::get('/track',                     [ShopController::class, 'trackOrder'])->middleware('throttle:10,1')->name('track');
 });
 
 // ── Online Orders (ERP staff) ──────────────────────────────────────────────
@@ -172,6 +186,7 @@ use App\Http\Controllers\Web\OnlineOrderWebController;
 
 Route::middleware(['auth', 'verified'])->prefix('online-orders')->name('online-orders.')->group(function () {
     Route::get('/',                [OnlineOrderWebController::class, 'index'])->name('index');
+    Route::get('/export',          [OnlineOrderWebController::class, 'export'])->name('export');
     Route::get('/{onlineOrder}',   [OnlineOrderWebController::class, 'show'])->name('show');
     Route::patch('/{onlineOrder}', [OnlineOrderWebController::class, 'update'])->name('update');
 });

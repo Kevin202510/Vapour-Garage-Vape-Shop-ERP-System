@@ -42,7 +42,9 @@ class PayrollController extends Controller
             $validated['branch_id'],
             $validated['period_start'],
             $validated['period_end'],
-            $validated['period_label']
+            $validated['period_label'],
+            $request->user()->employee_id,
+            $request->ip()
         );
         return response()->json(['message' => count($records) . ' payroll records generated.', 'data' => $records], 201);
     }
@@ -50,21 +52,21 @@ class PayrollController extends Controller
     public function approve(Request $request, int $id): JsonResponse
     {
         $this->authorize('approve payroll');
-        $payroll = $this->service->approve($id, $request->user()->employee_id ?? $request->user()->id);
+        $payroll = $this->service->approve($id, $request->user()->employee_id ?? $request->user()->id, $request->ip());
         return response()->json(['message' => 'Payroll approved.', 'data' => $payroll]);
     }
 
-    public function release(int $id): JsonResponse
+    public function release(Request $request, int $id): JsonResponse
     {
-        $this->authorize('approve payroll');
-        $payroll = $this->service->release($id);
+        $this->authorize('release payroll');
+        $payroll = $this->service->release($id, $request->user()->employee_id, $request->ip());
         return response()->json(['message' => 'Payroll released.', 'data' => $payroll]);
     }
 
-    public function destroy(int $id): JsonResponse
+    public function destroy(Request $request, int $id): JsonResponse
     {
         $this->authorize('process payroll');
-        $this->service->delete($id);
+        $this->service->delete($id, $request->user()->employee_id, $request->ip());
         return response()->json(['message' => 'Payroll record deleted.']);
     }
 

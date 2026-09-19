@@ -48,6 +48,15 @@ class AttendanceRepository extends BaseRepository implements AttendanceRepositor
             ->first();
     }
 
+    public function findOpenRecord(int $employeeId): ?Attendance
+    {
+        return $this->model
+            ->where('employee_id', $employeeId)
+            ->whereNull('time_out')
+            ->orderByDesc('work_date')
+            ->first();
+    }
+
     public function clockIn(int $employeeId, int $branchId): Attendance
     {
         $existing = $this->findTodayRecord($employeeId);
@@ -74,7 +83,10 @@ class AttendanceRepository extends BaseRepository implements AttendanceRepositor
     public function clockOut(Attendance $attendance): Attendance
     {
         $timeOut     = now();
-        $timeIn      = \Carbon\Carbon::createFromTimeString($attendance->time_in);
+        // Anchor time_in to the shift's actual work_date (not "today") so a
+        // shift that started before midnight computes correct hours worked
+        // when clocked out after midnight.
+        $timeIn      = \Carbon\Carbon::parse("{$attendance->work_date->toDateString()} {$attendance->time_in}");
         $hoursWorked = round($timeIn->diffInMinutes($timeOut) / 60, 2);
         $regularHrs  = min(8, $hoursWorked);
         $overtime    = max(0, round($hoursWorked - 8, 2));

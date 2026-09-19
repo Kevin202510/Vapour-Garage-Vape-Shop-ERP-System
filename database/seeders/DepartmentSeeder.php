@@ -19,7 +19,7 @@ class DepartmentSeeder extends Seeder
         ];
 
         foreach ($departments as $dept) {
-            Department::create($dept);
+            Department::updateOrCreate(['name' => $dept['name']], $dept);
         }
 
         $this->command->info('✔ Departments seeded.');

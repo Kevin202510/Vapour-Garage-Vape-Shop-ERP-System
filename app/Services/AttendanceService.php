@@ -54,8 +54,8 @@ class AttendanceService
 
     public function clockOut(int $employeeId): Attendance
     {
-        $record = $this->repo->findTodayRecord($employeeId)
-            ?? throw new ModelNotFoundException("No clock-in record found for today.");
+        $record = $this->repo->findOpenRecord($employeeId)
+            ?? throw new ModelNotFoundException("No open clock-in record found.");
 
         if ($record->time_out !== null) {
             throw ValidationException::withMessages([

@@ -2,24 +2,26 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Http\Controllers\Concerns\ResolvesActiveBranch;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\OnlineOrder;
 use App\Models\SalesTransaction;
 use App\Repositories\BranchInventoryRepository;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 class OnlineOrderWebController extends Controller
 {
+    use AuthorizesRequests, ResolvesActiveBranch;
+
     public function index(Request $request)
     {
         $filters = $request->only(['status', 'branch_id', 'date_from', 'date_to', 'search']);
         $user    = auth()->user();
-        $effectiveBranchId = $user->isSuperAdmin()
-            ? (request()->has('branch_id') ? (request('branch_id') ?: null) : $user->activeBranchId())
-            : $user->branch_id;
+        $effectiveBranchId = $this->resolveEffectiveBranchId($user);
 
         $branches = Branch::where('is_active', true)->orderBy('name')->get();
         $activeBranchLabel = $effectiveBranchId
@@ -57,6 +59,51 @@ class OnlineOrderWebController extends Controller
     {
         $onlineOrder->load(['items.product', 'branch', 'fulfiller']);
         return view('pages.online-orders.show', compact('onlineOrder'));
+    }
+
+    public function export(Request $request)
+    {
+        $this->authorize('view sales');
+
+        $filters = $request->only(['status', 'branch_id', 'date_from', 'date_to', 'search']);
+        $user    = auth()->user();
+        $effectiveBranchId = $this->resolveEffectiveBranchId($user);
+
+        $orders = OnlineOrder::with(['branch'])
+            ->when(isset($filters['status']) && $filters['status'] !== 'all', fn ($q) => $q->where('status', $filters['status']))
+            ->when($effectiveBranchId,             fn ($q) => $q->where('pickup_branch_id', $effectiveBranchId))
+            ->when(! empty($filters['date_from']), fn ($q) => $q->whereDate('created_at', '>=', $filters['date_from']))
+            ->when(! empty($filters['date_to']),   fn ($q) => $q->whereDate('created_at', '<=', $filters['date_to']))
+            ->when(! empty($filters['search']),    fn ($q) => $q->where(fn ($s) =>
+                $s->where('order_number', 'like', "%{$filters['search']}%")
+                  ->orWhere('first_name',  'like', "%{$filters['search']}%")
+                  ->orWhere('last_name',   'like', "%{$filters['search']}%")
+                  ->orWhere('email',       'like', "%{$filters['search']}%")
+                  ->orWhere('phone',       'like', "%{$filters['search']}%")
+            ))
+            ->latest()
+            ->get();
+
+        $filename = 'online-orders-' . now()->format('Y-m-d') . '.csv';
+
+        return response()->streamDownload(function () use ($orders) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Order Number', 'Customer', 'Email', 'Phone', 'Pickup Branch', 'Payment Method', 'Status', 'Total Amount', 'Placed At']);
+            foreach ($orders as $order) {
+                fputcsv($handle, [
+                    $order->order_number,
+                    $order->full_name,
+                    $order->email,
+                    $order->phone,
+                    $order->branch->name ?? 'N/A',
+                    ucwords(str_replace('_', ' ', $order->payment_method)),
+                    $order->status_label,
+                    number_format($order->total_amount, 2),
+                    optional($order->created_at)->format('Y-m-d H:i'),
+                ]);
+            }
+            fclose($handle);
+        }, $filename, ['Content-Type' => 'text/csv']);
     }
 
     public function update(Request $request, OnlineOrder $onlineOrder)

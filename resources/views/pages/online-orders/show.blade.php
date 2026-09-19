@@ -14,7 +14,7 @@
         <x-alert type="success" :message="session('success')" class="mb-5" />
     @endif
 
-    <div class="grid grid-cols-[1fr_300px] gap-5 items-start">
+    <div class="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5 items-start">
 
         {{-- ── Left column ─────────────────────────────────────── --}}
         <div class="flex flex-col gap-4">

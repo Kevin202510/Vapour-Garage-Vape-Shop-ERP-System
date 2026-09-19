@@ -2,9 +2,11 @@
 
 namespace Database\Seeders;
 
+use App\Models\Attendance;
 use App\Models\Branch;
 use App\Models\Department;
 use App\Models\Employee;
+use App\Models\Payroll;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -18,7 +20,15 @@ class EmployeeSeeder extends Seeder
         $deptOps   = Department::where('name', 'Operations')->first();
         $deptInv   = Department::where('name', 'Inventory')->first();
 
+        // Truncating employees resets their auto-increment IDs, so any
+        // re-seed reuses IDs 1..N. attendance/payroll have unique constraints
+        // on (employee_id, work_date) / (employee_id, period_start, period_end)
+        // and are regenerated fresh by AttendanceAndPayrollSeeder every run —
+        // truncate them here too or a second `db:seed` crashes on those
+        // constraints against leftover rows from the previous run.
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        Attendance::truncate();
+        Payroll::truncate();
         Employee::truncate();
         DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 

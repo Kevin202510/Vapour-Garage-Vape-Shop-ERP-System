@@ -22,11 +22,10 @@ class UpdateUserRequest extends FormRequest
             'password'     => ['sometimes', Password::min(8)->mixedCase()->numbers()],
             'branch_id'    => ['sometimes', 'nullable', 'integer', 'exists:branches,id'],
             'employee_id'  => ['sometimes', 'nullable', 'integer', 'exists:employees,id', "unique:users,employee_id,{$userId}"],
-            'roles'        => ['sometimes', 'array'],
-            'roles.*'      => ['string', 'exists:roles,name'],
-            'permissions'  => ['sometimes', 'array'],
-            'permissions.*'=> ['string', 'exists:permissions,name'],
             'is_active'    => ['sometimes', 'boolean'],
+            // Role/permission assignment intentionally NOT accepted here — see
+            // StoreUserRequest for why. Must go through the dedicated sync-roles/
+            // sync-permissions endpoints instead.
         ];
     }
 }

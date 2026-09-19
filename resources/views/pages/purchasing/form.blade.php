@@ -57,7 +57,7 @@
 
             <div class="flex flex-col gap-3">
                 <template x-for="(item, i) in items" :key="i">
-                    <div class="grid grid-cols-[1fr_120px_120px_40px] gap-3 items-start">
+                    <div class="grid grid-cols-1 sm:grid-cols-[1fr_120px_120px_40px] gap-3 items-start">
                         <div>
                             <label class="block font-mono text-[9px] tracking-[0.14em] uppercase text-ink4 mb-1.5">Product</label>
                             <select :name="'items[' + i + '][product_id]'"

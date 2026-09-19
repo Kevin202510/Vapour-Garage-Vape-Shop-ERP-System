@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Contracts\Repositories\EmployeeRepositoryInterface;
 use App\Http\Controllers\Controller;
 use App\Services\AttendanceService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -11,15 +12,21 @@ use Illuminate\Http\Request;
 class AttendanceController extends Controller
 {
     use AuthorizesRequests;
-    public function __construct(protected AttendanceService $service) {}
+    public function __construct(
+        protected AttendanceService $service,
+        protected EmployeeRepositoryInterface $employeeRepo,
+    ) {}
 
     public function index(Request $request): JsonResponse
     {
         $this->authorize('view attendance');
-        return response()->json($this->service->list(
-            $request->only(['employee_id','branch_id','status','date_from','date_to','work_date']),
-            $request->integer('per_page', 15)
-        ));
+        $filters = $request->only(['employee_id','branch_id','status','date_from','date_to','work_date']);
+
+        if (! $request->user()->isSuperAdmin()) {
+            $filters['branch_id'] = $request->user()->branch_id;
+        }
+
+        return response()->json($this->service->list($filters, $request->integer('per_page', 15)));
     }
 
     public function clockIn(Request $request): JsonResponse
@@ -81,6 +88,14 @@ class AttendanceController extends Controller
             'year'        => ['required','integer','min:2020'],
             'month'       => ['required','integer','min:1','max:12'],
         ]);
+
+        if (! $request->user()->isSuperAdmin()) {
+            $employee = $this->employeeRepo->findById($request->integer('employee_id'));
+            if (! $employee || $employee->branch_id != $request->user()->branch_id) {
+                abort(403, 'You may only view attendance for employees in your own branch.');
+            }
+        }
+
         $summary = $this->service->getMonthlySummary(
             $request->integer('employee_id'),
             $request->integer('year'),

@@ -73,6 +73,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'void sales',
             'apply discounts',
             'view sales reports',
+            'close sales periods',
 
             // Customers
             'view customers',
@@ -96,6 +97,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'view payroll',
             'process payroll',
             'approve payroll',
+            'release payroll',
 
             // Reports & Analytics
             'view reports',

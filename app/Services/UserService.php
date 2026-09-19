@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Contracts\Repositories\AuditLogRepositoryInterface;
 use App\Contracts\Repositories\UserRepositoryInterface;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -12,7 +13,8 @@ use Illuminate\Validation\ValidationException;
 class UserService
 {
     public function __construct(
-        protected UserRepositoryInterface $userRepository
+        protected UserRepositoryInterface $userRepository,
+        protected AuditLogRepositoryInterface $auditRepository,
     ) {}
 
     public function list(array $filters = [], int $perPage = 15): LengthAwarePaginator
@@ -80,16 +82,44 @@ class UserService
         return $this->userRepository->assignRole($user, $roles);
     }
 
-    public function syncRoles(int $id, string|array $roles): User
+    public function syncRoles(int $id, string|array $roles, ?int $actingEmployeeId = null, ?string $ipAddress = null): User
     {
-        $user = $this->findOrFail($id);
-        return $this->userRepository->syncRoles($user, $roles);
+        $user       = $this->findOrFail($id);
+        $oldRoles   = $user->roles->pluck('name')->toArray();
+        $updated    = $this->userRepository->syncRoles($user, $roles);
+
+        $this->auditRepository->log(
+            tableName:  'users',
+            recordId:   $user->id,
+            action:     'update',
+            oldValues:  ['roles' => $oldRoles],
+            newValues:  ['roles' => $updated->roles->pluck('name')->toArray()],
+            employeeId: $actingEmployeeId,
+            branchId:   $user->branch_id,
+            ipAddress:  $ipAddress,
+        );
+
+        return $updated;
     }
 
-    public function syncPermissions(int $id, string|array $permissions): User
+    public function syncPermissions(int $id, string|array $permissions, ?int $actingEmployeeId = null, ?string $ipAddress = null): User
     {
-        $user = $this->findOrFail($id);
-        return $this->userRepository->syncPermissions($user, $permissions);
+        $user        = $this->findOrFail($id);
+        $oldPermissions = $user->permissions->pluck('name')->toArray();
+        $updated     = $this->userRepository->syncPermissions($user, $permissions);
+
+        $this->auditRepository->log(
+            tableName:  'users',
+            recordId:   $user->id,
+            action:     'update',
+            oldValues:  ['permissions' => $oldPermissions],
+            newValues:  ['permissions' => $updated->permissions->pluck('name')->toArray()],
+            employeeId: $actingEmployeeId,
+            branchId:   $user->branch_id,
+            ipAddress:  $ipAddress,
+        );
+
+        return $updated;
     }
 
     public function deactivate(int $id): bool

@@ -41,7 +41,8 @@ class EmployeeController extends Controller
             'base_salary'     => ['required','numeric','min:0'],
             'hire_date'       => ['required','date'],
         ]);
-        return response()->json(['message' => 'Employee created.', 'data' => $this->service->create($validated)], 201);
+        $employee = $this->service->create($validated, $request->user()->employee_id, $request->ip());
+        return response()->json(['message' => 'Employee created.', 'data' => $employee], 201);
     }
 
     public function show(int $id): JsonResponse
@@ -67,13 +68,14 @@ class EmployeeController extends Controller
             'termination_date'=> ['sometimes','nullable','date'],
             'is_active'       => ['sometimes','boolean'],
         ]);
-        return response()->json(['message' => 'Employee updated.', 'data' => $this->service->update($id, $validated)]);
+        $employee = $this->service->update($id, $validated, $request->user()->employee_id, $request->ip());
+        return response()->json(['message' => 'Employee updated.', 'data' => $employee]);
     }
 
-    public function destroy(int $id): JsonResponse
+    public function destroy(Request $request, int $id): JsonResponse
     {
         $this->authorize('delete employees');
-        $this->service->delete($id);
+        $this->service->delete($id, $request->user()->employee_id, $request->ip());
         return response()->json(['message' => 'Employee deleted.']);
     }
 

@@ -20,11 +20,12 @@ class StoreUserRequest extends FormRequest
             'password'    => ['required', Password::min(8)->mixedCase()->numbers()],
             'branch_id'   => ['nullable', 'integer', 'exists:branches,id'],
             'employee_id' => ['nullable', 'integer', 'exists:employees,id', 'unique:users,employee_id'],
-            'roles'       => ['sometimes', 'array'],
-            'roles.*'     => ['string', 'exists:roles,name'],
-            'permissions' => ['sometimes', 'array'],
-            'permissions.*'=> ['string', 'exists:permissions,name'],
             'is_active'   => ['sometimes', 'boolean'],
+            // Role/permission assignment intentionally NOT accepted here — it must
+            // go through PUT /api/users/{user}/roles|permissions, which are gated
+            // by the dedicated 'manage roles'/'manage permissions' abilities.
+            // Accepting them via this 'create users'-gated endpoint would let a
+            // lower-privileged user grant themselves or others arbitrary roles.
         ];
     }
 }

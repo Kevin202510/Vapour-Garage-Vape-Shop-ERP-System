@@ -198,6 +198,9 @@ class ShopController extends Controller
         });
 
         session()->forget('vgm_cart');
+        // Remember this order was placed in the current browser session so the
+        // confirmation page can be shown immediately without an email check.
+        session()->push('vgm_own_orders', $order->order_number);
 
         // Send payment instructions email for GCash and Maya orders (queued to avoid blocking the response)
         if (in_array($order->payment_method, ['gcash', 'maya'])) {
@@ -217,9 +220,21 @@ class ShopController extends Controller
     }
 
     // ── Order confirmation & tracking ────────────────────────────────────────
-    public function confirmation(string $orderNumber)
+    public function confirmation(Request $request, string $orderNumber)
     {
         $order = OnlineOrder::with(['items', 'branch'])->where('order_number', $orderNumber)->firstOrFail();
+
+        // An order number alone (e.g. leaked via browser history or a shared
+        // link) shouldn't be enough to view someone else's order — only the
+        // browser session that just placed it, or a matching email, may view it.
+        $ownedInSession = in_array($orderNumber, session('vgm_own_orders', []));
+        $emailVerified  = $request->filled('email') && strcasecmp($request->string('email'), $order->email) === 0;
+
+        if (! $ownedInSession && ! $emailVerified) {
+            return redirect()->route('shop.track', ['order_number' => $orderNumber])
+                ->with('info', 'For your privacy, please enter the email used for this order to view its details.');
+        }
+
         return view('shop.confirmation', compact('order'));
     }
 

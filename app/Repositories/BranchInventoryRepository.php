@@ -55,7 +55,10 @@ class BranchInventoryRepository extends BaseRepository implements BranchInventor
 
     public function decrementStock(int $branchId, int $productId, int $qty): BranchInventory
     {
-        $record = $this->findByBranchAndProduct($branchId, $productId);
+        // Locked read: must run inside a DB::transaction() so the row lock is
+        // held until commit, preventing two concurrent sales/transfers from
+        // both reading stale availability and overselling.
+        $record = $this->lockForUpdate($branchId, $productId);
 
         if (! $record || $record->available_quantity < $qty) {
             throw new RuntimeException(
@@ -72,7 +75,7 @@ class BranchInventoryRepository extends BaseRepository implements BranchInventor
 
     public function reserveStock(int $branchId, int $productId, int $qty): BranchInventory
     {
-        $record = $this->findByBranchAndProduct($branchId, $productId);
+        $record = $this->lockForUpdate($branchId, $productId);
 
         if (! $record || $record->available_quantity < $qty) {
             throw new RuntimeException(
@@ -89,7 +92,7 @@ class BranchInventoryRepository extends BaseRepository implements BranchInventor
 
     public function releaseReserved(int $branchId, int $productId, int $qty): BranchInventory
     {
-        $record = $this->findByBranchAndProduct($branchId, $productId);
+        $record = $this->lockForUpdate($branchId, $productId);
 
         if (! $record) {
             throw new RuntimeException("Inventory record not found for product #{$productId} at branch #{$branchId}.");
@@ -100,6 +103,19 @@ class BranchInventoryRepository extends BaseRepository implements BranchInventor
         $record->touch('last_updated');
 
         return $record->fresh();
+    }
+
+    /**
+     * Read the inventory row with a row-level lock. Must be called from
+     * inside a DB::transaction() so the lock is actually held.
+     */
+    protected function lockForUpdate(int $branchId, int $productId): ?BranchInventory
+    {
+        return $this->model
+            ->where('branch_id', $branchId)
+            ->where('product_id', $productId)
+            ->lockForUpdate()
+            ->first();
     }
 
     public function upsert(int $branchId, int $productId, int $qty): BranchInventory

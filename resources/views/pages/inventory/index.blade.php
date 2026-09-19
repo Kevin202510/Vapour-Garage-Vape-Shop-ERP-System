@@ -56,19 +56,21 @@
         <x-card title="Reorder Alerts" subtitle="IMMEDIATE ACTION REQUIRED">
             <div class="flex flex-col gap-2">
                 @forelse($reorderAlerts as $alert)
-                <div class="flex items-center gap-3.5 px-3.5 py-3 rounded-md border-l-[3px]
+                <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-3.5 px-3.5 py-3 rounded-md border-l-[3px]
                             {{ $alert->available <= 0 ? 'border-danger bg-danger/[0.04]' : 'border-warn bg-warn/[0.04]' }}">
-                    <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0
-                                {{ $alert->available <= 0 ? 'bg-danger/10' : 'bg-warn/10' }}">
-                        <x-icon name="alert-triangle" class="w-3.5 h-3.5 {{ $alert->available <= 0 ? 'text-danger' : 'text-warn' }}" />
+                    <div class="flex items-center gap-3.5 flex-1 min-w-0">
+                        <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0
+                                    {{ $alert->available <= 0 ? 'bg-danger/10' : 'bg-warn/10' }}">
+                            <x-icon name="alert-triangle" class="w-3.5 h-3.5 {{ $alert->available <= 0 ? 'text-danger' : 'text-warn' }}" />
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-[12.5px] font-semibold text-ink truncate" title="{{ $alert->product_name }}">{{ $alert->product_name }}</p>
+                            <p class="font-mono text-[10px] text-ink4 mt-0.5">
+                                {{ $alert->sku }} · {{ $alert->branch_name }} · {{ $alert->available }} / {{ $alert->reorder_level }} min
+                            </p>
+                        </div>
                     </div>
-                    <div class="flex-1 min-w-0">
-                        <p class="text-[12.5px] font-semibold text-ink truncate">{{ $alert->product_name }}</p>
-                        <p class="font-mono text-[10px] text-ink4 mt-0.5">
-                            {{ $alert->sku }} · {{ $alert->branch_name }} · {{ $alert->available }} / {{ $alert->reorder_level }} min
-                        </p>
-                    </div>
-                    <div class="flex gap-2 flex-shrink-0">
+                    <div class="flex gap-2 flex-shrink-0 pl-[calc(1.75rem+0.875rem)] sm:pl-0">
                         @can('adjust inventory')
                         <x-btn variant="ghost" size="sm"
                             @click="openAdjust({ branch_id: {{ $alert->branch_id }}, branch_name: '{{ addslashes($alert->branch_name) }}', product_id: {{ $alert->product_id }}, product_name: '{{ addslashes($alert->product_name) }}', sku: '{{ $alert->sku }}', current_qty: {{ $alert->quantity_on_hand }} })">

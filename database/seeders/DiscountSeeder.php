@@ -69,7 +69,7 @@ class DiscountSeeder extends Seeder
         ];
 
         foreach ($discounts as $d) {
-            Discount::create($d);
+            Discount::updateOrCreate(['name' => $d['name']], $d);
         }
 
         $this->command->info('✔ ' . count($discounts) . ' discounts seeded.');

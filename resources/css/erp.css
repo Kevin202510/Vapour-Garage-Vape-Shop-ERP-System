@@ -22,7 +22,10 @@
 
   --text-primary:   #1c1830;
   --text-secondary: #4a4465;
-  --text-muted:     #8b87a3;
+  /* #8b87a3 measured ~3.45:1 on white — below WCAG AA (4.5:1) for the body
+     text, labels and help text this var is used for. Darkened; verified
+     ≥4.5:1 on both --surface and --surface-soft. */
+  --text-muted:     #6d6889;
   --text-inverse:   #ffffff;
 
   --border-default: #e6e3f4;
@@ -45,7 +48,9 @@ html.dark {
 
   --text-primary:   #e8e4f0;
   --text-secondary: #c8c4d4;
-  --text-muted:     #7a7490;
+  /* previous value measured ~4.24:1 on #130f1e — just under WCAG AA.
+     Lightened; verified ≥5.5:1 on both --surface and --surface-soft. */
+  --text-muted:     #928da8;
 
   --border-default: rgba(124,34,212,0.2);
   --border-medium:  rgba(124,34,212,0.35);
@@ -95,7 +100,8 @@ html.dark {
   font-size: 9px;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: rgba(255,255,255,0.35);
+  /* was 0.35 alpha (~3.2:1 on the sidebar) — below WCAG AA for this text */
+  color: rgba(255,255,255,0.55);
   margin-bottom: 10px;
 }
 .vg-sidebar-logo-title {
@@ -129,7 +135,8 @@ html.dark {
   font-size: 9px;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: rgba(255,255,255,0.3);
+  /* was 0.3 alpha (~2.7:1 on the sidebar) — well below WCAG AA for this text */
+  color: rgba(255,255,255,0.55);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -229,7 +236,9 @@ html.dark {
   margin-top: 2px;
 }
 .vg-sidebar-logout {
-  color: rgba(255,255,255,0.3);
+  /* was 0.3 alpha (~2.7:1 on the sidebar) — below the 3:1 WCAG minimum for
+     an icon-only interactive control */
+  color: rgba(255,255,255,0.5);
   background: transparent; border: none; cursor: pointer;
   transition: color 0.2s;
 }
@@ -257,8 +266,9 @@ html.dark {
   letter-spacing: 0.08em;
   color: var(--text-muted);
 }
-.vg-topbar-brand { color: rgba(124,34,212,0.5); }
-.vg-topbar-sep   { color: rgba(124,34,212,0.25); margin: 0 6px; }
+/* was 0.5 alpha (~2.5:1 on white) — below WCAG AA for this text */
+.vg-topbar-brand { color: rgba(124,34,212,0.85); }
+.vg-topbar-sep   { color: rgba(124,34,212,0.25); margin: 0 6px; } /* decorative separator glyph, exempt from text contrast */
 .vg-topbar-page  { color: var(--brand); }
 .vg-topbar-branch{ color: var(--text-muted); }
 
@@ -473,7 +483,8 @@ html.dark {
 .erp-card-subtitle {
   font-family: 'Share Tech Mono', monospace;
   font-size: 9px; letter-spacing: 0.14em;
-  text-transform: uppercase; color: rgba(124,34,212,0.55);
+  /* was 0.55 alpha (~2.8:1 on white) — below WCAG AA for this text */
+  text-transform: uppercase; color: rgba(124,34,212,0.85);
 }
 .erp-card-body { padding: 16px 20px 20px; }
 .erp-card-body--no-title { padding: 20px; }
@@ -521,7 +532,8 @@ html.dark {
   font-family: 'Share Tech Mono', monospace;
   font-size: 9px; letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: rgba(124,34,212,0.65);
+  /* was 0.65 alpha (~3.3:1 on surface-soft) — below WCAG AA for column headers */
+  color: rgba(124,34,212,0.85);
   font-weight: 500;
   white-space: nowrap;
   background: var(--surface-soft);
@@ -574,7 +586,10 @@ tr:hover .erp-td { background: var(--surface-soft); }
   font-family: 'Share Tech Mono', monospace;
   font-size: 10px; letter-spacing: 0.06em;
 }
-.erp-kpi-delta--up   { color: var(--ok); }
+/* --ok is intentionally vivid (shared with status dots); at this 10px size
+   it measures ~3.3:1 on white, below WCAG AA, so this uses a darker green
+   directly rather than the shared var. --danger already passes at this size. */
+.erp-kpi-delta--up   { color: #15803d; }
 .erp-kpi-delta--down { color: var(--danger); }
 
 /* Color variants — accent line + left glow */
@@ -718,7 +733,8 @@ tr:hover .erp-td { background: var(--surface-soft); }
 .erp-page-header-overline {
   font-family: 'Share Tech Mono', monospace;
   font-size: 9px; letter-spacing: 0.22em;
-  text-transform: uppercase; color: rgba(124,34,212,0.65);
+  /* was 0.65 alpha (~3.4:1 on white) — below WCAG AA for this text */
+  text-transform: uppercase; color: rgba(124,34,212,0.85);
   margin-bottom: 8px;
   display: flex; align-items: center; gap: 8px;
 }
@@ -898,11 +914,24 @@ html.dark .bg-navy     { background-color: #130f1e !important; }
 /* Main content area */
 html.dark main.bg-cream { background-color: #060608 !important; }
 
+/* Opacity variants of bg-cream/bg-white (subtle tinted panels — table zebra
+   rows, footers, modal action bars, disabled-state overlays) had no dark
+   override at all: bg-cream/50 compiles to a literal near-white color at
+   50% alpha regardless of theme, so in dark mode it sat over dark text as a
+   washed-out light-gray fog instead of a subtle dark tint. Used in the POS
+   checkout totals panel, modal footers, and several table rows/footers. */
+html.dark .bg-cream\/20 { background-color: rgba(26,20,40,0.2) !important; }
+html.dark .bg-cream\/30 { background-color: rgba(26,20,40,0.3) !important; }
+html.dark .bg-cream\/40 { background-color: rgba(26,20,40,0.4) !important; }
+html.dark .bg-cream\/50 { background-color: rgba(26,20,40,0.5) !important; }
+html.dark .bg-cream\/60 { background-color: rgba(26,20,40,0.6) !important; }
+html.dark .bg-white\/90 { background-color: rgba(6,6,8,0.85) !important; }
+
 /* Text */
 html.dark .text-ink    { color: #e8e4f0 !important; }
 html.dark .text-ink2   { color: #c8c4d4 !important; }
 html.dark .text-ink3   { color: #a09ab0 !important; }
-html.dark .text-ink4   { color: #7a7490 !important; }
+html.dark .text-ink4   { color: #928da8 !important; }
 
 /* Borders */
 html.dark .border-cream3 { border-color: rgba(124,34,212,0.2) !important; }
@@ -920,7 +949,8 @@ html.dark .erp-stat-box     { background: #130f1e; border-color: rgba(124,34,212
 html.dark .erp-table-head,
 html.dark .erp-table-pagination { background: #1a1428; border-color: rgba(124,34,212,0.15); }
 
-html.dark .erp-th           { background: #1a1428; color: rgba(155,61,240,0.7); border-color: rgba(124,34,212,0.15); }
+/* was rgba(155,61,240,0.7) (~2.4:1 on #1a1428) — below WCAG AA for column headers */
+html.dark .erp-th           { background: #1a1428; color: #c084fc; border-color: rgba(124,34,212,0.15); }
 html.dark .erp-td           { color: #c8c4d4; border-color: rgba(124,34,212,0.1); }
 html.dark tr:hover .erp-td  { background: #1a1428; }
 
@@ -928,17 +958,17 @@ html.dark .erp-input,
 html.dark .erp-select        { background: #0d0b14; border-color: rgba(124,34,212,0.3); color: #e8e4f0; }
 html.dark .erp-input:focus,
 html.dark .erp-select:focus  { border-color: rgba(124,34,212,0.7); box-shadow: 0 0 0 3px rgba(124,34,212,0.15); }
-html.dark .erp-input::placeholder { color: #7a7490; }
+html.dark .erp-input::placeholder { color: #928da8; }
 
 html.dark .erp-btn--ghost    { background: rgba(124,34,212,0.08); color: #c8c4d4; border-color: rgba(124,34,212,0.25); }
 html.dark .erp-btn--ghost:hover { background: rgba(124,34,212,0.18); color: #e8e4f0; border-color: rgba(124,34,212,0.5); }
 
 html.dark .erp-page-header   { border-color: rgba(124,34,212,0.2); }
 html.dark .erp-page-header-title { color: #e8e4f0; }
-html.dark .erp-page-header-subtitle { color: #7a7490; }
+html.dark .erp-page-header-subtitle { color: #928da8; }
 
 html.dark .erp-kpi           { background: #130f1e; border-color: rgba(124,34,212,0.2); }
-html.dark .erp-kpi-label     { color: #7a7490; }
+html.dark .erp-kpi-label     { color: #928da8; }
 html.dark .erp-kpi-value     { color: #e8e4f0; }
 
 html.dark .erp-card-title    { color: #e8e4f0; }
@@ -951,7 +981,7 @@ html.dark .fixed.bg-ink\/40 { background: rgba(6,6,8,0.85) !important; }
 /* Topbar search dark */
 html.dark .vg-topbar-search { background: #0d0b14; border-color: rgba(124,34,212,0.25); }
 html.dark .vg-topbar-search input { color: #e8e4f0; }
-html.dark .vg-topbar-icon-btn { background: #130f1e; border-color: rgba(124,34,212,0.25); color: #7a7490; }
+html.dark .vg-topbar-icon-btn { background: #130f1e; border-color: rgba(124,34,212,0.25); color: #928da8; }
 html.dark .vg-topbar-icon-btn:hover { background: rgba(124,34,212,0.15); border-color: rgba(124,34,212,0.5); color: #9b3df0; }
 
 /* Branch switcher dark */
@@ -969,8 +999,8 @@ html.dark .vg-topbar-dropdown-title { color: #e8e4f0; }
 html.dark .vg-topbar-alert-row { border-color: rgba(124,34,212,0.12); }
 html.dark .vg-topbar-alert-row:hover { background: #1a1428; }
 html.dark .vg-topbar-alert-title { color: #e8e4f0; }
-html.dark .vg-topbar-empty { color: #7a7490; }
-html.dark .vg-topbar-breadcrumb { color: #7a7490; }
+html.dark .vg-topbar-empty { color: #928da8; }
+html.dark .vg-topbar-breadcrumb { color: #928da8; }
 html.dark .vg-topbar-page { color: #9b3df0; }
 
 /* x-modal dark */
@@ -980,7 +1010,7 @@ html.dark .border-cream3.rounded-xl { border-color: rgba(124,34,212,0.3) !import
 /* Pagination dark */
 html.dark nav[role="navigation"] span,
 html.dark nav[role="navigation"] a { border-color: rgba(124,34,212,0.2); }
-html.dark nav[role="navigation"] a { color: #7a7490; }
+html.dark nav[role="navigation"] a { color: #928da8; }
 html.dark nav[role="navigation"] a:hover { background: rgba(124,34,212,0.12); border-color: rgba(124,34,212,0.4); color: #9b3df0; }
 html.dark nav[role="navigation"] span { color: rgba(255,255,255,0.2); }
 
@@ -1003,7 +1033,7 @@ html.dark .erp-badge--terra  { background: rgba(155,61,240,0.15);  color: #c084f
 html.dark .erp-badge--purple { background: rgba(155,61,240,0.15);  color: #c084fc; border-color: rgba(155,61,240,0.35); }
 html.dark .erp-badge--gold   { background: rgba(251,191,36,0.12);  color: #fbbf24; border-color: rgba(251,191,36,0.3); }
 html.dark .erp-badge--green  { background: rgba(74,222,128,0.12);  color: #4ade80; border-color: rgba(74,222,128,0.3); }
-html.dark .erp-badge--muted  { background: rgba(255,255,255,0.06); color: #7a7490; border-color: rgba(255,255,255,0.1); }
+html.dark .erp-badge--muted  { background: rgba(255,255,255,0.06); color: #928da8; border-color: rgba(255,255,255,0.1); }
 
 /* ── Tailwind status text colors: brighter for dark backgrounds ── */
 html.dark .text-ok     { color: #4ade80 !important; }
@@ -1044,8 +1074,9 @@ html.dark .font-semibold:not([class*="text-"]) { color: #e8e4f0; }
 html.dark .font-bold:not([class*="text-"]) { color: #e8e4f0; }
 
 /* ── Misc elements that need explicit dark text ── */
-html.dark .erp-card-subtitle { color: rgba(155,61,240,0.7); }
-html.dark .erp-stat-box-label { color: #7a7490; }
+/* was rgba(155,61,240,0.7) (~2.5:1 on #130f1e) — below WCAG AA */
+html.dark .erp-card-subtitle { color: #c084fc; }
+html.dark .erp-stat-box-label { color: #928da8; }
 html.dark .erp-stat-box-value { color: #e8e4f0; }
 html.dark .erp-stat-box-value--ok     { color: #4ade80; }
 html.dark .erp-stat-box-value--warn   { color: #fbbf24; }
@@ -1059,12 +1090,13 @@ html.dark .erp-kpi-delta--down { color: #f87171; }
 html.dark tr:hover .erp-td { color: #e8e4f0; }
 
 /* ── Empty state text ── */
-html.dark .erp-page-header-overline { color: rgba(155,61,240,0.65); }
-html.dark .erp-page-header-slash    { color: rgba(124,34,212,0.35); }
+/* was rgba(155,61,240,0.65) (~2.3:1 on #130f1e) — below WCAG AA */
+html.dark .erp-page-header-overline { color: #c084fc; }
+html.dark .erp-page-header-slash    { color: rgba(124,34,212,0.35); } /* decorative separator, exempt */
 
 /* ── Form error / help text ── */
 html.dark .erp-field-error { color: #f87171; }
-html.dark .erp-field-help  { color: #7a7490; }
+html.dark .erp-field-help  { color: #928da8; }
 html.dark .erp-required    { color: #c084fc; }
 
 /* ── Button variants ── */

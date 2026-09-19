@@ -2,15 +2,19 @@
 
 namespace App\Services;
 
+use App\Contracts\Repositories\AuditLogRepositoryInterface;
 use App\Contracts\Repositories\BranchInventoryRepositoryInterface;
 use App\Contracts\Repositories\CustomerRepositoryInterface;
 use App\Contracts\Repositories\DiscountRepositoryInterface;
+use App\Contracts\Repositories\ProductRepositoryInterface;
 use App\Contracts\Repositories\SalesTransactionRepositoryInterface;
 use App\Models\SalesTransaction;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use RuntimeException;
 
 class SalesService
 {
@@ -19,6 +23,8 @@ class SalesService
         protected BranchInventoryRepositoryInterface  $inventoryRepo,
         protected CustomerRepositoryInterface         $customerRepo,
         protected DiscountRepositoryInterface         $discountRepo,
+        protected ProductRepositoryInterface          $productRepo,
+        protected AuditLogRepositoryInterface         $auditRepo,
     ) {}
 
     public function list(array $filters = [], int $perPage = 15): LengthAwarePaginator
@@ -49,100 +55,145 @@ class SalesService
      */
     public function processTransaction(array $data): SalesTransaction
     {
-        return DB::transaction(function () use ($data) {
-            $subtotal       = 0;
-            $totalDiscount  = 0;
-            $totalTax       = 0;
-            $lineItems      = [];
+        // Idempotent replay: if this exact submission was already processed
+        // (network retry / double-click), return the original transaction
+        // instead of creating a duplicate sale + duplicate inventory deduction.
+        if (! empty($data['idempotency_key'])) {
+            $idempotencyCacheKey = "sales:idempotency:{$data['idempotency_key']}";
 
-            foreach ($data['items'] as $item) {
-                $lineSubtotal   = round($item['unit_price'] * $item['quantity'], 2);
-                $discountAmount = 0;
-
-                if (! empty($item['discount_id'])) {
-                    $discount       = $this->discountRepo->findById($item['discount_id']);
-                    $discountAmount = $discount?->computeDiscount($lineSubtotal) ?? 0;
-                }
-
-                $taxable   = $lineSubtotal - $discountAmount;
-                $taxAmount = round($taxable * 0.12, 2);
-
-                $subtotal      += $lineSubtotal;
-                $totalDiscount += $discountAmount;
-                $totalTax      += $taxAmount;
-
-                $lineItems[] = array_merge($item, [
-                    'discount_amount' => $discountAmount,
-                    'tax_amount'      => $taxAmount,
-                    'subtotal'        => $lineSubtotal,
-                ]);
+            if ($existingId = Cache::get($idempotencyCacheKey)) {
+                return $this->findOrFail($existingId)
+                    ->load(['branch', 'cashier', 'customer', 'items.product', 'items.discount']);
             }
+        }
 
-            // ✅ Compute totals FIRST
-            $totalAmount    = round($subtotal, 2);
-            $amountTendered = $data['amount_tendered'];
-            $change         = round($amountTendered - $totalAmount, 2);
+        // Guard against a near-simultaneous double submission from the same
+        // cashier (e.g. a double-click) even when no idempotency key is sent.
+        $lock = Cache::lock("sales:cashier-lock:{$data['cashier_id']}", 10);
 
-            // ✅ Validate BEFORE any side effects
-            if ($change < 0) {
-                throw ValidationException::withMessages([
-                    'amount_tendered' => [
-                        'Insufficient payment. Short by ₱' . number_format(abs($change), 2)
-                    ],
-                ]);
-            }
-
-            // ✅ ONLY deduct stock AFTER payment is valid
-            foreach ($lineItems as $item) {
-                $this->inventoryRepo->decrementStock (
-                    $data['branch_id'],
-                    $item['product_id'],
-                    $item['quantity']
-                );
-            }
-
-            $transaction = $this->transactionRepo->create([
-                'transaction_number' => SalesTransaction::generateTransactionNumber($data['branch_id']),
-                'branch_id'          => $data['branch_id'],
-                'cashier_id'         => $data['cashier_id'],
-                'customer_id'        => $data['customer_id'] ?? null,
-                'subtotal'           => $subtotal,
-                'discount_amount'    => $totalDiscount,
-                'tax_amount'         => $totalTax,
-                'total_amount'       => $totalAmount,
-                'amount_tendered'    => $amountTendered,
-                'change_amount'      => $change,
-                'payment_method'     => $data['payment_method'],
-                'status'             => 'completed',
-                'transaction_date'   => now(),
+        if (! $lock->get()) {
+            throw ValidationException::withMessages([
+                'items' => ['A transaction is already being processed for this cashier. Please wait and try again.'],
             ]);
+        }
 
-            foreach ($lineItems as $line) {
-                $transaction->items()->create([
-                    'product_id'      => $line['product_id'],
-                    'discount_id'     => $line['discount_id'] ?? null,
-                    'quantity'        => $line['quantity'],
-                    'unit_price'      => $line['unit_price'],
-                    'discount_amount' => $line['discount_amount'],
-                    'tax_amount'      => $line['tax_amount'],
-                    'subtotal'        => $line['subtotal'],
-                ]);
-            }
+        try {
+            return DB::transaction(function () use ($data) {
+                $subtotal       = 0;
+                $totalDiscount  = 0;
+                $totalTax       = 0;
+                $lineItems      = [];
 
-            // Award loyalty points (1 point per ₱10 spent) for registered customers
-            if (! empty($data['customer_id'])) {
-                $customer = $this->customerRepo->findById($data['customer_id']);
-                if ($customer) {
-                    $points = (int) floor($totalAmount / 10);
-                    $this->customerRepo->addLoyaltyPoints($customer, $points);
+                foreach ($data['items'] as $item) {
+                    // Price is always derived server-side from the product record —
+                    // never trust a client-supplied unit_price.
+                    $product = $this->productRepo->findById($item['product_id']);
+
+                    if (! $product || $product->trashed() || ! $product->is_active) {
+                        throw ValidationException::withMessages([
+                            'items' => ["Product #{$item['product_id']} is not available for sale."],
+                        ]);
+                    }
+
+                    $unitPrice = ($product->is_on_sale && $product->sale_price)
+                        ? (float) $product->sale_price
+                        : (float) $product->selling_price;
+
+                    $lineSubtotal   = round($unitPrice * $item['quantity'], 2);
+                    $discountAmount = 0;
+
+                    if (! empty($item['discount_id'])) {
+                        $discount       = $this->discountRepo->findById($item['discount_id']);
+                        $discountAmount = $discount?->computeDiscount($lineSubtotal) ?? 0;
+                    }
+
+                    $taxable   = $lineSubtotal - $discountAmount;
+                    $taxAmount = round($taxable * (float) $product->tax_rate / 100, 2);
+
+                    $subtotal      += $lineSubtotal;
+                    $totalDiscount += $discountAmount;
+                    $totalTax      += $taxAmount;
+
+                    $lineItems[] = array_merge($item, [
+                        'unit_price'      => $unitPrice,
+                        'discount_amount' => $discountAmount,
+                        'tax_amount'      => $taxAmount,
+                        'subtotal'        => $lineSubtotal,
+                    ]);
                 }
-            }
 
-            return $transaction->load(['branch', 'cashier', 'customer', 'items.product', 'items.discount']);
-        });
+                // ✅ Compute totals FIRST
+                $totalAmount    = round($subtotal, 2);
+                $amountTendered = $data['amount_tendered'];
+                $change         = round($amountTendered - $totalAmount, 2);
+
+                // ✅ Validate BEFORE any side effects
+                if ($change < 0) {
+                    throw ValidationException::withMessages([
+                        'amount_tendered' => [
+                            'Insufficient payment. Short by ₱' . number_format(abs($change), 2)
+                        ],
+                    ]);
+                }
+
+                // ✅ ONLY deduct stock AFTER payment is valid
+                foreach ($lineItems as $item) {
+                    $this->inventoryRepo->decrementStock (
+                        $data['branch_id'],
+                        $item['product_id'],
+                        $item['quantity']
+                    );
+                }
+
+                $transaction = $this->transactionRepo->create([
+                    'transaction_number' => SalesTransaction::generateTransactionNumber($data['branch_id']),
+                    'branch_id'          => $data['branch_id'],
+                    'cashier_id'         => $data['cashier_id'],
+                    'customer_id'        => $data['customer_id'] ?? null,
+                    'subtotal'           => $subtotal,
+                    'discount_amount'    => $totalDiscount,
+                    'tax_amount'         => $totalTax,
+                    'total_amount'       => $totalAmount,
+                    'amount_tendered'    => $amountTendered,
+                    'change_amount'      => $change,
+                    'payment_method'     => $data['payment_method'],
+                    'status'             => 'completed',
+                    'transaction_date'   => now(),
+                ]);
+
+                foreach ($lineItems as $line) {
+                    $transaction->items()->create([
+                        'product_id'      => $line['product_id'],
+                        'discount_id'     => $line['discount_id'] ?? null,
+                        'quantity'        => $line['quantity'],
+                        'unit_price'      => $line['unit_price'],
+                        'discount_amount' => $line['discount_amount'],
+                        'tax_amount'      => $line['tax_amount'],
+                        'subtotal'        => $line['subtotal'],
+                    ]);
+                }
+
+                // Award loyalty points (1 point per ₱10 spent) for registered customers
+                if (! empty($data['customer_id'])) {
+                    $customer = $this->customerRepo->findById($data['customer_id']);
+                    if ($customer) {
+                        $points = (int) floor($totalAmount / 10);
+                        $this->customerRepo->addLoyaltyPoints($customer, $points);
+                    }
+                }
+
+                if (! empty($data['idempotency_key'])) {
+                    Cache::put("sales:idempotency:{$data['idempotency_key']}", $transaction->id, now()->addMinutes(5));
+                }
+
+                return $transaction->load(['branch', 'cashier', 'customer', 'items.product', 'items.discount']);
+            });
+        } finally {
+            $lock->release();
+        }
     }
 
-    public function void(int $id, string $reason): SalesTransaction
+    public function void(int $id, string $reason, ?int $employeeId = null, ?string $ipAddress = null): SalesTransaction
     {
         $transaction = $this->findOrFail($id);
 
@@ -150,7 +201,9 @@ class SalesService
             throw new RuntimeException("Only completed transactions can be voided.");
         }
 
-        return DB::transaction(function () use ($transaction, $reason) {
+        return DB::transaction(function () use ($transaction, $reason, $employeeId, $ipAddress) {
+            $previousStatus = $transaction->status;
+
             // Restore inventory for each voided item
             foreach ($transaction->items as $item) {
                 $this->inventoryRepo->incrementStock(
@@ -169,7 +222,20 @@ class SalesService
                 }
             }
 
-            return $this->transactionRepo->void($transaction, $reason);
+            $voided = $this->transactionRepo->void($transaction, $reason);
+
+            $this->auditRepo->log(
+                tableName:  'sales_transactions',
+                recordId:   $transaction->id,
+                action:     'void',
+                oldValues:  ['status' => $previousStatus],
+                newValues:  ['status' => 'voided', 'reason' => $reason],
+                employeeId: $employeeId,
+                branchId:   $transaction->branch_id,
+                ipAddress:  $ipAddress,
+            );
+
+            return $voided;
         });
     }
 

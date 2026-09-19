@@ -19,6 +19,11 @@ class PurchaseOrderSeeder extends Seeder
         $suppliers  = Supplier::where('is_active', true)->get();
         $products   = Product::where('is_active', true)->get();
 
+        if ($branches->isEmpty() || $suppliers->isEmpty() || $products->isEmpty()) {
+            $this->command->warn('⚠ Skipping PurchaseOrderSeeder — no branches, suppliers, or products found.');
+            return;
+        }
+
         foreach ($branches as $branch) {
             $manager = Employee::where('branch_id', $branch->id)
                                 ->where('role', 'branch_manager')

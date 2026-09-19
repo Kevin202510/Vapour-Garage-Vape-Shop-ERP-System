@@ -17,14 +17,26 @@ class InventoryController extends Controller
     {
         $this->authorize('view inventory');
         $request->validate(['branch_id' => ['required','integer','exists:branches,id']]);
-        return response()->json(['data' => $this->service->getByBranch($request->integer('branch_id'))]);
+        $branchId = $request->integer('branch_id');
+
+        if (! $request->user()->isSuperAdmin() && $branchId != $request->user()->branch_id) {
+            abort(403, 'You may only view inventory for your own branch.');
+        }
+
+        return response()->json(['data' => $this->service->getByBranch($branchId)]);
     }
 
     public function lowStock(Request $request): JsonResponse
     {
         $this->authorize('view inventory');
         $request->validate(['branch_id' => ['required','integer','exists:branches,id']]);
-        return response()->json(['data' => $this->service->getLowStock($request->integer('branch_id'))]);
+        $branchId = $request->integer('branch_id');
+
+        if (! $request->user()->isSuperAdmin() && $branchId != $request->user()->branch_id) {
+            abort(403, 'You may only view inventory for your own branch.');
+        }
+
+        return response()->json(['data' => $this->service->getLowStock($branchId)]);
     }
 
     public function adjust(Request $request): JsonResponse
@@ -35,6 +47,11 @@ class InventoryController extends Controller
             'product_id' => ['required','integer','exists:products,id'],
             'quantity'   => ['required','integer','min:0'],
         ]);
+
+        if (! $request->user()->isSuperAdmin() && $validated['branch_id'] != $request->user()->branch_id) {
+            abort(403, 'You may only adjust inventory for your own branch.');
+        }
+
         $record = $this->service->adjust(
             $validated['branch_id'],
             $validated['product_id'],

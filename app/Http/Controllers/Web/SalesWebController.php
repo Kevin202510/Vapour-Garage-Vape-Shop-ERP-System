@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Http\Controllers\Concerns\ResolvesActiveBranch;
 use App\Http\Controllers\Controller;
 use App\Services\SalesService;
 use App\Services\BranchService;
@@ -11,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 
 class SalesWebController extends Controller
 {
-    use AuthorizesRequests;
+    use AuthorizesRequests, ResolvesActiveBranch;
     public function __construct(
         protected SalesService  $salesService,
         protected BranchService $branchService,
@@ -22,9 +23,7 @@ class SalesWebController extends Controller
         $filters = $request->only(['branch_id', 'cashier_id', 'status', 'payment_method', 'date_from', 'date_to', 'search']);
         $user    = auth()->user();
 
-        $effectiveBranchId = $user->isSuperAdmin()
-            ? (request()->has('branch_id') ? (request('branch_id') ?: null) : $user->activeBranchId())
-            : $user->branch_id;
+        $effectiveBranchId = $this->resolveEffectiveBranchId($user);
 
         if (! $user->isSuperAdmin()) {
             $filters['branch_id'] = $user->branch_id;
@@ -74,7 +73,7 @@ class SalesWebController extends Controller
     {
         $this->authorize('void sales');
         $validated = $request->validate(['reason' => 'required|string|max:500']);
-        $this->salesService->void($id, $validated['reason']);
+        $this->salesService->void($id, $validated['reason'], auth()->user()->employee_id, $request->ip());
         return back()->with('success', 'Transaction voided.');
     }
 
@@ -84,9 +83,7 @@ class SalesWebController extends Controller
 
         $filters = $request->only(['branch_id', 'cashier_id', 'status', 'payment_method', 'date_from', 'date_to', 'search']);
         $user    = auth()->user();
-        $effectiveBranchId = $user->isSuperAdmin()
-            ? (request()->has('branch_id') ? (request('branch_id') ?: null) : $user->activeBranchId())
-            : $user->branch_id;
+        $effectiveBranchId = $this->resolveEffectiveBranchId($user);
         if (! $user->isSuperAdmin()) { $filters['branch_id'] = $user->branch_id; }
         elseif ($effectiveBranchId)  { $filters['branch_id'] = $effectiveBranchId; }
         else                         { unset($filters['branch_id']); }

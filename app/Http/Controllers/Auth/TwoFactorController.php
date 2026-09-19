@@ -3,10 +3,14 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Auth\Events\Lockout;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use PragmaRX\Google2FA\Google2FA;
 
 class TwoFactorController extends Controller
@@ -37,6 +41,20 @@ class TwoFactorController extends Controller
             return redirect()->route('login');
         }
 
+        // Per-user+IP lockout (mirrors LoginRequest::ensureIsNotRateLimited).
+        // The route-level throttle alone only limits one IP; this also stops
+        // an attacker who spreads guesses across IPs at a single victim.
+        $throttleKey = 'two-factor:' . $userId . '|' . $request->ip();
+
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            event(new Lockout($request));
+            $seconds = RateLimiter::availableIn($throttleKey);
+
+            throw ValidationException::withMessages([
+                'code' => "Too many attempts. Please try again in {$seconds} seconds.",
+            ]);
+        }
+
         $user = \App\Models\User::findOrFail($userId);
 
         $code   = preg_replace('/\s+/', '', $request->code);
@@ -45,21 +63,26 @@ class TwoFactorController extends Controller
         // Check TOTP code (30-s window ±1)
         $valid = $this->google2fa->verifyKey($secret, $code, 1);
 
-        // Also check recovery codes
+        // Also check recovery codes (stored hashed — never compared/logged in plaintext)
         if (! $valid && $user->two_factor_recovery_codes) {
-            $codes = $user->two_factor_recovery_codes;
-            if (in_array($code, $codes)) {
+            $hashedCodes = $user->two_factor_recovery_codes;
+            $matchedHash = collect($hashedCodes)->first(fn ($hash) => Hash::check($code, $hash));
+
+            if ($matchedHash !== null) {
                 $valid = true;
                 // Burn the recovery code (one-time use)
                 $user->update([
-                    'two_factor_recovery_codes' => array_values(array_filter($codes, fn ($c) => $c !== $code)),
+                    'two_factor_recovery_codes' => array_values(array_filter($hashedCodes, fn ($h) => $h !== $matchedHash)),
                 ]);
             }
         }
 
         if (! $valid) {
+            RateLimiter::hit($throttleKey);
             return back()->withErrors(['code' => 'Invalid code. Please check your authenticator and try again.']);
         }
+
+        RateLimiter::clear($throttleKey);
 
         session()->forget('2fa_user_id');
         Auth::login($user);
@@ -101,7 +124,9 @@ class TwoFactorController extends Controller
             return back()->withErrors(['code' => 'Invalid code. Make sure your authenticator is set up correctly.']);
         }
 
-        // Generate 8 recovery codes
+        // Generate 8 recovery codes. Only the hashed form is ever persisted —
+        // the plaintext codes exist only long enough to be shown to the user
+        // once, via a one-time session flash.
         $recoveryCodes = collect(range(1, 8))
             ->map(fn () => strtoupper(Str::random(4)) . '-' . strtoupper(Str::random(4)))
             ->toArray();
@@ -110,7 +135,7 @@ class TwoFactorController extends Controller
             'two_factor_secret'         => Crypt::encryptString($secret),
             'two_factor_enabled'        => true,
             'two_factor_confirmed_at'   => now(),
-            'two_factor_recovery_codes' => $recoveryCodes,
+            'two_factor_recovery_codes' => array_map(fn ($code) => Hash::make($code), $recoveryCodes),
         ]);
 
         session()->forget('2fa_setup_secret');
@@ -121,7 +146,15 @@ class TwoFactorController extends Controller
 
     public function showRecoveryCodes()
     {
-        $codes = session('recovery_codes') ?? auth()->user()->two_factor_recovery_codes ?? [];
+        // Recovery codes are stored hashed and cannot be redisplayed later —
+        // only show them immediately after generation, via the session flash.
+        $codes = session('recovery_codes');
+
+        if (! $codes) {
+            return redirect()->route('2fa.security')
+                ->with('error', 'Recovery codes can only be viewed once, right after they are generated. Disable and re-enable 2FA to generate a new set.');
+        }
+
         return view('auth.two-factor-recovery-codes', compact('codes'));
     }
 

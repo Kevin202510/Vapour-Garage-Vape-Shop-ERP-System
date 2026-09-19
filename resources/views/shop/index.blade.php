@@ -12,7 +12,7 @@
     @endif
 
     {{-- Page header --}}
-    <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:32px;padding-bottom:24px;border-bottom:1px solid rgba(124,34,212,0.2)">
+    <div class="shop-header-row" style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:32px;padding-bottom:24px;border-bottom:1px solid rgba(124,34,212,0.2)">
         <div>
             <div class="sec-tag">Online Shop</div>
             <h1 class="sec-title" style="font-size:clamp(32px,4vw,56px)">
@@ -30,7 +30,7 @@
         </div>
 
         {{-- Filters --}}
-        <form method="GET" action="{{ route('shop.index') }}" style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap">
+        <form method="GET" action="{{ route('shop.index') }}" class="shop-filter-form" style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap">
             <div>
                 <label class="vlabel">Search</label>
                 <input type="text" name="search" value="{{ request('search') }}" placeholder="Name or SKU…"

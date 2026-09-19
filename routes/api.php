@@ -37,7 +37,11 @@ Route::prefix('auth')->name('auth.')->group(function () {
 });
 
 // ── Authenticated ─────────────────────────────────────────────────────────────
-Route::name('api.')->group(function () {
+// throttle:120,1 is a per-user ceiling (Laravel's default ThrottleRequests
+// keys by authenticated user ID here, since auth:sanctum resolves one) —
+// defense-in-depth against a leaked token or a runaway client, not a
+// substitute for the tighter limits on specific sensitive endpoints.
+Route::middleware(['auth:sanctum', 'throttle:120,1'])->name('api.')->group(function () {
 
     // ── Auth session ──────────────────────────────────────────────────────────
     Route::prefix('auth')->name('auth.')->group(function () {

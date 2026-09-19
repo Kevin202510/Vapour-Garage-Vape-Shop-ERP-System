@@ -15,6 +15,13 @@ interface AttendanceRepositoryInterface extends BaseRepositoryInterface
 
     public function findTodayRecord(int $employeeId): ?Attendance;
 
+    /**
+     * Find the employee's most recent still-open shift (time_out is null),
+     * regardless of work_date — used for clock-out so a shift spanning
+     * midnight is still found.
+     */
+    public function findOpenRecord(int $employeeId): ?Attendance;
+
     public function clockIn(int $employeeId, int $branchId): Attendance;
 
     public function clockOut(Attendance $attendance): Attendance;

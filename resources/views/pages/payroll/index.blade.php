@@ -18,7 +18,7 @@
     </div>
 
     {{-- Period filter --}}
-    <form method="GET" action="{{ route('payroll.index') }}" class="flex items-center gap-3 mb-5">
+    <form method="GET" action="{{ route('payroll.index') }}" class="flex items-center gap-3 flex-wrap mb-5">
         <x-form-input name="period_start" type="date" label="" :value="request('period_start', now()->startOfMonth()->format('Y-m-d'))" class="min-w-[140px]" />
         <span class="text-ink4 text-sm">to</span>
         <x-form-input name="period_end"   type="date" label="" :value="request('period_end',   now()->format('Y-m-d'))"               class="min-w-[140px]" />

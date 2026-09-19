@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Http\Controllers\Concerns\ResolvesActiveBranch;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Services\BranchService;
@@ -12,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 
 class InventoryWebController extends Controller
 {
-    use AuthorizesRequests;
+    use AuthorizesRequests, ResolvesActiveBranch;
 
     public function __construct(
         protected BranchService    $branchService,
@@ -22,11 +23,7 @@ class InventoryWebController extends Controller
     public function index(Request $request)
     {
         $user      = auth()->user();
-        $branchId  = $request->input('branch_id',
-            $user->isSuperAdmin()
-                ? (request()->has('branch_id') ? (request('branch_id') ?: null) : $user->activeBranchId())
-                : $user->branch_id
-        );
+        $branchId  = $request->input('branch_id', $this->resolveEffectiveBranchId($user));
         $search   = $request->input('search');
         $branches = $this->branchService->allActive();
         $activeBranchLabel = $branchId
@@ -97,6 +94,48 @@ class InventoryWebController extends Controller
             'inventory', 'branches', 'products', 'totalRecords', 'criticalCount',
             'lowCount', 'branchHealth', 'reorderAlerts', 'effectiveBranchId', 'activeBranchLabel'
         ));
+    }
+
+    public function export(Request $request)
+    {
+        $this->authorize('view inventory');
+
+        $user     = auth()->user();
+        $branchId = $request->input('branch_id', $this->resolveEffectiveBranchId($user));
+        $search   = $request->input('search');
+
+        $inventory = \App\Models\BranchInventory::with(['product.category', 'branch'])
+            ->whereHas('product')
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->when($search, fn ($q) => $q->whereHas('product', fn ($p) =>
+                $p->where('name', 'like', "%{$search}%")->orWhere('sku', 'like', "%{$search}%")
+            ))
+            ->orderBy('branch_id')
+            ->get();
+
+        $filename = 'inventory-' . now()->format('Y-m-d') . '.csv';
+
+        return response()->streamDownload(function () use ($inventory) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Branch', 'SKU', 'Product', 'Category', 'On Hand', 'Reserved', 'Available', 'Reorder Level', 'Status']);
+            foreach ($inventory as $row) {
+                $available = $row->quantity_on_hand - $row->quantity_reserved;
+                $reorder   = $row->product->reorder_level ?? 0;
+                $status    = $available <= 0 ? 'Out of Stock' : ($available <= $reorder ? 'Low Stock' : 'Healthy');
+                fputcsv($handle, [
+                    $row->branch->name ?? 'N/A',
+                    $row->product->sku ?? 'N/A',
+                    $row->product->name ?? 'N/A',
+                    $row->product->category->name ?? 'Uncategorised',
+                    $row->quantity_on_hand,
+                    $row->quantity_reserved,
+                    $available,
+                    $reorder,
+                    $status,
+                ]);
+            }
+            fclose($handle);
+        }, $filename, ['Content-Type' => 'text/csv']);
     }
 
     public function adjust(Request $request)

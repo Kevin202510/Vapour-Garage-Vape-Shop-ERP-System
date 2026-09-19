@@ -20,7 +20,7 @@
         </x-slot:actions>
     </x-page-header>
 
-    <div class="grid grid-cols-[1fr_360px] gap-5 h-[calc(100vh-168px)]"
+    <div class="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-5 lg:h-[calc(100vh-168px)]"
          x-data="posApp(@js($products), @js($customers), @js($branchId), @js(csrf_token()))">
 
         {{-- ══════════════════════════════════════
@@ -58,7 +58,7 @@
             </div>
 
             {{-- Product grid --}}
-            <div class="grid grid-cols-3 gap-2.5 overflow-y-auto flex-1 content-start pr-1">
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 lg:overflow-y-auto flex-1 content-start pr-1">
                 <template x-for="product in filteredProducts" :key="product.id">
                     <div @click="addToCart(product)"
                          class="bg-cream border border-cream3 rounded-xl p-3.5 cursor-pointer transition-all relative

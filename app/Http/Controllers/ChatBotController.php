@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use OpenAI;
 
 class ChatBotController extends Controller
@@ -38,22 +37,8 @@ PROMPT;
             'message' => 'required|string|max:500',
         ]);
 
-        // Per-IP rate limit: 15 messages per 5 minutes
-        $key = 'chatbot_' . $request->ip();
-        $limit = 15;
-        $decay = 300; // 5 minutes
-
-        if (Cache::has($key) && Cache::get($key) >= $limit) {
-            return response()->json([
-                'reply' => "You've sent a lot of messages! Please wait a few minutes before trying again. 😊",
-            ], 429);
-        }
-
-        Cache::increment($key);
-        if (! Cache::has($key . '_ttl')) {
-            Cache::put($key . '_ttl', true, $decay);
-            Cache::put($key, 1, $decay);
-        }
+        // Rate limiting is enforced by the 'throttle:20,1' middleware on the
+        // /chatbot route — no need to duplicate it here.
 
         try {
             $client = OpenAI::client(config('services.openai.key', env('OPENAI_API_KEY')));

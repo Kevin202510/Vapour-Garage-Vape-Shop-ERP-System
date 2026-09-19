@@ -18,7 +18,7 @@
     </div>
 
     {{-- Filters --}}
-    <form method="GET" action="{{ route('sales.index') }}" class="flex items-center gap-3 mb-5">
+    <form method="GET" action="{{ route('sales.index') }}" class="flex items-center gap-3 flex-wrap mb-5">
         <div class="flex gap-1 bg-cream border border-cream3 rounded-md p-[3px]">
             @foreach(['all' => 'All', 'completed' => 'Completed', 'voided' => 'Voided'] as $val => $lbl)
                 <a href="{{ route('sales.index', array_merge(request()->query(), ['status' => $val])) }}"

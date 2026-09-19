@@ -21,19 +21,22 @@ class SupplierAndProductSeeder extends Seeder
 
         $createdSuppliers = [];
         foreach ($suppliers as $s) {
-            $createdSuppliers[] = Supplier::create(array_merge($s, ['is_active' => true]));
+            $createdSuppliers[] = Supplier::updateOrCreate(
+                ['email' => $s['email']],
+                array_merge($s, ['is_active' => true])
+            );
         }
 
         // --- Categories (parent → children) ---
-        $catDevices     = ProductCategory::create(['name' => 'Devices',       'description' => 'Vape hardware and mods']);
-        $catDisposables = ProductCategory::create(['name' => 'Disposables',   'description' => 'Single-use vapes', 'parent_category_id' => $catDevices->id]);
-        $catMods        = ProductCategory::create(['name' => 'Mods & Kits',   'description' => 'Box mods and starter kits', 'parent_category_id' => $catDevices->id]);
-        $catPods        = ProductCategory::create(['name' => 'Pod Systems',   'description' => 'Closed and open pod devices', 'parent_category_id' => $catDevices->id]);
-        $catJuice       = ProductCategory::create(['name' => 'E-Liquids',     'description' => 'Freebase and salt nic juices']);
-        $catSaltNic     = ProductCategory::create(['name' => 'Salt Nic',      'description' => '30-50mg salt nicotine', 'parent_category_id' => $catJuice->id]);
-        $catFreebase    = ProductCategory::create(['name' => 'Freebase',      'description' => '0-6mg freebase juice', 'parent_category_id' => $catJuice->id]);
-        $catCoils       = ProductCategory::create(['name' => 'Coils & Parts', 'description' => 'Replacement coils and pods']);
-        $catAccessories = ProductCategory::create(['name' => 'Accessories',   'description' => 'Cables, cotton, tools']);
+        $catDevices     = ProductCategory::updateOrCreate(['name' => 'Devices'],       ['description' => 'Vape hardware and mods']);
+        $catDisposables = ProductCategory::updateOrCreate(['name' => 'Disposables'],   ['description' => 'Single-use vapes', 'parent_category_id' => $catDevices->id]);
+        $catMods        = ProductCategory::updateOrCreate(['name' => 'Mods & Kits'],   ['description' => 'Box mods and starter kits', 'parent_category_id' => $catDevices->id]);
+        $catPods        = ProductCategory::updateOrCreate(['name' => 'Pod Systems'],   ['description' => 'Closed and open pod devices', 'parent_category_id' => $catDevices->id]);
+        $catJuice       = ProductCategory::updateOrCreate(['name' => 'E-Liquids'],     ['description' => 'Freebase and salt nic juices']);
+        $catSaltNic     = ProductCategory::updateOrCreate(['name' => 'Salt Nic'],      ['description' => '30-50mg salt nicotine', 'parent_category_id' => $catJuice->id]);
+        $catFreebase    = ProductCategory::updateOrCreate(['name' => 'Freebase'],      ['description' => '0-6mg freebase juice', 'parent_category_id' => $catJuice->id]);
+        $catCoils       = ProductCategory::updateOrCreate(['name' => 'Coils & Parts'], ['description' => 'Replacement coils and pods']);
+        $catAccessories = ProductCategory::updateOrCreate(['name' => 'Accessories'],   ['description' => 'Cables, cotton, tools']);
 
         // --- Products ---
         $products = [
@@ -70,22 +73,24 @@ class SupplierAndProductSeeder extends Seeder
             ['sku' => 'ACC-004', 'name' => '18650 Battery Wrap (10pcs)',         'category_id' => $catAccessories->id, 'supplier_id' => $createdSuppliers[0]->id, 'unit_cost' => 30,  'selling_price' => 70,  'reorder_level' => 20, 'uom' => 'pack'],
         ];
 
-        // foreach ($products as $p) {
-        //     Product::create([
-        //         'sku'                       => $p['sku'],
-        //         'name'                      => $p['name'],
-        //         'description'               => null,
-        //         'category_id'               => $p['category_id'],
-        //         'supplier_id'               => $p['supplier_id'],
-        //         'unit_cost'                 => $p['unit_cost'],
-        //         'selling_price'             => $p['selling_price'],
-        //         'tax_rate'                  => 12.00,
-        //         'unit_of_measure'           => $p['uom'],
-        //         'reorder_level'             => $p['reorder_level'],
-        //         'requires_age_verification' => ! str_starts_with($p['sku'], 'ACC'),
-        //         'is_active'                 => true,
-        //     ]);
-        // }
+        foreach ($products as $p) {
+            Product::updateOrCreate(
+                ['sku' => $p['sku']],
+                [
+                    'name'                      => $p['name'],
+                    'description'               => null,
+                    'category_id'               => $p['category_id'],
+                    'supplier_id'               => $p['supplier_id'],
+                    'unit_cost'                 => $p['unit_cost'],
+                    'selling_price'             => $p['selling_price'],
+                    'tax_rate'                  => 12.00,
+                    'unit_of_measure'           => $p['uom'],
+                    'reorder_level'             => $p['reorder_level'],
+                    'requires_age_verification' => ! str_starts_with($p['sku'], 'ACC'),
+                    'is_active'                 => true,
+                ]
+            );
+        }
 
         $this->command->info('✔ ' . count($createdSuppliers) . ' suppliers and ' . count($products) . ' products seeded.');
     }

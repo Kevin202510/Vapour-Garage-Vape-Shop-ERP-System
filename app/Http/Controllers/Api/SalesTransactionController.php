@@ -27,17 +27,17 @@ class SalesTransactionController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        // $this->authorize('create sales');
+        $this->authorize('create sales');
         $validated = $request->validate([
             'branch_id'              => ['required','integer','exists:branches,id'],
             'cashier_id'             => ['required','integer','exists:employees,id'],
             'customer_id'            => ['nullable','integer','exists:customers,id'],
             'payment_method'         => ['required','in:cash,card,gcash,maya,bank_transfer,mixed'],
             'amount_tendered'        => ['required','numeric','min:0'],
+            'idempotency_key'        => ['nullable','string','max:100'],
             'items'                  => ['required','array','min:1'],
             'items.*.product_id'     => ['required','integer','exists:products,id'],
             'items.*.quantity'       => ['required','integer','min:1'],
-            'items.*.unit_price'     => ['required','numeric','min:0'],
             'items.*.discount_id'    => ['nullable','integer','exists:discounts,id'],
         ]);
         $txn = $this->service->processTransaction($validated);
@@ -54,7 +54,7 @@ class SalesTransactionController extends Controller
     {
         $this->authorize('void sales');
         $validated = $request->validate(['reason' => ['required','string','max:500']]);
-        $txn = $this->service->void($id, $validated['reason']);
+        $txn = $this->service->void($id, $validated['reason'], $request->user()->employee_id, $request->ip());
         return response()->json(['message' => 'Transaction voided.', 'data' => $txn]);
     }
 

@@ -36,6 +36,40 @@ class SupplierWebController extends Controller
         return view('pages.suppliers.index', compact('suppliers', 'totalActive', 'totalAll'));
     }
 
+    public function export(Request $request)
+    {
+        $this->authorize('view suppliers');
+
+        $filters = $request->only(['search', 'is_active']);
+        if (($filters['is_active'] ?? 'active') === 'all') {
+            $filters['with_trashed'] = true;
+            unset($filters['is_active']);
+        } elseif (($filters['is_active'] ?? 'active') === 'inactive') {
+            $filters['is_active'] = false;
+        } else {
+            $filters['is_active'] = true;
+        }
+
+        $suppliers = $this->supplierService->list($filters, 100000);
+        $filename  = 'suppliers-' . now()->format('Y-m-d') . '.csv';
+
+        return response()->streamDownload(function () use ($suppliers) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Company Name', 'Contact Person', 'Email', 'Phone', 'TIN', 'Status']);
+            foreach ($suppliers as $supplier) {
+                fputcsv($handle, [
+                    $supplier->company_name,
+                    $supplier->contact_person,
+                    $supplier->email,
+                    $supplier->phone,
+                    $supplier->tin,
+                    $supplier->is_active ? 'Active' : 'Inactive',
+                ]);
+            }
+            fclose($handle);
+        }, $filename, ['Content-Type' => 'text/csv']);
+    }
+
     public function create()
     {
         $this->authorize('create suppliers');

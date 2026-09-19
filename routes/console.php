@@ -14,22 +14,30 @@ Artisan::command('inspire', function () {
 // Daily close: runs at 00:05 AM — closes yesterday
 Schedule::command('sales:close-period daily')
     ->dailyAt('00:05')
-    ->appendOutputTo(storage_path('logs/sales-periods.log'));
+    ->withoutOverlapping()
+    ->appendOutputTo(storage_path('logs/sales-periods.log'))
+    ->onFailure(fn () => \Illuminate\Support\Facades\Log::error('sales:close-period daily failed — see storage/logs/sales-periods.log'));
 
 // Weekly close: runs every Monday at 00:10 AM — closes last week (Mon–Sun)
 Schedule::command('sales:close-period weekly')
     ->weeklyOn(1, '00:10')
-    ->appendOutputTo(storage_path('logs/sales-periods.log'));
+    ->withoutOverlapping()
+    ->appendOutputTo(storage_path('logs/sales-periods.log'))
+    ->onFailure(fn () => \Illuminate\Support\Facades\Log::error('sales:close-period weekly failed — see storage/logs/sales-periods.log'));
 
 // Monthly close: runs on the 1st at 00:15 AM — closes last month
 Schedule::command('sales:close-period monthly')
     ->monthlyOn(1, '00:15')
-    ->appendOutputTo(storage_path('logs/sales-periods.log'));
+    ->withoutOverlapping()
+    ->appendOutputTo(storage_path('logs/sales-periods.log'))
+    ->onFailure(fn () => \Illuminate\Support\Facades\Log::error('sales:close-period monthly failed — see storage/logs/sales-periods.log'));
 
 // Yearly close: runs on January 1st at 00:20 AM — closes last year
 Schedule::command('sales:close-period yearly')
     ->yearlyOn(1, 1, '00:20')
-    ->appendOutputTo(storage_path('logs/sales-periods.log'));
+    ->withoutOverlapping()
+    ->appendOutputTo(storage_path('logs/sales-periods.log'))
+    ->onFailure(fn () => \Illuminate\Support\Facades\Log::error('sales:close-period yearly failed — see storage/logs/sales-periods.log'));
 
 // ── Sales report schedule ────────────────────────────────────────────────────
 // Ensure `php artisan schedule:run` is called every minute via cron:

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Http\Controllers\Concerns\ResolvesActiveBranch;
 use App\Http\Controllers\Controller;
 use App\Services\EmployeeService;
 use App\Services\BranchService;
@@ -12,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 
 class EmployeeWebController extends Controller
 {
-    use AuthorizesRequests;
+    use AuthorizesRequests, ResolvesActiveBranch;
     public function __construct(
         protected EmployeeService   $employeeService,
         protected BranchService     $branchService,
@@ -21,12 +22,11 @@ class EmployeeWebController extends Controller
 
     public function index(Request $request)
     {
+        $this->authorize('view employees');
         $user    = auth()->user();
         $filters = $request->only(['search', 'branch_id', 'role', 'is_active']);
 
-        $effectiveBranchId = $user->isSuperAdmin()
-            ? (request()->has('branch_id') ? (request('branch_id') ?: null) : $user->activeBranchId())
-            : $user->branch_id;
+        $effectiveBranchId = $this->resolveEffectiveBranchId($user);
         if (! $user->isSuperAdmin()) { $filters['branch_id'] = $user->branch_id; }
         elseif ($effectiveBranchId)  { $filters['branch_id'] = $effectiveBranchId; }
         else                         { unset($filters['branch_id']); }
@@ -56,8 +56,44 @@ class EmployeeWebController extends Controller
         return view('pages.employees.index', compact('employees', 'branches', 'totalActive', 'presentToday', 'onLeave', 'effectiveBranchId', 'activeBranchLabel'));
     }
 
+    public function export(Request $request)
+    {
+        $this->authorize('view employees');
+
+        $user    = auth()->user();
+        $filters = $request->only(['search', 'branch_id', 'role', 'is_active']);
+        $effectiveBranchId = $this->resolveEffectiveBranchId($user);
+        if (! $user->isSuperAdmin()) { $filters['branch_id'] = $user->branch_id; }
+        elseif ($effectiveBranchId)  { $filters['branch_id'] = $effectiveBranchId; }
+        else                         { unset($filters['branch_id']); }
+        $filters['is_active'] = true;
+
+        $employees = $this->employeeService->list($filters, 100000);
+        $filename  = 'employees-' . now()->format('Y-m-d') . '.csv';
+
+        return response()->streamDownload(function () use ($employees) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Employee Code', 'Full Name', 'Branch', 'Department', 'Role', 'Employment Type', 'Base Salary', 'Hire Date', 'Status']);
+            foreach ($employees as $employee) {
+                fputcsv($handle, [
+                    $employee->employee_code,
+                    $employee->full_name,
+                    $employee->branch->name ?? 'N/A',
+                    $employee->department->name ?? 'N/A',
+                    ucwords(str_replace('_', ' ', $employee->role)),
+                    ucwords(str_replace('_', ' ', $employee->employment_type)),
+                    number_format($employee->base_salary, 2),
+                    optional($employee->hire_date)->format('Y-m-d'),
+                    $employee->is_active ? 'Active' : 'Inactive',
+                ]);
+            }
+            fclose($handle);
+        }, $filename, ['Content-Type' => 'text/csv']);
+    }
+
     public function create()
     {
+        $this->authorize('create employees');
         $branches    = $this->branchService->allActive();
         $departments = $this->departmentService->allWithCount();
         return view('pages.employees.form', compact('branches', 'departments'));
@@ -65,6 +101,7 @@ class EmployeeWebController extends Controller
 
     public function store(Request $request)
     {
+        $this->authorize('create employees');
         $validated = $request->validate([
             'first_name'      => 'required|string|max:100',
             'last_name'       => 'required|string|max:100',
@@ -89,32 +126,16 @@ class EmployeeWebController extends Controller
         }
 
         $validated['is_active'] = true;
-        $employee = $this->employeeService->create($validated);
+        $actingEmployeeId = auth()->user()->employee_id;
+        $employee = $this->employeeService->create($validated, $actingEmployeeId, $request->ip());
 
         if ($request->boolean('create_account')) {
             $loginEmail    = $request->input('login_email');
             $loginPassword = $request->input('login_password');
 
-            $user = \App\Models\User::create([
-                'name'              => $employee->full_name,
-                'email'             => $loginEmail,
-                'password'          => $loginPassword,  // cast: 'hashed' handles bcrypt
-                'employee_id'       => $employee->id,
-                'branch_id'         => $employee->branch_id,
-                'is_active'         => true,
-                'email_verified_at' => now(),
-            ]);
-
-            // Map employee role → Spatie permission role
-            $roleMap = [
-                'branch_manager'  => 'branch_manager',
-                'supervisor'      => 'supervisor',
-                'cashier'         => 'cashier',
-                'inventory_clerk' => 'inventory_clerk',
-            ];
-            if (isset($roleMap[$employee->role])) {
-                $user->syncRoles([$roleMap[$employee->role]]);
-            }
+            $this->employeeService->createLoginAccount(
+                $employee, $loginEmail, $loginPassword, $actingEmployeeId, $request->ip()
+            );
 
             // Flash once — admin must share these credentials with the employee
             session()->flash('new_account', [
@@ -131,12 +152,14 @@ class EmployeeWebController extends Controller
 
     public function show(int $id)
     {
+        $this->authorize('view employees');
         $employee = $this->employeeService->findOrFail($id);
         return view('pages.employees.show', compact('employee'));
     }
 
     public function edit(int $id)
     {
+        $this->authorize('edit employees');
         $employee    = $this->employeeService->findOrFail($id);
         $branches    = $this->branchService->allActive();
         $departments = $this->departmentService->allWithCount();
@@ -145,6 +168,7 @@ class EmployeeWebController extends Controller
 
     public function update(Request $request, int $id)
     {
+        $this->authorize('edit employees');
         $validated = $request->validate([
             'first_name'       => 'sometimes|string|max:100',
             'last_name'        => 'sometimes|string|max:100',
@@ -160,13 +184,14 @@ class EmployeeWebController extends Controller
         ]);
         $validated['is_active'] = $request->boolean('is_active');
 
-        $this->employeeService->update($id, $validated);
+        $this->employeeService->update($id, $validated, auth()->user()->employee_id, $request->ip());
         return redirect()->route('employees.index')->with('success', 'Employee updated.');
     }
 
-    public function destroy(int $id)
+    public function destroy(Request $request, int $id)
     {
-        $this->employeeService->delete($id);
+        $this->authorize('delete employees');
+        $this->employeeService->delete($id, auth()->user()->employee_id, $request->ip());
         return redirect()->route('employees.index')->with('success', 'Employee removed.');
     }
 }

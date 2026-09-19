@@ -55,7 +55,7 @@
     </div>
 
     {{-- Filters --}}
-    <form method="GET" action="{{ route('employees.index') }}" class="flex items-center gap-3 mb-5">
+    <form method="GET" action="{{ route('employees.index') }}" class="flex items-center gap-3 flex-wrap mb-5">
         <div class="flex items-center gap-2 bg-white border border-cream3 rounded-md px-3 py-[7px] flex-1 max-w-xs focus-within:border-terra transition-colors">
             <x-icon name="filter" class="w-3.5 h-3.5 text-ink4 flex-shrink-0" />
             <input type="text" name="search" value="{{ request('search') }}"

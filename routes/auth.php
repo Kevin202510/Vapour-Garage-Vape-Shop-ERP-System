@@ -16,14 +16,19 @@ use Illuminate\Support\Facades\Route;
 // Challenge: shown after password login when 2FA is required (no auth yet)
 Route::middleware('guest')->group(function () {
     Route::get( '2fa/challenge',        [TwoFactorController::class, 'showChallenge'])->name('2fa.challenge');
-    Route::post('2fa/challenge',        [TwoFactorController::class, 'verifyChallenge'])->name('2fa.verify');
+    // A 6-digit TOTP code is brute-forceable without rate limiting (~1M
+    // combinations). The route throttle is a cheap first line of defense;
+    // verifyChallenge() itself adds a tighter per-user+IP lockout below.
+    Route::post('2fa/challenge',        [TwoFactorController::class, 'verifyChallenge'])
+        ->middleware('throttle:10,1')->name('2fa.verify');
 });
 
 // 2FA management: shown to already-authenticated users
 Route::middleware('auth')->group(function () {
     Route::get( '2fa/security',         [TwoFactorController::class, 'security'])->name('2fa.security');
     Route::get( '2fa/setup',            [TwoFactorController::class, 'showSetup'])->name('2fa.setup');
-    Route::post('2fa/setup',            [TwoFactorController::class, 'confirmSetup'])->name('2fa.setup.confirm');
+    Route::post('2fa/setup',            [TwoFactorController::class, 'confirmSetup'])
+        ->middleware('throttle:5,1')->name('2fa.setup.confirm');
     Route::get( '2fa/recovery-codes',   [TwoFactorController::class, 'showRecoveryCodes'])->name('2fa.recovery-codes');
     Route::post('2fa/disable',          [TwoFactorController::class, 'disable'])->name('2fa.disable');
 });
@@ -32,7 +37,8 @@ Route::middleware('guest')->group(function () {
     Route::get('register', [RegisteredUserController::class, 'create'])
         ->name('register');
 
-    Route::post('register', [RegisteredUserController::class, 'store']);
+    Route::post('register', [RegisteredUserController::class, 'store'])
+        ->middleware('throttle:5,1');
 
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
         ->name('login');
@@ -42,14 +48,17 @@ Route::middleware('guest')->group(function () {
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');
 
+    // Password::sendResetLink() only cools down repeats for the SAME email;
+    // an IP throttle is needed to stop spraying reset-link emails across many
+    // different addresses.
     Route::post('forgot-password', [PasswordResetLinkController::class, 'store'])
-        ->name('password.email');
+        ->middleware('throttle:6,1')->name('password.email');
 
     Route::get('reset-password/{token}', [NewPasswordController::class, 'create'])
         ->name('password.reset');
 
     Route::post('reset-password', [NewPasswordController::class, 'store'])
-        ->name('password.store');
+        ->middleware('throttle:6,1')->name('password.store');
 });
 
 Route::middleware('auth')->group(function () {

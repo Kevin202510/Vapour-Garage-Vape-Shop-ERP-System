@@ -22,6 +22,11 @@ class StockTransferSeeder extends Seeder
             [0, 1], [1, 2], [2, 3], [0, 3], [1, 3],
         ];
 
+        if ($branches->count() < 4 || $products->isEmpty()) {
+            $this->command->warn('⚠ Skipping StockTransferSeeder — fewer than 4 branches, or no products, found.');
+            return;
+        }
+
         foreach ($pairs as $index => [$fromIdx, $toIdx]) {
             DB::transaction(function () use ($branches, $products, $fromIdx, $toIdx, $index) {
                 $fromBranch = $branches[$fromIdx];

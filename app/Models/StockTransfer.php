@@ -34,7 +34,9 @@ class StockTransfer extends Model
     public static function generateTransferNumber(): string
     {
         $date  = now()->format('Ymd');
-        $count = static::whereDate('requested_at', now()->toDateString())->count();
+        $count = static::whereDate('requested_at', now()->toDateString())
+                        ->lockForUpdate()
+                        ->count();
         return 'ST-' . $date . '-' . str_pad($count + 1, 4, '0', STR_PAD_LEFT);
     }
 

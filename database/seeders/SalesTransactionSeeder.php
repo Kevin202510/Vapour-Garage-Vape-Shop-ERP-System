@@ -19,7 +19,15 @@ class SalesTransactionSeeder extends Seeder
         $branches  = Branch::with('employees')->get();
         $products  = Product::where('is_active', true)->get();
         $customers = Customer::all();
-        $total     = 0;
+        // Derived from existing count (like PurchaseOrderSeeder/StockTransferSeeder)
+        // so re-running this seeder doesn't regenerate transaction_numbers that
+        // already exist and violate the unique constraint.
+        $total     = SalesTransaction::count();
+
+        if ($products->isEmpty()) {
+            $this->command->warn('⚠ Skipping SalesTransactionSeeder — no active products found.');
+            return;
+        }
 
         foreach ($branches as $branch) {
             $cashiers = $branch->employees->where('role', 'cashier');

@@ -16,7 +16,7 @@
     </x-page-header>
 
     {{-- Filters bar --}}
-    <form method="GET" action="{{ route('products.index') }}" class="flex items-center gap-3 mb-5" x-data>
+    <form method="GET" action="{{ route('products.index') }}" class="flex items-center gap-3 flex-wrap mb-5" x-data>
         <div class="flex gap-1 bg-cream border border-cream3 rounded-md p-[3px]">
             @foreach(['all' => 'All SKUs', 'low_stock' => 'Low Stock', 'archived' => 'Archived'] as $val => $lbl)
                 <a href="{{ route('products.index', array_merge(request()->only(['search','category_id']), ['filter' => $val])) }}"

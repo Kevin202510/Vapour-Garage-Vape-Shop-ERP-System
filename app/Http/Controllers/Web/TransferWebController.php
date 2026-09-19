@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Http\Controllers\Concerns\ResolvesActiveBranch;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\StockTransfer;
@@ -12,7 +13,7 @@ use Illuminate\Http\Request;
 
 class TransferWebController extends Controller
 {
-    use AuthorizesRequests;
+    use AuthorizesRequests, ResolvesActiveBranch;
 
     public function __construct(
         protected InventoryService $inventoryService,
@@ -23,9 +24,7 @@ class TransferWebController extends Controller
     {
         $filters = $request->only(['status', 'branch_id', 'date_from', 'date_to', 'search']);
         $user    = auth()->user();
-        $effectiveBranchId = $user->isSuperAdmin()
-            ? (request()->has('branch_id') ? (request('branch_id') ?: null) : $user->activeBranchId())
-            : $user->branch_id;
+        $effectiveBranchId = $this->resolveEffectiveBranchId($user);
         if (! $user->isSuperAdmin()) { $filters['branch_id'] = $user->branch_id; }
         elseif ($effectiveBranchId)  { $filters['branch_id'] = $effectiveBranchId; }
         else                         { unset($filters['branch_id']); }
@@ -71,6 +70,48 @@ class TransferWebController extends Controller
         ])->findOrFail($id);
 
         return view('pages.transfers.show', compact('transfer'));
+    }
+
+    public function export(Request $request)
+    {
+        $this->authorize('view stock transfers');
+
+        $filters = $request->only(['status', 'branch_id', 'date_from', 'date_to', 'search']);
+        $user    = auth()->user();
+        $effectiveBranchId = $this->resolveEffectiveBranchId($user);
+        if (! $user->isSuperAdmin()) { $filters['branch_id'] = $user->branch_id; }
+        elseif ($effectiveBranchId)  { $filters['branch_id'] = $effectiveBranchId; }
+        else                         { unset($filters['branch_id']); }
+        if (($filters['status'] ?? 'all') === 'all') unset($filters['status']);
+
+        $transfers = StockTransfer::with(['fromBranch', 'toBranch', 'requestedBy'])
+            ->when(isset($filters['status']),      fn ($q) => $q->where('status', $filters['status']))
+            ->when(isset($filters['branch_id']),   fn ($q) => $q->where(fn ($s) =>
+                $s->where('from_branch_id', $filters['branch_id'])->orWhere('to_branch_id', $filters['branch_id'])
+            ))
+            ->when(! empty($filters['date_from']), fn ($q) => $q->whereDate('requested_at', '>=', $filters['date_from']))
+            ->when(! empty($filters['date_to']),   fn ($q) => $q->whereDate('requested_at', '<=', $filters['date_to']))
+            ->when(! empty($filters['search']),    fn ($q) => $q->where('transfer_number', 'like', "%{$filters['search']}%"))
+            ->orderByDesc('requested_at')
+            ->get();
+
+        $filename = 'stock-transfers-' . now()->format('Y-m-d') . '.csv';
+
+        return response()->streamDownload(function () use ($transfers) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Transfer Number', 'From Branch', 'To Branch', 'Requested By', 'Status', 'Requested At']);
+            foreach ($transfers as $transfer) {
+                fputcsv($handle, [
+                    $transfer->transfer_number,
+                    $transfer->fromBranch->name ?? 'N/A',
+                    $transfer->toBranch->name ?? 'N/A',
+                    $transfer->requestedBy->full_name ?? 'N/A',
+                    ucwords(str_replace('_', ' ', $transfer->status)),
+                    optional($transfer->requested_at)->format('Y-m-d H:i'),
+                ]);
+            }
+            fclose($handle);
+        }, $filename, ['Content-Type' => 'text/csv']);
     }
 
     public function store(Request $request)

@@ -6,6 +6,8 @@ use App\Models\Branch;
 use App\Models\SalesPeriodSummary;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class CloseSalesPeriod extends Command
 {
@@ -41,46 +43,59 @@ class CloseSalesPeriod extends Command
         // Also close an all-branches aggregate (branch_id = null)
         $targets = $branches->push(null); // null = all-branches aggregate
 
-        $closed = 0;
+        $closed  = 0;
+        $failed  = 0;
         foreach ($targets as $branch) {
-            $bid = $branch?->id;
-
-            // Skip if already closed for this period+branch (unless --force)
-            $exists = SalesPeriodSummary::where('period_type', $period)
-                ->where('date_from', $dateFrom)
-                ->where('date_to',   $dateTo)
-                ->where('branch_id', $bid)
-                ->exists();
-
-            if ($exists && ! $force) {
-                $this->line("  Skipping " . ($branch ? $branch->name : 'All Branches') . " — already closed. Use --force to overwrite.");
-                continue;
-            }
-
-            $summary = $this->buildSummary($dateFrom, $dateTo, $bid);
-
-            SalesPeriodSummary::updateOrCreate(
-                [
-                    'period_type' => $period,
-                    'date_from'   => $dateFrom,
-                    'date_to'     => $dateTo,
-                    'branch_id'   => $bid,
-                ],
-                array_merge($summary, [
-                    'period_label'    => $periodLabel,
-                    'closed_by'       => $by,
-                    'closed_by_name'  => $byName,
-                    'closed_at'       => now(),
-                ])
-            );
-
+            $bid   = $branch?->id;
             $label = $branch ? $branch->name : 'All Branches';
-            $this->info("  ✓ Closed {$period} period [{$dateFrom} → {$dateTo}] for {$label}  Revenue: ₱" . number_format($summary['total_revenue'], 2));
-            $closed++;
+
+            try {
+                // Read-check, summary build, and write happen atomically so a
+                // concurrent/overlapping run can't both pass the "already
+                // closed" check and write conflicting summaries.
+                DB::transaction(function () use ($period, $dateFrom, $dateTo, $bid, $force, $by, $byName, $periodLabel, $label, &$closed) {
+                    $exists = SalesPeriodSummary::where('period_type', $period)
+                        ->where('date_from', $dateFrom)
+                        ->where('date_to',   $dateTo)
+                        ->where('branch_id', $bid)
+                        ->lockForUpdate()
+                        ->exists();
+
+                    if ($exists && ! $force) {
+                        $this->line("  Skipping {$label} — already closed. Use --force to overwrite.");
+                        return;
+                    }
+
+                    $summary = $this->buildSummary($dateFrom, $dateTo, $bid);
+
+                    SalesPeriodSummary::updateOrCreate(
+                        [
+                            'period_type' => $period,
+                            'date_from'   => $dateFrom,
+                            'date_to'     => $dateTo,
+                            'branch_id'   => $bid,
+                        ],
+                        array_merge($summary, [
+                            'period_label'    => $periodLabel,
+                            'closed_by'       => $by,
+                            'closed_by_name'  => $byName,
+                            'closed_at'       => now(),
+                        ])
+                    );
+
+                    $this->info("  ✓ Closed {$period} period [{$dateFrom} → {$dateTo}] for {$label}  Revenue: ₱" . number_format($summary['total_revenue'], 2));
+                    $closed++;
+                });
+            } catch (Throwable $e) {
+                $failed++;
+                Log::error("sales:close-period failed for {$label} [{$period} {$dateFrom} → {$dateTo}]: {$e->getMessage()}", ['exception' => $e]);
+                $this->error("  ✗ Failed to close {$period} period for {$label}: {$e->getMessage()}");
+                // Continue with remaining branches rather than aborting the whole run.
+            }
         }
 
-        $this->info("Period close complete — {$closed} record(s) written.");
-        return self::SUCCESS;
+        $this->info("Period close complete — {$closed} record(s) written" . ($failed ? ", {$failed} failed." : '.'));
+        return $failed > 0 ? self::FAILURE : self::SUCCESS;
     }
 
     // ─────────────────────────────────────────────────────────────────────────

@@ -41,6 +41,43 @@ class ProductWebController extends Controller
         return view('pages.products.index', compact('products', 'categories', 'lowStockCount'));
     }
 
+    public function export(Request $request)
+    {
+        $this->authorize('view products');
+
+        $filters = $request->only(['search', 'category_id', 'supplier_id', 'filter']);
+        if (($filters['filter'] ?? 'all') === 'archived') {
+            $filters['is_active'] = false;
+        } elseif (($filters['filter'] ?? 'all') === 'low_stock') {
+            $filters['is_active'] = true;
+            $filters['low_stock'] = true;
+        } else {
+            $filters['is_active'] = true;
+        }
+
+        $products = $this->productService->list($filters, 100000);
+        $filename = 'products-' . now()->format('Y-m-d') . '.csv';
+
+        return response()->streamDownload(function () use ($products) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['SKU', 'Name', 'Category', 'Supplier', 'Unit Cost', 'Selling Price', 'Tax Rate %', 'Reorder Level', 'Status']);
+            foreach ($products as $product) {
+                fputcsv($handle, [
+                    $product->sku,
+                    $product->name,
+                    $product->category->name ?? 'Uncategorised',
+                    $product->supplier->company_name ?? 'N/A',
+                    number_format($product->unit_cost, 2),
+                    number_format($product->selling_price, 2),
+                    number_format($product->tax_rate, 2),
+                    $product->reorder_level,
+                    $product->is_active ? 'Active' : 'Archived',
+                ]);
+            }
+            fclose($handle);
+        }, $filename, ['Content-Type' => 'text/csv']);
+    }
+
     public function create()
     {
         $categories = $this->categoryService->all();
