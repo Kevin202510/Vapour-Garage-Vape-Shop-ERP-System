@@ -46,9 +46,32 @@ class PayrollWebController extends Controller
 
     public function show(int $id)
     {
-        $this->authorize('view payroll');
         $payroll = $this->payrollService->findOrFail($id);
+        $user    = auth()->user();
+
+        // Everyone can open their own payslip regardless of the 'view payroll'
+        // permission — that permission gates seeing OTHER employees' payroll.
+        $isOwner = $user->employee_id !== null && $payroll->employee_id === $user->employee_id;
+        if (! $isOwner) {
+            $this->authorize('view payroll');
+        }
+
         return view('pages.payroll.show', compact('payroll'));
+    }
+
+    /**
+     * The currently logged-in user's own payslip history — no 'view payroll'
+     * permission required, since this only ever shows the caller's own records.
+     */
+    public function mine()
+    {
+        $employeeId = auth()->user()->employee_id;
+
+        $payrolls = $employeeId
+            ? $this->payrollService->list(['employee_id' => $employeeId], 20)->withQueryString()
+            : null;
+
+        return view('pages.payroll.mine', compact('payrolls'));
     }
 
     public function export(Request $request)

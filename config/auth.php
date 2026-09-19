@@ -42,6 +42,18 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+
+        // Every User/Role/Permission in this app is seeded with
+        // guard_name 'sanctum' (see User::$guard_name). spatie/laravel-permission
+        // needs this guard registered here — not just Sanctum's own middleware —
+        // to resolve "which model uses this guard" for guard-aware relations
+        // like Role::users(). Without it, anything that touches that relation
+        // (e.g. deleting a role) fails with "Class name must be a valid object
+        // or a string".
+        'sanctum' => [
+            'driver' => 'sanctum',
+            'provider' => 'users',
+        ],
     ],
 
     /*

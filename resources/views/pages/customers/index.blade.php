@@ -3,6 +3,11 @@
     <x-page-header overline="Loyalty & CRM" title="Customers"
                    :subtitle="$activeBranchLabel . ' · ' . $customers->total() . ' registered members'">
         <x-slot:actions>
+            @can('view customers')
+            <x-btn :href="route('customers.export', request()->query())" variant="ghost" size="sm">
+                <x-icon name="download" class="w-3 h-3" /> Export CSV
+            </x-btn>
+            @endcan
             @can('create customers')
             <x-btn variant="primary" size="sm" :href="route('customers.create')">
                 <x-icon name="plus" class="w-3 h-3" /> Add Customer

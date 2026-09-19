@@ -1,44 +1,50 @@
 <x-app-layout :title="'Payslip — ' . $payroll->employee->full_name">
 
-    <x-page-header
-        overline="Compensation · Payslip"
-        :title="$payroll->employee->full_name"
-        :subtitle="$payroll->period_label"
-    >
-        <x-slot:actions>
-            <x-btn :href="route('payroll.index')" variant="ghost" size="sm">← All Payroll</x-btn>
-            <button onclick="window.print()"
-                    class="inline-flex items-center gap-1.5 px-4 py-[7px] text-[12px] font-medium bg-navy text-white rounded-md hover:bg-navy-dark transition-colors">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
-                    <rect x="6" y="14" width="12" height="8"/>
-                </svg>
-                Print Payslip
-            </button>
+    <div class="no-print">
+        <x-page-header
+            overline="Compensation · Payslip"
+            :title="$payroll->employee->full_name"
+            :subtitle="$payroll->period_label"
+        >
+            <x-slot:actions>
+                @can('view payroll')
+                    <x-btn :href="route('payroll.index')" variant="ghost" size="sm">← All Payroll</x-btn>
+                @else
+                    <x-btn :href="route('profile.mine')" variant="ghost" size="sm">← My Profile</x-btn>
+                @endcan
+                <button onclick="window.print()"
+                        class="inline-flex items-center gap-1.5 px-4 py-[7px] text-[12px] font-medium bg-sidebar text-white rounded-md hover:opacity-90 transition-opacity">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                        <rect x="6" y="14" width="12" height="8"/>
+                    </svg>
+                    Print Payslip
+                </button>
 
-            @if($payroll->status === 'draft')
-                @can('approve payroll')
-                    <form method="POST" action="{{ route('payroll.approve', $payroll) }}" class="inline">
-                        @csrf @method('POST')
-                        <x-btn type="submit" variant="primary" size="sm">Approve</x-btn>
-                    </form>
-                @endcan
-            @elseif($payroll->status === 'approved')
-                @can('approve payroll')
-                    <form method="POST" action="{{ route('payroll.release', $payroll) }}" class="inline">
-                        @csrf @method('POST')
-                        <x-btn type="submit" variant="primary" size="sm">Release</x-btn>
-                    </form>
-                @endcan
-            @endif
-        </x-slot:actions>
-    </x-page-header>
+                @if($payroll->status === 'draft')
+                    @can('approve payroll')
+                        <form method="POST" action="{{ route('payroll.approve', $payroll) }}" class="inline">
+                            @csrf @method('POST')
+                            <x-btn type="submit" variant="primary" size="sm">Approve</x-btn>
+                        </form>
+                    @endcan
+                @elseif($payroll->status === 'approved')
+                    @can('approve payroll')
+                        <form method="POST" action="{{ route('payroll.release', $payroll) }}" class="inline">
+                            @csrf @method('POST')
+                            <x-btn type="submit" variant="primary" size="sm">Release</x-btn>
+                        </form>
+                    @endcan
+                @endif
+            </x-slot:actions>
+        </x-page-header>
+    </div>
 
     {{-- Printable payslip --}}
     <div class="max-w-2xl mx-auto" id="payslip">
 
         {{-- Header --}}
-        <div class="bg-navy text-white rounded-t-xl px-8 py-6 flex items-start justify-between print:rounded-none">
+        <div class="bg-sidebar text-white rounded-t-xl px-8 py-6 flex items-start justify-between print:rounded-none">
             <div>
                 <p class="font-mono text-[9px] tracking-[0.2em] uppercase text-white/40 mb-1">Payroll Slip</p>
                 <h2 class="font-serif text-[22px] font-bold">VapeHub ERP</h2>
@@ -121,7 +127,7 @@
         </div>
 
         {{-- Net pay --}}
-        <div class="bg-navy text-white rounded-b-xl px-8 py-5 flex items-center justify-between print:rounded-none">
+        <div class="bg-sidebar text-white rounded-b-xl px-8 py-5 flex items-center justify-between print:rounded-none">
             <div>
                 <p class="font-mono text-[9px] tracking-[0.2em] uppercase text-white/40 mb-1">Net Pay</p>
                 <p class="font-serif text-[32px] font-black text-white leading-none">
@@ -142,7 +148,7 @@
     {{-- Danger zone --}}
     @if($payroll->status === 'draft')
         @can('process payroll')
-        <div class="max-w-2xl mx-auto mt-6 border border-danger/20 rounded-lg p-4 bg-danger/[0.03] flex items-center justify-between">
+        <div class="no-print max-w-2xl mx-auto mt-6 border border-danger/20 rounded-lg p-4 bg-danger/[0.03] flex items-center justify-between">
             <div>
                 <p class="text-[12.5px] font-medium text-ink">Delete this payroll record</p>
                 <p class="text-[11px] text-ink4 mt-0.5">Only draft records can be deleted.</p>
@@ -158,16 +164,16 @@
         @endcan
     @endif
 
-</x-app-layout>
+    @push('styles')
+    <style>
+    @media print {
+        body { background: white !important; }
+        header, aside, nav, .no-print, .erp-alert { display: none !important; }
+        main { padding: 0 !important; }
+        #payslip { max-width: 100% !important; margin: 0 !important; }
+        .print\:rounded-none { border-radius: 0 !important; }
+    }
+    </style>
+    @endpush
 
-@push('styles')
-<style>
-@media print {
-    body { background: white !important; }
-    header, aside, nav, .no-print { display: none !important; }
-    main { padding: 0 !important; }
-    #payslip { max-width: 100% !important; margin: 0 !important; }
-    .print\:rounded-none { border-radius: 0 !important; }
-}
-</style>
-@endpush
+</x-app-layout>

@@ -10,6 +10,11 @@
     <x-page-header overline="Stock Control" title="Inventory"
                    :subtitle="$activeBranchLabel . ' · ' . $totalRecords . ' records · ' . $criticalCount . ' critical · ' . $lowCount . ' low'">
         <x-slot:actions>
+            @can('view inventory')
+            <x-btn :href="route('inventory.export', request()->query())" variant="ghost" size="sm">
+                <x-icon name="download" class="w-3 h-3" /> Export CSV
+            </x-btn>
+            @endcan
             @can('adjust inventory')
             <x-btn variant="ghost" size="sm" @click="openAdjust({ branch_id: {{ auth()->user()->branch_id ?? 'null' }}, branch_name: '{{ auth()->user()->branch?->name }}', product_id: null, product_name: '', sku: '', current_qty: 0 })">
                 Adjust Stock

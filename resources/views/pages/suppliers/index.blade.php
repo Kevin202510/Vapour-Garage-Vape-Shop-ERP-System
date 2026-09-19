@@ -3,6 +3,11 @@
     <x-page-header overline="Procurement" title="Suppliers"
                    :subtitle="$totalActive . ' active · ' . $totalAll . ' total'">
         <x-slot:actions>
+            @can('view suppliers')
+            <x-btn :href="route('suppliers.export', request()->query())" variant="ghost" size="sm">
+                <x-icon name="download" class="w-3 h-3" /> Export CSV
+            </x-btn>
+            @endcan
             @can('create suppliers')
             <x-btn variant="primary" size="sm" :href="route('suppliers.create')">
                 <x-icon name="plus" class="w-3 h-3" /> Add Supplier

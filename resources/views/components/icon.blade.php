@@ -55,6 +55,12 @@
         @case('arrow-right')
             <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
             @break
+        @case('shield')
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            @break
+        @case('key')
+            <circle cx="7.5" cy="15.5" r="5.5"/><path d="M21 2l-9.6 9.6M15.5 7.5 19 11l3-3-3.5-3.5"/>
+            @break
         @default
             <circle cx="12" cy="12" r="10"/>
     @endswitch

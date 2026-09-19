@@ -11,9 +11,11 @@ use App\Contracts\Repositories\DepartmentRepositoryInterface;
 use App\Contracts\Repositories\DiscountRepositoryInterface;
 use App\Contracts\Repositories\EmployeeRepositoryInterface;
 use App\Contracts\Repositories\PayrollRepositoryInterface;
+use App\Contracts\Repositories\PermissionRepositoryInterface;
 use App\Contracts\Repositories\ProductCategoryRepositoryInterface;
 use App\Contracts\Repositories\ProductRepositoryInterface;
 use App\Contracts\Repositories\PurchaseOrderRepositoryInterface;
+use App\Contracts\Repositories\RoleRepositoryInterface;
 use App\Contracts\Repositories\SalesTransactionRepositoryInterface;
 use App\Contracts\Repositories\StockTransferRepositoryInterface;
 use App\Contracts\Repositories\SupplierRepositoryInterface;
@@ -27,9 +29,11 @@ use App\Repositories\DepartmentRepository;
 use App\Repositories\DiscountRepository;
 use App\Repositories\EmployeeRepository;
 use App\Repositories\PayrollRepository;
+use App\Repositories\PermissionRepository;
 use App\Repositories\ProductCategoryRepository;
 use App\Repositories\ProductRepository;
 use App\Repositories\PurchaseOrderRepository;
+use App\Repositories\RoleRepository;
 use App\Repositories\SalesTransactionRepository;
 use App\Repositories\StockTransferRepository;
 use App\Repositories\SupplierRepository;
@@ -50,6 +54,8 @@ class AppServiceProvider extends ServiceProvider
     public array $bindings = [
         // Auth / Users
         UserRepositoryInterface::class              => UserRepository::class,
+        RoleRepositoryInterface::class               => RoleRepository::class,
+        PermissionRepositoryInterface::class         => PermissionRepository::class,
 
         // Organisation
         BranchRepositoryInterface::class            => BranchRepository::class,

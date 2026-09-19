@@ -5,6 +5,11 @@
     <x-page-header overline="Catalogue" title="Products"
                    :subtitle="$products->total() . ($isArchived ? ' archived products' : ' SKUs · ' . $lowStockCount . ' low stock alerts')">
         <x-slot:actions>
+            @can('view products')
+            <x-btn :href="route('products.export', request()->query())" variant="ghost" size="sm">
+                <x-icon name="download" class="w-3 h-3" /> Export CSV
+            </x-btn>
+            @endcan
             @if(!$isArchived)
                 @can('create products')
                 <x-btn variant="primary" size="sm" :href="route('products.create')">

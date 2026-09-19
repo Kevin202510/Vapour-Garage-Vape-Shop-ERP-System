@@ -3,6 +3,11 @@
     <x-page-header overline="Inter-branch" title="Stock Transfers"
                    :subtitle="$activeBranchLabel . ' · ' . $pendingCount . ' pending · ' . $inTransitCount . ' in transit'">
         <x-slot:actions>
+            @can('view stock transfers')
+            <x-btn :href="route('transfers.export', request()->query())" variant="ghost" size="sm">
+                <x-icon name="download" class="w-3 h-3" /> Export CSV
+            </x-btn>
+            @endcan
             @can('create stock transfers')
             <x-btn variant="primary" size="sm" x-on:click="$dispatch('open-modal', 'request-transfer')">
                 <x-icon name="plus" class="w-3 h-3" /> Request Transfer

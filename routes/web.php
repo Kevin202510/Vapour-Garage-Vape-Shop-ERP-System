@@ -9,11 +9,15 @@ use App\Http\Controllers\Web\EmployeeWebController;
 use App\Http\Controllers\Web\HomeController;
 use App\Http\Controllers\Web\InventoryWebController;
 use App\Http\Controllers\Web\PayrollWebController;
+use App\Http\Controllers\Web\PermissionWebController;
 use App\Http\Controllers\Web\PosWebController;
 use App\Http\Controllers\Web\ProductWebController;
+use App\Http\Controllers\Web\ProfileWebController;
 use App\Http\Controllers\Web\PurchasingWebController;
+use App\Http\Controllers\Web\RoleWebController;
 use App\Http\Controllers\Web\SalesWebController;
 use App\Http\Controllers\Web\TransferWebController;
+use App\Http\Controllers\Web\UserWebController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Web\SalesPeriodController;
 
@@ -71,6 +75,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Dashboard
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/export', [DashboardController::class, 'export'])->name('dashboard.export');
+
+    // My Profile (self-service, no permission gate — always the caller's own data)
+    Route::get('/my-profile', [ProfileWebController::class, 'show'])->name('profile.mine');
 
     // Point of Sale
     Route::get('/pos', [PosWebController::class, 'index'])->name('pos.index');
@@ -147,6 +154,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('payroll')->name('payroll.')->group(function () {
         Route::get('/',                 [PayrollWebController::class, 'index'])->name('index');
         Route::get('/export',           [PayrollWebController::class, 'export'])->name('export');
+        Route::get('/mine',             [PayrollWebController::class, 'mine'])->name('mine');
         Route::get('/{id}',            [PayrollWebController::class, 'show'])->name('show');
         Route::post('/generate',        [PayrollWebController::class, 'generate'])->name('generate');
         Route::post('/{id}/approve',    [PayrollWebController::class, 'approve'])->name('approve');
@@ -156,6 +164,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Branches
     Route::resource('branches', BranchWebController::class);
+
+    // Users
+    Route::post('users/{id}/activate',   [UserWebController::class, 'activate'])->name('users.activate');
+    Route::post('users/{id}/deactivate', [UserWebController::class, 'deactivate'])->name('users.deactivate');
+    Route::resource('users', UserWebController::class);
+
+    // Roles & Permissions
+    Route::resource('roles', RoleWebController::class)->except(['show']);
+    Route::get('permissions', [PermissionWebController::class, 'index'])->name('permissions.index');
 
 });
 

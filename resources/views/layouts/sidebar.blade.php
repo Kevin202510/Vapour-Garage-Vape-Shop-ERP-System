@@ -16,6 +16,7 @@
 
         <x-nav-section label="Overview" />
         <x-nav-item route="dashboard"    icon="grid"     label="Dashboard" />
+        <x-nav-item route="profile.mine" icon="user"     label="My Profile" />
 
         @can('create sales')
             <x-nav-item route="pos.index" icon="monitor" label="Point of Sale" />
@@ -63,7 +64,7 @@
                 :badge="$pendingOnlineOrders ?? 0" />
         @endcan
 
-        @canany(['view employees','view payroll','view branches'])
+        @canany(['view employees','view payroll','view branches','view users','manage roles','manage permissions'])
             <x-nav-section label="HR & Admin" />
         @endcanany
 
@@ -75,6 +76,15 @@
         @endcan
         @can('view branches')
             <x-nav-item route="branches.index"  icon="home"        label="Branches" />
+        @endcan
+        @can('view users')
+            <x-nav-item route="users.index"       icon="user"   label="Users" />
+        @endcan
+        @can('manage roles')
+            <x-nav-item route="roles.index"       icon="shield" label="Roles" />
+        @endcan
+        @can('manage permissions')
+            <x-nav-item route="permissions.index" icon="key"    label="Permissions" />
         @endcan
 
     </nav>

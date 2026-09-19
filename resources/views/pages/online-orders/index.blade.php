@@ -3,6 +3,11 @@
     <x-page-header overline="E-Commerce" title="Online Orders"
                    :subtitle="$activeBranchLabel . ' · ' . $totalPending . ' pending · ' . $totalToday . ' received today'">
         <x-slot:actions>
+            @can('view sales')
+            <x-btn :href="route('online-orders.export', request()->query())" variant="ghost" size="sm">
+                <x-icon name="download" class="w-3 h-3" /> Export CSV
+            </x-btn>
+            @endcan
             <x-btn :href="route('shop.index')" variant="ghost" size="sm" target="_blank">
                 View Shop →
             </x-btn>

@@ -3,6 +3,11 @@
     <x-page-header overline="Human Resources" title="Employees"
                    :subtitle="$activeBranchLabel . ' · ' . $employees->total() . ' staff · ' . $presentToday . ' present · ' . $onLeave . ' on leave'">
         <x-slot:actions>
+            @can('view employees')
+            <x-btn :href="route('employees.export', request()->query())" variant="ghost" size="sm">
+                <x-icon name="download" class="w-3 h-3" /> Export CSV
+            </x-btn>
+            @endcan
             @can('create employees')
             <x-btn variant="primary" size="sm" :href="route('employees.create')">
                 <x-icon name="plus" class="w-3 h-3" /> Add Employee

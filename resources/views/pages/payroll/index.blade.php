@@ -3,6 +3,11 @@
     <x-page-header overline="Compensation" title="Payroll"
                    :subtitle="$activeBranchLabel . ' · Period: ' . $periodLabel . ' · ' . $totalCount . ' records'">
         <x-slot:actions>
+            @can('view payroll')
+            <x-btn :href="route('payroll.export', request()->query())" variant="ghost" size="sm">
+                <x-icon name="download" class="w-3 h-3" /> Export CSV
+            </x-btn>
+            @endcan
             @can('process payroll')
             <x-btn variant="ghost" size="sm" x-on:click="$dispatch('open-modal', 'generate-payroll')">
                 Generate Payroll

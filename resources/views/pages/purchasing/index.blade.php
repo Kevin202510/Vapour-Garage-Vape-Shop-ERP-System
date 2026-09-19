@@ -3,6 +3,11 @@
     <x-page-header overline="Procurement" title="Purchase Orders"
                    :subtitle="$activeBranchLabel . ' · ' . $activePoCount . ' active POs'">
         <x-slot:actions>
+            @can('view purchase orders')
+            <x-btn :href="route('purchasing.export', request()->query())" variant="ghost" size="sm">
+                <x-icon name="download" class="w-3 h-3" /> Export CSV
+            </x-btn>
+            @endcan
             @can('create purchase orders')
             <x-btn variant="primary" size="sm" :href="route('purchasing.create')">
                 <x-icon name="plus" class="w-3 h-3" /> New PO

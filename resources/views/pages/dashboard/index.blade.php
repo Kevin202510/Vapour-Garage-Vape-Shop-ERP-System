@@ -16,9 +16,29 @@
                 @endforeach
             </div>
             @can('export reports')
-            <x-btn :href="route('dashboard.export', ['range' => $range])" variant="ghost" size="sm">
-                <x-icon name="download" class="w-3 h-3" /> Export
-            </x-btn>
+            <div class="relative" x-data="{ open: false }">
+                <button type="button" @click="open = !open" class="erp-btn erp-btn--ghost erp-btn--sm">
+                    <x-icon name="download" class="w-3 h-3" /> Export
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" :style="open ? 'transform:rotate(180deg)' : ''">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </button>
+                <div x-show="open" @click.outside="open = false"
+                     x-transition:enter="transition ease-out duration-100"
+                     x-transition:enter-start="opacity-0 scale-95 -translate-y-1"
+                     x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                     class="absolute top-full right-0 mt-1 bg-white border border-cream3 rounded-xl shadow-card z-50 min-w-[160px] overflow-hidden"
+                     style="display:none">
+                    <a href="{{ route('dashboard.export', ['range' => $range, 'format' => 'csv']) }}"
+                       class="flex items-center gap-2 px-3.5 py-2.5 text-[12px] text-ink2 hover:bg-cream hover:text-ink transition-colors">
+                        <x-icon name="download" class="w-3.5 h-3.5" /> Export as CSV
+                    </a>
+                    <a href="{{ route('dashboard.export', ['range' => $range, 'format' => 'pdf']) }}"
+                       class="flex items-center gap-2 px-3.5 py-2.5 text-[12px] text-ink2 hover:bg-cream hover:text-ink transition-colors border-t border-cream3">
+                        <x-icon name="download" class="w-3.5 h-3.5" /> Export as PDF
+                    </a>
+                </div>
+            </div>
             @endcan
         </x-slot:actions>
     </x-page-header>
