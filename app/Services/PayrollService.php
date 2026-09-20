@@ -2,11 +2,13 @@
 
 namespace App\Services;
 
+use App\Concerns\EnforcesBranchAccess;
 use App\Contracts\Repositories\AttendanceRepositoryInterface;
 use App\Contracts\Repositories\AuditLogRepositoryInterface;
 use App\Contracts\Repositories\EmployeeRepositoryInterface;
 use App\Contracts\Repositories\PayrollRepositoryInterface;
 use App\Models\Payroll;
+use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -16,6 +18,8 @@ use RuntimeException;
 
 class PayrollService
 {
+    use EnforcesBranchAccess;
+
     public function __construct(
         protected PayrollRepositoryInterface   $repo,
         protected EmployeeRepositoryInterface  $employeeRepo,
@@ -121,75 +125,90 @@ class PayrollService
         return $created;
     }
 
-    public function approve(int $id, int $processedBy, ?string $ipAddress = null): Payroll
+    public function approve(int $id, int $processedBy, ?string $ipAddress, User $actor): Payroll
     {
-        $payroll = $this->findOrFail($id);
+        return DB::transaction(function () use ($id, $processedBy, $ipAddress, $actor) {
+            $payroll = $this->repo->lockForUpdate($id)
+                ?? throw new ModelNotFoundException("Payroll record [{$id}] not found.");
 
-        if ($payroll->status !== 'draft') {
-            throw new RuntimeException("Only draft payroll records can be approved.");
-        }
+            $this->assertBranchAccess($actor, $payroll->employee?->branch_id);
 
-        $approved = $this->repo->approve($payroll, $processedBy);
+            if ($payroll->status !== 'draft') {
+                throw new RuntimeException("Only draft payroll records can be approved.");
+            }
 
-        $this->auditRepo->log(
-            tableName:  'payroll',
-            recordId:   $payroll->id,
-            action:     'approve',
-            oldValues:  ['status' => 'draft'],
-            newValues:  ['status' => 'approved', 'net_pay' => (string) $payroll->net_pay],
-            employeeId: $processedBy,
-            branchId:   $payroll->employee?->branch_id,
-            ipAddress:  $ipAddress,
-        );
+            $approved = $this->repo->approve($payroll, $processedBy);
 
-        return $approved;
+            $this->auditRepo->log(
+                tableName:  'payroll',
+                recordId:   $payroll->id,
+                action:     'approve',
+                oldValues:  ['status' => 'draft'],
+                newValues:  ['status' => 'approved', 'net_pay' => (string) $payroll->net_pay],
+                employeeId: $processedBy,
+                branchId:   $payroll->employee?->branch_id,
+                ipAddress:  $ipAddress,
+            );
+
+            return $approved;
+        });
     }
 
-    public function release(int $id, ?int $actingEmployeeId = null, ?string $ipAddress = null): Payroll
+    public function release(int $id, ?int $actingEmployeeId, ?string $ipAddress, User $actor): Payroll
     {
-        $payroll = $this->findOrFail($id);
+        return DB::transaction(function () use ($id, $actingEmployeeId, $ipAddress, $actor) {
+            $payroll = $this->repo->lockForUpdate($id)
+                ?? throw new ModelNotFoundException("Payroll record [{$id}] not found.");
 
-        if ($payroll->status !== 'approved') {
-            throw new RuntimeException("Only approved payroll records can be released.");
-        }
+            $this->assertBranchAccess($actor, $payroll->employee?->branch_id);
 
-        $released = $this->repo->release($payroll);
+            if ($payroll->status !== 'approved') {
+                throw new RuntimeException("Only approved payroll records can be released.");
+            }
 
-        $this->auditRepo->log(
-            tableName:  'payroll',
-            recordId:   $payroll->id,
-            action:     'update',
-            oldValues:  ['status' => 'approved'],
-            newValues:  ['status' => 'released', 'net_pay' => (string) $payroll->net_pay],
-            employeeId: $actingEmployeeId,
-            branchId:   $payroll->employee?->branch_id,
-            ipAddress:  $ipAddress,
-        );
+            $released = $this->repo->release($payroll);
 
-        return $released;
+            $this->auditRepo->log(
+                tableName:  'payroll',
+                recordId:   $payroll->id,
+                action:     'update',
+                oldValues:  ['status' => 'approved'],
+                newValues:  ['status' => 'released', 'net_pay' => (string) $payroll->net_pay],
+                employeeId: $actingEmployeeId,
+                branchId:   $payroll->employee?->branch_id,
+                ipAddress:  $ipAddress,
+            );
+
+            return $released;
+        });
     }
 
-    public function delete(int $id, ?int $actingEmployeeId = null, ?string $ipAddress = null): bool
+    public function delete(int $id, ?int $actingEmployeeId, ?string $ipAddress, User $actor): bool
     {
-        $payroll = $this->findOrFail($id);
+        return DB::transaction(function () use ($id, $actingEmployeeId, $ipAddress, $actor) {
+            $payroll = $this->repo->lockForUpdate($id)
+                ?? throw new ModelNotFoundException("Payroll record [{$id}] not found.");
 
-        if ($payroll->status !== 'draft') {
-            throw new RuntimeException("Only draft payroll records can be deleted.");
-        }
+            $this->assertBranchAccess($actor, $payroll->employee?->branch_id);
 
-        $result = $this->repo->delete($payroll);
+            if ($payroll->status !== 'draft') {
+                throw new RuntimeException("Only draft payroll records can be deleted.");
+            }
 
-        $this->auditRepo->log(
-            tableName:  'payroll',
-            recordId:   $payroll->id,
-            action:     'delete',
-            oldValues:  ['employee_id' => $payroll->employee_id, 'period_label' => $payroll->period_label, 'net_pay' => (string) $payroll->net_pay],
-            employeeId: $actingEmployeeId,
-            branchId:   $payroll->employee?->branch_id,
-            ipAddress:  $ipAddress,
-        );
+            $result = $this->repo->delete($payroll);
 
-        return $result;
+            $this->auditRepo->log(
+                tableName:  'payroll',
+                recordId:   $payroll->id,
+                action:     'delete',
+                oldValues:  ['employee_id' => $payroll->employee_id, 'period_label' => $payroll->period_label, 'net_pay' => (string) $payroll->net_pay],
+                employeeId: $actingEmployeeId,
+                branchId:   $payroll->employee?->branch_id,
+                ipAddress:  $ipAddress,
+            );
+
+            return $result;
+        });
     }
 
     // -------------------------------------------------------------------------

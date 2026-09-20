@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Concerns\EnforcesBranchAccess;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\User\StoreUserRequest;
 use App\Http\Requests\User\SyncPermissionsRequest;
@@ -16,8 +17,8 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class UserController extends Controller
 {
-    use AuthorizesRequests;
-    
+    use AuthorizesRequests, EnforcesBranchAccess;
+
     public function __construct(protected UserService $userService) {}
 
     /**
@@ -27,7 +28,6 @@ class UserController extends Controller
      */
     public function index(Request $request): AnonymousResourceCollection
     {
-        info("Data");
         $this->authorize('view users');
 
         $filters = $request->only([
@@ -35,8 +35,7 @@ class UserController extends Controller
             'sort_by', 'sort_order', 'with_trashed',
         ]);
 
-        // Branch managers can only see users in their own branch
-        if ($request->user()->isBranchManager() && ! $request->user()->isSuperAdmin()) {
+        if (! $request->user()->isSuperAdmin()) {
             $filters['branch_id'] = $request->user()->branch_id;
         }
 
@@ -61,11 +60,12 @@ class UserController extends Controller
     /**
      * GET /api/users/{user}
      */
-    public function show(int $id): JsonResponse
+    public function show(Request $request, int $id): JsonResponse
     {
         $this->authorize('view users');
 
         $user = $this->userService->findOrFail($id);
+        $this->assertBranchAccess($request->user(), $user->branch_id);
 
         return response()->json(['user' => new UserResource($user)]);
     }
@@ -75,7 +75,15 @@ class UserController extends Controller
      */
     public function update(UpdateUserRequest $request, int $id): JsonResponse
     {
-        $user = $this->userService->update($id, $request->validated());
+        $target = $this->userService->findOrFail($id);
+        $this->assertBranchAccess($request->user(), $target->branch_id);
+
+        $data = $request->validated();
+        if (isset($data['branch_id']) && ! $request->user()->isSuperAdmin()) {
+            unset($data['branch_id']);
+        }
+
+        $user = $this->userService->update($id, $data);
 
         return response()->json([
             'message' => 'User updated successfully.',
@@ -94,6 +102,9 @@ class UserController extends Controller
         if ($request->user()->id === $id) {
             return response()->json(['message' => 'You cannot delete your own account.'], 422);
         }
+
+        $target = $this->userService->findOrFail($id);
+        $this->assertBranchAccess($request->user(), $target->branch_id);
 
         $this->userService->delete($id);
 
@@ -115,11 +126,14 @@ class UserController extends Controller
     /**
      * POST /api/users/{user}/activate
      */
-    public function activate(int $id): JsonResponse
+    public function activate(Request $request, int $id): JsonResponse
     {
         $this->authorize('manage users');
 
-        $this->userService->activate($id);
+        $target = $this->userService->findOrFail($id);
+        $this->assertBranchAccess($request->user(), $target->branch_id);
+
+        $this->userService->activate($id, $request->user()->employee_id, $request->ip());
 
         return response()->json(['message' => 'User activated.']);
     }
@@ -135,7 +149,10 @@ class UserController extends Controller
             return response()->json(['message' => 'You cannot deactivate your own account.'], 422);
         }
 
-        $this->userService->deactivate($id);
+        $target = $this->userService->findOrFail($id);
+        $this->assertBranchAccess($request->user(), $target->branch_id);
+
+        $this->userService->deactivate($id, $request->user()->employee_id, $request->ip());
 
         return response()->json(['message' => 'User deactivated.']);
     }

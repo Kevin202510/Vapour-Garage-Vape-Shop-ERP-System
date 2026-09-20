@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Concerns\EnforcesBranchAccess;
 use App\Contracts\Repositories\AuditLogRepositoryInterface;
 use App\Contracts\Repositories\EmployeeRepositoryInterface;
 use App\Contracts\Repositories\UserRepositoryInterface;
@@ -16,6 +17,8 @@ use Illuminate\Validation\ValidationException;
 
 class EmployeeService
 {
+    use EnforcesBranchAccess;
+
     /**
      * Employee role → Spatie permission role. Roles not listed here
      * (e.g. 'admin') get no automatic role grant on account creation.
@@ -100,9 +103,18 @@ class EmployeeService
         });
     }
 
-    public function update(int $id, array $data, ?int $actingEmployeeId = null, ?string $ipAddress = null): Employee
+    public function update(int $id, array $data, ?int $actingEmployeeId, ?string $ipAddress, User $actor): Employee
     {
         $employee = $this->findOrFail($id);
+
+        $this->assertBranchAccess($actor, $employee->branch_id);
+
+        // Only a super-admin may move an employee to a different branch —
+        // a branch manager editing their own staff should never be able to
+        // reassign them elsewhere.
+        if (isset($data['branch_id']) && ! $actor->isSuperAdmin()) {
+            unset($data['branch_id']);
+        }
 
         if (isset($data['employee_code']) && $data['employee_code'] !== $employee->employee_code) {
             $this->guardDuplicateCode($data['employee_code'], $id);
@@ -127,9 +139,11 @@ class EmployeeService
         });
     }
 
-    public function delete(int $id, ?int $actingEmployeeId = null, ?string $ipAddress = null): bool
+    public function delete(int $id, ?int $actingEmployeeId, ?string $ipAddress, User $actor): bool
     {
         $employee = $this->findOrFail($id);
+
+        $this->assertBranchAccess($actor, $employee->branch_id);
 
         return DB::transaction(function () use ($employee, $actingEmployeeId, $ipAddress) {
             $result = $this->repo->delete($employee);

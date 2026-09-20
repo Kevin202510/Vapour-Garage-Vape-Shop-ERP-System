@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Concerns\EnforcesBranchAccess;
 use App\Contracts\Repositories\EmployeeRepositoryInterface;
 use App\Http\Controllers\Controller;
 use App\Services\AttendanceService;
@@ -11,7 +12,7 @@ use Illuminate\Http\Request;
 
 class AttendanceController extends Controller
 {
-    use AuthorizesRequests;
+    use AuthorizesRequests, EnforcesBranchAccess;
     public function __construct(
         protected AttendanceService $service,
         protected EmployeeRepositoryInterface $employeeRepo,
@@ -36,6 +37,7 @@ class AttendanceController extends Controller
             'employee_id' => ['required','integer','exists:employees,id'],
             'branch_id'   => ['required','integer','exists:branches,id'],
         ]);
+        $this->assertBranchAccess($request->user(), $validated['branch_id']);
         $record = $this->service->clockIn($validated['employee_id'], $validated['branch_id']);
         return response()->json(['message' => 'Clocked in.', 'data' => $record]);
     }
@@ -44,6 +46,8 @@ class AttendanceController extends Controller
     {
         $this->authorize('manage attendance');
         $validated = $request->validate(['employee_id' => ['required','integer','exists:employees,id']]);
+        $employee  = $this->employeeRepo->findById($validated['employee_id']);
+        $this->assertBranchAccess($request->user(), $employee?->branch_id);
         $record = $this->service->clockOut($validated['employee_id']);
         return response()->json(['message' => 'Clocked out.', 'data' => $record]);
     }
@@ -62,6 +66,7 @@ class AttendanceController extends Controller
             'status'         => ['required','in:present,absent,late,half_day,rest_day,leave'],
             'remarks'        => ['nullable','string','max:255'],
         ]);
+        $this->assertBranchAccess($request->user(), $validated['branch_id']);
         $record = $this->service->manualEntry($validated);
         return response()->json(['message' => 'Attendance entry saved.', 'data' => $record]);
     }
@@ -69,6 +74,9 @@ class AttendanceController extends Controller
     public function update(Request $request, int $id): JsonResponse
     {
         $this->authorize('manage attendance');
+        $attendance = $this->service->findOrFail($id);
+        $this->assertBranchAccess($request->user(), $attendance->employee?->branch_id);
+
         $validated = $request->validate([
             'time_in'        => ['sometimes','nullable','date_format:H:i:s'],
             'time_out'       => ['sometimes','nullable','date_format:H:i:s'],
@@ -104,9 +112,11 @@ class AttendanceController extends Controller
         return response()->json(['data' => $summary]);
     }
 
-    public function destroy(int $id): JsonResponse
+    public function destroy(Request $request, int $id): JsonResponse
     {
         $this->authorize('manage attendance');
+        $attendance = $this->service->findOrFail($id);
+        $this->assertBranchAccess($request->user(), $attendance->employee?->branch_id);
         $this->service->delete($id);
         return response()->json(['message' => 'Attendance record deleted.']);
     }

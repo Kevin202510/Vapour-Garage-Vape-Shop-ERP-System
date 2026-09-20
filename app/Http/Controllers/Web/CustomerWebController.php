@@ -20,6 +20,8 @@ class CustomerWebController extends Controller
 
     public function index(Request $request)
     {
+        $this->authorize('view customers');
+
         $filters = $request->only(['search', 'branch_id', 'tier']);
         $user    = auth()->user();
         $effectiveBranchId = $this->resolveEffectiveBranchId($user);
@@ -79,6 +81,8 @@ class CustomerWebController extends Controller
 
     public function create()
     {
+        $this->authorize('create customers');
+
         $branches = $this->branchService->allActive();
         return view('pages.customers.form', compact('branches'));
     }
@@ -103,6 +107,8 @@ class CustomerWebController extends Controller
 
     public function show(int $id)
     {
+        $this->authorize('view customers');
+
         $customer = $this->customerService->findOrFail($id);
         $customer->load(['registeredBranch']);
 
@@ -121,6 +127,8 @@ class CustomerWebController extends Controller
 
     public function edit(int $id)
     {
+        $this->authorize('edit customers');
+
         $customer = $this->customerService->findOrFail($id);
         $branches = $this->branchService->allActive();
         return view('pages.customers.form', compact('customer', 'branches'));

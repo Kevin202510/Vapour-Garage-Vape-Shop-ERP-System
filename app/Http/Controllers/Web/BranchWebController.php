@@ -15,6 +15,8 @@ class BranchWebController extends Controller
 
     public function index()
     {
+        $this->authorize('view branches');
+
         $branches = \App\Models\Branch::withCount(['employees' => fn ($q) => $q->where('is_active', true)])
             ->with(['salesTransactions' => fn ($q) => $q->whereDate('transaction_date', now())->where('status', 'completed')])
             ->get()
@@ -29,6 +31,8 @@ class BranchWebController extends Controller
 
     public function create()
     {
+        $this->authorize('create branches');
+
         return view('pages.branches.form');
     }
 
@@ -42,12 +46,14 @@ class BranchWebController extends Controller
             'contact_number' => 'nullable|string|max:20',
         ]);
         $validated['is_active'] = true;
-        $this->branchService->create($validated);
+        $this->branchService->create($validated, auth()->user()->employee_id, $request->ip());
         return redirect()->route('branches.index')->with('success', 'Branch created.');
     }
 
     public function show(int $id)
     {
+        $this->authorize('view branches');
+
         $branch = $this->branchService->findOrFail($id);
 
         // Eager-load relationships, excluding inventory rows whose product was deleted/archived.
@@ -68,6 +74,8 @@ class BranchWebController extends Controller
 
     public function edit(int $id)
     {
+        $this->authorize('edit branches');
+
         $branch = $this->branchService->findOrFail($id);
         return view('pages.branches.form', compact('branch'));
     }
@@ -83,14 +91,14 @@ class BranchWebController extends Controller
             'is_active'      => 'sometimes|boolean',
         ]);
         $validated['is_active'] = $request->boolean('is_active');
-        $this->branchService->update($id, $validated);
+        $this->branchService->update($id, $validated, auth()->user()->employee_id, $request->ip());
         return redirect()->route('branches.index')->with('success', 'Branch updated.');
     }
 
-    public function destroy(int $id)
+    public function destroy(Request $request, int $id)
     {
         $this->authorize('delete branches');
-        $this->branchService->delete($id);
+        $this->branchService->delete($id, auth()->user()->employee_id, $request->ip());
         return redirect()->route('branches.index')->with('success', 'Branch deleted.');
     }
 }

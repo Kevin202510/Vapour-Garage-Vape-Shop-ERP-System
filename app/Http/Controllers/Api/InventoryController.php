@@ -81,14 +81,14 @@ class InventoryController extends Controller
     public function approveTransfer(Request $request, int $id): JsonResponse
     {
         $this->authorize('approve stock transfers');
-        $transfer = $this->service->approveTransfer($id, $request->user()->employee_id ?? $request->user()->id);
+        $transfer = $this->service->approveTransfer($id, $request->user()->employee_id ?? $request->user()->id, $request->user());
         return response()->json(['message' => 'Transfer approved.', 'data' => $transfer]);
     }
 
-    public function receiveTransfer(int $id): JsonResponse
+    public function receiveTransfer(Request $request, int $id): JsonResponse
     {
         $this->authorize('receive stock transfers');
-        $transfer = $this->service->receiveTransfer($id);
+        $transfer = $this->service->receiveTransfer($id, $request->user());
         return response()->json(['message' => 'Transfer received. Inventory updated.', 'data' => $transfer]);
     }
 
@@ -96,7 +96,7 @@ class InventoryController extends Controller
     {
         $this->authorize('approve stock transfers');
         $validated = $request->validate(['reason' => ['required','string','max:500']]);
-        $transfer  = $this->service->rejectTransfer($id, $validated['reason']);
+        $transfer  = $this->service->rejectTransfer($id, $validated['reason'], $request->user());
         return response()->json(['message' => 'Transfer rejected.', 'data' => $transfer]);
     }
 }

@@ -22,6 +22,14 @@ class SalesTransactionRepository extends BaseRepository implements SalesTransact
             ->find($id);
     }
 
+    public function lockForUpdate(int $id, array $relations = []): ?SalesTransaction
+    {
+        return $this->model
+            ->with($relations ?: ['branch', 'cashier', 'customer', 'items.product', 'items.discount'])
+            ->lockForUpdate()
+            ->find($id);
+    }
+
     public function findByTransactionNumber(string $number): ?SalesTransaction
     {
         return $this->model

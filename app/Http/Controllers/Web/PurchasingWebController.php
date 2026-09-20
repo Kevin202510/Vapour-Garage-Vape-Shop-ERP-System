@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Concerns\EnforcesBranchAccess;
 use App\Http\Controllers\Concerns\ResolvesActiveBranch;
 use App\Http\Controllers\Controller;
 use App\Services\PurchaseOrderService;
@@ -13,7 +14,7 @@ use Illuminate\Http\Request;
 
 class PurchasingWebController extends Controller
 {
-    use AuthorizesRequests, ResolvesActiveBranch;
+    use AuthorizesRequests, ResolvesActiveBranch, EnforcesBranchAccess;
     public function __construct(
         protected PurchaseOrderService $poService,
         protected SupplierService      $supplierService,
@@ -23,6 +24,8 @@ class PurchasingWebController extends Controller
 
     public function index(Request $request)
     {
+        $this->authorize('view purchase orders');
+
         $filters = $request->only(['status', 'supplier_id', 'branch_id', 'date_from', 'date_to', 'search']);
         $user    = auth()->user();
         $effectiveBranchId = $this->resolveEffectiveBranchId($user);
@@ -77,6 +80,8 @@ class PurchasingWebController extends Controller
 
     public function create()
     {
+        $this->authorize('create purchase orders');
+
         $suppliers = $this->supplierService->allActive();
         $branches  = $this->branchService->allActive();
         $products  = $this->productService->list(['is_active' => true]);
@@ -104,20 +109,27 @@ class PurchasingWebController extends Controller
 
     public function show(int $id)
     {
+        $this->authorize('view purchase orders');
+
         $po = $this->poService->findOrFail($id);
+        $this->assertBranchAccess(auth()->user(), $po->branch_id);
+
         return view('pages.purchasing.show', compact('po'));
     }
 
     public function approve(Request $request, int $id)
     {
         $this->authorize('approve purchase orders');
-        $this->poService->approve($id, auth()->user()->employee_id ?? auth()->id());
+        $this->poService->approve($id, auth()->user()->employee_id ?? auth()->id(), auth()->user());
         return back()->with('success', 'Purchase order approved.');
     }
 
     public function receiveForm(int $id)
     {
+        $this->authorize('receive purchase orders');
+
         $po = $this->poService->findOrFail($id);
+        $this->assertBranchAccess(auth()->user(), $po->branch_id);
 
         if (! in_array($po->status, ['approved', 'sent', 'partial'])) {
             return redirect()->route('purchasing.show', $id)
@@ -138,7 +150,7 @@ class PurchasingWebController extends Controller
         ]);
 
         try {
-            $po     = $this->poService->receive($id, $validated['items']);
+            $po     = $this->poService->receive($id, $validated['items'], auth()->user());
             $status = $po->status === 'received' ? 'fully received' : 'partially received';
             return redirect()->route('purchasing.show', $id)
                 ->with('success', "Purchase order {$status}. Inventory updated at {$po->branch->name}.");
@@ -150,7 +162,7 @@ class PurchasingWebController extends Controller
     public function cancel(int $id)
     {
         $this->authorize('cancel purchase orders');
-        $this->poService->cancel($id);
+        $this->poService->cancel($id, auth()->user());
         return back()->with('success', 'Purchase order cancelled.');
     }
 }

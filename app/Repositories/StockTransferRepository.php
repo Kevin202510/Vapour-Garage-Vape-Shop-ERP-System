@@ -21,6 +21,14 @@ class StockTransferRepository extends BaseRepository implements StockTransferRep
             ->find($id);
     }
 
+    public function lockForUpdate(int $id, array $relations = []): ?StockTransfer
+    {
+        return $this->model
+            ->with($relations ?: ['fromBranch', 'toBranch', 'requestedBy', 'approvedBy', 'items.product'])
+            ->lockForUpdate()
+            ->find($id);
+    }
+
     public function findByTransferNumber(string $number): ?StockTransfer
     {
         return $this->model

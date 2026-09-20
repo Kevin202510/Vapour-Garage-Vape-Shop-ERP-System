@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Concerns\EnforcesBranchAccess;
 use App\Http\Controllers\Controller;
 use App\Services\EmployeeService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -10,7 +11,7 @@ use Illuminate\Http\Request;
 
 class EmployeeController extends Controller
 {
-    use AuthorizesRequests;
+    use AuthorizesRequests, EnforcesBranchAccess;
     public function __construct(protected EmployeeService $service) {}
 
     public function index(Request $request): JsonResponse
@@ -18,7 +19,7 @@ class EmployeeController extends Controller
         $this->authorize('view employees');
         $filters = $request->only(['branch_id','department_id','role','employment_type','is_active','search','with_trashed','sort_by','sort_order']);
 
-        if ($request->user()->isBranchManager() && ! $request->user()->isSuperAdmin()) {
+        if (! $request->user()->isSuperAdmin()) {
             $filters['branch_id'] = $request->user()->branch_id;
         }
 
@@ -45,10 +46,12 @@ class EmployeeController extends Controller
         return response()->json(['message' => 'Employee created.', 'data' => $employee], 201);
     }
 
-    public function show(int $id): JsonResponse
+    public function show(Request $request, int $id): JsonResponse
     {
         $this->authorize('view employees');
-        return response()->json(['data' => $this->service->findOrFail($id)]);
+        $employee = $this->service->findOrFail($id);
+        $this->assertBranchAccess($request->user(), $employee->branch_id);
+        return response()->json(['data' => $employee]);
     }
 
     public function update(Request $request, int $id): JsonResponse
@@ -68,14 +71,14 @@ class EmployeeController extends Controller
             'termination_date'=> ['sometimes','nullable','date'],
             'is_active'       => ['sometimes','boolean'],
         ]);
-        $employee = $this->service->update($id, $validated, $request->user()->employee_id, $request->ip());
+        $employee = $this->service->update($id, $validated, $request->user()->employee_id, $request->ip(), $request->user());
         return response()->json(['message' => 'Employee updated.', 'data' => $employee]);
     }
 
     public function destroy(Request $request, int $id): JsonResponse
     {
         $this->authorize('delete employees');
-        $this->service->delete($id, $request->user()->employee_id, $request->ip());
+        $this->service->delete($id, $request->user()->employee_id, $request->ip(), $request->user());
         return response()->json(['message' => 'Employee deleted.']);
     }
 

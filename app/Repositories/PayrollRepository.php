@@ -21,6 +21,14 @@ class PayrollRepository extends BaseRepository implements PayrollRepositoryInter
             ->find($id);
     }
 
+    public function lockForUpdate(int $id, array $relations = []): ?Payroll
+    {
+        return $this->model
+            ->with($relations ?: ['employee.branch', 'processor'])
+            ->lockForUpdate()
+            ->find($id);
+    }
+
     public function getByEmployee(int $employeeId): Collection
     {
         return $this->model

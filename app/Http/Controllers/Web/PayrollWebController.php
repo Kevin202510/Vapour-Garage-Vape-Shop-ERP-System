@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Concerns\EnforcesBranchAccess;
 use App\Http\Controllers\Concerns\ResolvesActiveBranch;
 use App\Http\Controllers\Controller;
 use App\Services\PayrollService;
@@ -11,7 +12,7 @@ use Illuminate\Http\Request;
 
 class PayrollWebController extends Controller
 {
-    use AuthorizesRequests, ResolvesActiveBranch;
+    use AuthorizesRequests, ResolvesActiveBranch, EnforcesBranchAccess;
     public function __construct(
         protected PayrollService $payrollService,
         protected BranchService  $branchService,
@@ -54,6 +55,7 @@ class PayrollWebController extends Controller
         $isOwner = $user->employee_id !== null && $payroll->employee_id === $user->employee_id;
         if (! $isOwner) {
             $this->authorize('view payroll');
+            $this->assertBranchAccess($user, $payroll->employee?->branch_id);
         }
 
         return view('pages.payroll.show', compact('payroll'));
@@ -139,21 +141,21 @@ class PayrollWebController extends Controller
     public function approve(Request $request, int $id)
     {
         $this->authorize('approve payroll');
-        $this->payrollService->approve($id, $request->user()->employee_id ?? $request->user()->id, $request->ip());
+        $this->payrollService->approve($id, $request->user()->employee_id ?? $request->user()->id, $request->ip(), $request->user());
         return back()->with('success', 'Payroll approved.');
     }
 
     public function release(Request $request, int $id)
     {
         $this->authorize('release payroll');
-        $this->payrollService->release($id, $request->user()->employee_id, $request->ip());
+        $this->payrollService->release($id, $request->user()->employee_id, $request->ip(), $request->user());
         return back()->with('success', 'Payroll released.');
     }
 
     public function destroy(Request $request, int $id)
     {
         $this->authorize('process payroll');
-        $this->payrollService->delete($id, $request->user()->employee_id, $request->ip());
+        $this->payrollService->delete($id, $request->user()->employee_id, $request->ip(), $request->user());
         return redirect()->route('payroll.index')->with('success', 'Payroll record deleted.');
     }
 }

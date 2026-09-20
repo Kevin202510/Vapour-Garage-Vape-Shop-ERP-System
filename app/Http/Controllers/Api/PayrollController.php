@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Concerns\EnforcesBranchAccess;
 use App\Http\Controllers\Controller;
 use App\Services\PayrollService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -10,23 +11,25 @@ use Illuminate\Http\Request;
 
 class PayrollController extends Controller
 {
-    use AuthorizesRequests;
+    use AuthorizesRequests, EnforcesBranchAccess;
     public function __construct(protected PayrollService $service) {}
 
     public function index(Request $request): JsonResponse
     {
         $this->authorize('view payroll');
         $filters = $request->only(['employee_id','branch_id','status','period_start','period_end','search','sort_by','sort_order']);
-        if ($request->user()->isBranchManager() && ! $request->user()->isSuperAdmin()) {
+        if (! $request->user()->isSuperAdmin()) {
             $filters['branch_id'] = $request->user()->branch_id;
         }
         return response()->json($this->service->list($filters, $request->integer('per_page', 15)));
     }
 
-    public function show(int $id): JsonResponse
+    public function show(Request $request, int $id): JsonResponse
     {
         $this->authorize('view payroll');
-        return response()->json(['data' => $this->service->findOrFail($id)]);
+        $payroll = $this->service->findOrFail($id);
+        $this->assertBranchAccess($request->user(), $payroll->employee?->branch_id);
+        return response()->json(['data' => $payroll]);
     }
 
     public function generate(Request $request): JsonResponse
@@ -52,21 +55,21 @@ class PayrollController extends Controller
     public function approve(Request $request, int $id): JsonResponse
     {
         $this->authorize('approve payroll');
-        $payroll = $this->service->approve($id, $request->user()->employee_id ?? $request->user()->id, $request->ip());
+        $payroll = $this->service->approve($id, $request->user()->employee_id ?? $request->user()->id, $request->ip(), $request->user());
         return response()->json(['message' => 'Payroll approved.', 'data' => $payroll]);
     }
 
     public function release(Request $request, int $id): JsonResponse
     {
         $this->authorize('release payroll');
-        $payroll = $this->service->release($id, $request->user()->employee_id, $request->ip());
+        $payroll = $this->service->release($id, $request->user()->employee_id, $request->ip(), $request->user());
         return response()->json(['message' => 'Payroll released.', 'data' => $payroll]);
     }
 
     public function destroy(Request $request, int $id): JsonResponse
     {
         $this->authorize('process payroll');
-        $this->service->delete($id, $request->user()->employee_id, $request->ip());
+        $this->service->delete($id, $request->user()->employee_id, $request->ip(), $request->user());
         return response()->json(['message' => 'Payroll record deleted.']);
     }
 

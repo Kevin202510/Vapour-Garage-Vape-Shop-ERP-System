@@ -103,8 +103,15 @@ class SalesService
                     $discountAmount = 0;
 
                     if (! empty($item['discount_id'])) {
-                        $discount       = $this->discountRepo->findById($item['discount_id']);
-                        $discountAmount = $discount?->computeDiscount($lineSubtotal) ?? 0;
+                        $discount = $this->discountRepo->findById($item['discount_id']);
+
+                        if (! $discount || ! $discount->isCurrentlyValid()) {
+                            throw ValidationException::withMessages([
+                                'items' => ['The selected discount is no longer valid.'],
+                            ]);
+                        }
+
+                        $discountAmount = $discount->computeDiscount($lineSubtotal);
                     }
 
                     $taxable   = $lineSubtotal - $discountAmount;
@@ -195,13 +202,17 @@ class SalesService
 
     public function void(int $id, string $reason, ?int $employeeId = null, ?string $ipAddress = null): SalesTransaction
     {
-        $transaction = $this->findOrFail($id);
+        return DB::transaction(function () use ($id, $reason, $employeeId, $ipAddress) {
+            // Lock the row for the duration of the transaction so a concurrent
+            // void request can't also pass the status check below and double
+            // -restore inventory / double-reverse loyalty points.
+            $transaction = $this->transactionRepo->lockForUpdate($id)
+                ?? throw new ModelNotFoundException("Transaction [{$id}] not found.");
 
-        if ($transaction->status !== 'completed') {
-            throw new RuntimeException("Only completed transactions can be voided.");
-        }
+            if ($transaction->status !== 'completed') {
+                throw new RuntimeException("Only completed transactions can be voided.");
+            }
 
-        return DB::transaction(function () use ($transaction, $reason, $employeeId, $ipAddress) {
             $previousStatus = $transaction->status;
 
             // Restore inventory for each voided item

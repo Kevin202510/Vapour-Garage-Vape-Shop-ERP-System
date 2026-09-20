@@ -122,16 +122,42 @@ class UserService
         return $updated;
     }
 
-    public function deactivate(int $id): bool
+    public function deactivate(int $id, ?int $actingEmployeeId = null, ?string $ipAddress = null): bool
     {
-        $user = $this->findOrFail($id);
-        return $this->userRepository->deactivate($user);
+        $user   = $this->findOrFail($id);
+        $result = $this->userRepository->deactivate($user);
+
+        $this->auditRepository->log(
+            tableName:  'users',
+            recordId:   $user->id,
+            action:     'update',
+            oldValues:  ['is_active' => true],
+            newValues:  ['is_active' => false],
+            employeeId: $actingEmployeeId,
+            branchId:   $user->branch_id,
+            ipAddress:  $ipAddress,
+        );
+
+        return $result;
     }
 
-    public function activate(int $id): bool
+    public function activate(int $id, ?int $actingEmployeeId = null, ?string $ipAddress = null): bool
     {
-        $user = $this->findOrFail($id);
-        return $this->userRepository->activate($user);
+        $user   = $this->findOrFail($id);
+        $result = $this->userRepository->activate($user);
+
+        $this->auditRepository->log(
+            tableName:  'users',
+            recordId:   $user->id,
+            action:     'update',
+            oldValues:  ['is_active' => false],
+            newValues:  ['is_active' => true],
+            employeeId: $actingEmployeeId,
+            branchId:   $user->branch_id,
+            ipAddress:  $ipAddress,
+        );
+
+        return $result;
     }
 
     public function getUsersByRole(string $role, ?int $branchId = null): Collection

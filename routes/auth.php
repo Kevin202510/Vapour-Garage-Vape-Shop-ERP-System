@@ -8,7 +8,6 @@ use App\Http\Controllers\Auth\EmailVerificationPromptController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
-use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
 
@@ -33,13 +32,12 @@ Route::middleware('auth')->group(function () {
     Route::post('2fa/disable',          [TwoFactorController::class, 'disable'])->name('2fa.disable');
 });
 
+// Public self-registration is intentionally NOT exposed — this is an internal
+// ERP; accounts are provisioned by an admin via EmployeeService::createLoginAccount
+// (see EmployeeWebController::store). An open /register route combined with the
+// app's non-functional email-verification gate (User doesn't implement
+// MustVerifyEmail) would let anyone reach the back office with a self-made account.
 Route::middleware('guest')->group(function () {
-    Route::get('register', [RegisteredUserController::class, 'create'])
-        ->name('register');
-
-    Route::post('register', [RegisteredUserController::class, 'store'])
-        ->middleware('throttle:5,1');
-
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
         ->name('login');
 

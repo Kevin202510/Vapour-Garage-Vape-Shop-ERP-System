@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Concerns\EnforcesBranchAccess;
 use App\Contracts\Repositories\RoleRepositoryInterface;
 use App\Http\Controllers\Concerns\ResolvesActiveBranch;
 use App\Http\Controllers\Controller;
@@ -15,7 +16,7 @@ use Illuminate\Validation\Rules\Password;
 
 class UserWebController extends Controller
 {
-    use AuthorizesRequests, ResolvesActiveBranch;
+    use AuthorizesRequests, ResolvesActiveBranch, EnforcesBranchAccess;
 
     public function __construct(
         protected UserService $userService,
@@ -89,6 +90,7 @@ class UserWebController extends Controller
     {
         $this->authorize('view users');
         $user = $this->userService->findOrFail($id);
+        $this->assertBranchAccess(auth()->user(), $user->branch_id);
 
         return view('pages.users.show', compact('user'));
     }
@@ -96,7 +98,8 @@ class UserWebController extends Controller
     public function edit(int $id)
     {
         $this->authorize('edit users');
-        $user     = $this->userService->findOrFail($id);
+        $user = $this->userService->findOrFail($id);
+        $this->assertBranchAccess(auth()->user(), $user->branch_id);
         $branches = $this->branchService->allActive();
         $roles    = $this->roleRepository->all();
 
@@ -106,6 +109,9 @@ class UserWebController extends Controller
     public function update(Request $request, int $id)
     {
         $this->authorize('edit users');
+
+        $target = $this->userService->findOrFail($id);
+        $this->assertBranchAccess($request->user(), $target->branch_id);
 
         $validated = $request->validate([
             'name'      => ['sometimes', 'string', 'max:255'],
@@ -118,6 +124,11 @@ class UserWebController extends Controller
             unset($validated['password']);
         }
         $validated['is_active'] = $request->boolean('is_active');
+
+        // Only a super-admin may move a user to a different branch.
+        if (isset($validated['branch_id']) && ! $request->user()->isSuperAdmin()) {
+            unset($validated['branch_id']);
+        }
 
         $user = $this->userService->update($id, $validated);
 
@@ -136,15 +147,22 @@ class UserWebController extends Controller
             return back()->with('error', 'You cannot delete your own account.');
         }
 
+        $target = $this->userService->findOrFail($id);
+        $this->assertBranchAccess($request->user(), $target->branch_id);
+
         $this->userService->delete($id);
 
         return redirect()->route('users.index')->with('success', 'User deleted.');
     }
 
-    public function activate(int $id)
+    public function activate(Request $request, int $id)
     {
         $this->authorize('manage users');
-        $this->userService->activate($id);
+
+        $target = $this->userService->findOrFail($id);
+        $this->assertBranchAccess($request->user(), $target->branch_id);
+
+        $this->userService->activate($id, $request->user()->employee_id, $request->ip());
 
         return back()->with('success', 'User activated.');
     }
@@ -157,7 +175,10 @@ class UserWebController extends Controller
             return back()->with('error', 'You cannot deactivate your own account.');
         }
 
-        $this->userService->deactivate($id);
+        $target = $this->userService->findOrFail($id);
+        $this->assertBranchAccess($request->user(), $target->branch_id);
+
+        $this->userService->deactivate($id, $request->user()->employee_id, $request->ip());
 
         return back()->with('success', 'User deactivated.');
     }

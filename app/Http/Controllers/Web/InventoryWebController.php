@@ -22,6 +22,8 @@ class InventoryWebController extends Controller
 
     public function index(Request $request)
     {
+        $this->authorize('view inventory');
+
         $user      = auth()->user();
         $branchId  = $request->input('branch_id', $this->resolveEffectiveBranchId($user));
         $search   = $request->input('search');

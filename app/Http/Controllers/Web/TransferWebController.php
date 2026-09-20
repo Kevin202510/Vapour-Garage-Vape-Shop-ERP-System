@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Concerns\EnforcesBranchAccess;
 use App\Http\Controllers\Concerns\ResolvesActiveBranch;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
@@ -13,7 +14,7 @@ use Illuminate\Http\Request;
 
 class TransferWebController extends Controller
 {
-    use AuthorizesRequests, ResolvesActiveBranch;
+    use AuthorizesRequests, ResolvesActiveBranch, EnforcesBranchAccess;
 
     public function __construct(
         protected InventoryService $inventoryService,
@@ -22,6 +23,8 @@ class TransferWebController extends Controller
 
     public function index(Request $request)
     {
+        $this->authorize('view stock transfers');
+
         $filters = $request->only(['status', 'branch_id', 'date_from', 'date_to', 'search']);
         $user    = auth()->user();
         $effectiveBranchId = $this->resolveEffectiveBranchId($user);
@@ -65,9 +68,13 @@ class TransferWebController extends Controller
 
     public function show(int $id)
     {
+        $this->authorize('view stock transfers');
+
         $transfer = StockTransfer::with([
             'fromBranch', 'toBranch', 'requestedBy', 'approvedBy', 'items.product',
         ])->findOrFail($id);
+
+        $this->assertBranchAccess(auth()->user(), $transfer->from_branch_id, $transfer->to_branch_id);
 
         return view('pages.transfers.show', compact('transfer'));
     }
@@ -143,7 +150,7 @@ class TransferWebController extends Controller
     {
         $this->authorize('approve stock transfers');
         try {
-            $this->inventoryService->approveTransfer($id, auth()->user()->employee_id ?? auth()->id());
+            $this->inventoryService->approveTransfer($id, auth()->user()->employee_id ?? auth()->id(), auth()->user());
             return back()->with('success', 'Transfer approved and ready for dispatch.');
         } catch (\RuntimeException $e) {
             return back()->withErrors(['transfer' => $e->getMessage()]);
@@ -154,7 +161,7 @@ class TransferWebController extends Controller
     {
         $this->authorize('approve stock transfers');
         try {
-            $this->inventoryService->dispatchTransfer($id);
+            $this->inventoryService->dispatchTransfer($id, auth()->user());
             return back()->with('success', 'Transfer marked as in transit.');
         } catch (\RuntimeException $e) {
             return back()->withErrors(['transfer' => $e->getMessage()]);
@@ -166,7 +173,7 @@ class TransferWebController extends Controller
         $this->authorize('approve stock transfers');
         $validated = $request->validate(['reason' => 'required|string|max:500']);
         try {
-            $this->inventoryService->rejectTransfer($id, $validated['reason']);
+            $this->inventoryService->rejectTransfer($id, $validated['reason'], auth()->user());
             return back()->with('success', 'Transfer rejected. Reserved stock released.');
         } catch (\RuntimeException $e) {
             return back()->withErrors(['transfer' => $e->getMessage()]);
@@ -177,7 +184,7 @@ class TransferWebController extends Controller
     {
         $this->authorize('receive stock transfers');
         try {
-            $this->inventoryService->receiveTransfer($id);
+            $this->inventoryService->receiveTransfer($id, auth()->user());
             return back()->with('success', 'Transfer received. Inventory updated at destination branch.');
         } catch (\RuntimeException $e) {
             return back()->withErrors(['transfer' => $e->getMessage()]);
@@ -188,7 +195,7 @@ class TransferWebController extends Controller
     {
         $this->authorize('create stock transfers');
         try {
-            $this->inventoryService->cancelTransfer($id);
+            $this->inventoryService->cancelTransfer($id, auth()->user());
             return back()->with('success', 'Transfer cancelled. Reserved stock released.');
         } catch (\RuntimeException $e) {
             return back()->withErrors(['transfer' => $e->getMessage()]);

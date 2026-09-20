@@ -2,18 +2,22 @@
 
 namespace App\Services;
 
+use App\Concerns\EnforcesBranchAccess;
 use App\Contracts\Repositories\BranchInventoryRepositoryInterface;
 use App\Contracts\Repositories\StockTransferRepositoryInterface;
 use App\Contracts\Repositories\AuditLogRepositoryInterface;
 use App\Models\BranchInventory;
 use App\Models\Product;
 use App\Models\StockTransfer;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 
 class InventoryService
 {
+    use EnforcesBranchAccess;
+
     public function __construct(
         protected BranchInventoryRepositoryInterface $inventoryRepo,
         protected StockTransferRepositoryInterface   $transferRepo,
@@ -95,28 +99,47 @@ class InventoryService
     }
 
     /**
-     * Approve a pending transfer.
+     * Approve a pending transfer. Either branch endpoint may approve.
      */
-    public function approveTransfer(int $transferId, int $approverId): StockTransfer
+    public function approveTransfer(int $transferId, int $approverId, User $actor): StockTransfer
     {
         $transfer = $this->transferRepo->findById($transferId)
             ?? throw new ModelNotFoundException("Transfer [{$transferId}] not found.");
+
+        $this->assertBranchAccess($actor, $transfer->from_branch_id, $transfer->to_branch_id);
 
         if ($transfer->status !== 'pending') {
             throw new \RuntimeException("Only pending transfers can be approved.");
         }
 
-        return $this->transferRepo->approve($transfer, $approverId);
+        $approved = $this->transferRepo->approve($transfer, $approverId);
+
+        $this->auditRepo->log(
+            tableName:  'stock_transfers',
+            recordId:   $transfer->id,
+            action:     'approve',
+            oldValues:  ['status' => 'pending'],
+            newValues:  ['status' => 'approved'],
+            employeeId: $approverId,
+            branchId:   $transfer->to_branch_id,
+        );
+
+        return $approved;
     }
 
     /**
      * Mark transfer received: deduct from source, add to destination, release reserved.
+     * Only the destination branch may receive. The transfer row is locked for
+     * the duration of the transaction so two concurrent "Receive" requests
+     * can't both pass the status check and double-process the same transfer.
      */
-    public function receiveTransfer(int $transferId): StockTransfer
+    public function receiveTransfer(int $transferId, User $actor): StockTransfer
     {
-        return DB::transaction(function () use ($transferId) {
-            $transfer = $this->transferRepo->findById($transferId, ['fromBranch', 'toBranch', 'items.product'])
+        return DB::transaction(function () use ($transferId, $actor) {
+            $transfer = $this->transferRepo->lockForUpdate($transferId, ['fromBranch', 'toBranch', 'items.product'])
                 ?? throw new ModelNotFoundException("Transfer [{$transferId}] not found.");
+
+            $this->assertBranchAccess($actor, $transfer->to_branch_id);
 
             if (! in_array($transfer->status, ['approved', 'in_transit'])) {
                 throw new \RuntimeException("Transfer must be approved or in-transit before receiving.");
@@ -135,34 +158,62 @@ class InventoryService
                 $item->update(['quantity_sent' => $qty]);
             }
 
-            return $this->transferRepo->complete($transfer);
+            $completed = $this->transferRepo->complete($transfer);
+
+            $this->auditRepo->log(
+                tableName:  'stock_transfers',
+                recordId:   $transfer->id,
+                action:     'receive',
+                oldValues:  ['status' => $transfer->status],
+                newValues:  ['status' => 'received'],
+                employeeId: $actor->employee_id,
+                branchId:   $transfer->to_branch_id,
+            );
+
+            return $completed;
         });
     }
 
     /**
-     * Mark an approved transfer as dispatched (in transit).
+     * Mark an approved transfer as dispatched (in transit). Source branch only.
      */
-    public function dispatchTransfer(int $transferId): StockTransfer
+    public function dispatchTransfer(int $transferId, User $actor): StockTransfer
     {
         $transfer = $this->transferRepo->findById($transferId)
             ?? throw new ModelNotFoundException("Transfer [{$transferId}] not found.");
+
+        $this->assertBranchAccess($actor, $transfer->from_branch_id);
 
         if ($transfer->status !== 'approved') {
             throw new \RuntimeException("Only approved transfers can be marked as dispatched.");
         }
 
         $transfer->update(['status' => 'in_transit']);
+
+        $this->auditRepo->log(
+            tableName:  'stock_transfers',
+            recordId:   $transfer->id,
+            action:     'dispatch',
+            oldValues:  ['status' => 'approved'],
+            newValues:  ['status' => 'in_transit'],
+            employeeId: $actor->employee_id,
+            branchId:   $transfer->from_branch_id,
+        );
+
         return $transfer->fresh(['fromBranch', 'toBranch']);
     }
 
     /**
      * Cancel a pending or approved transfer and release reserved stock.
+     * Either branch endpoint may cancel.
      */
-    public function cancelTransfer(int $transferId): StockTransfer
+    public function cancelTransfer(int $transferId, User $actor): StockTransfer
     {
-        return DB::transaction(function () use ($transferId) {
+        return DB::transaction(function () use ($transferId, $actor) {
             $transfer = $this->transferRepo->findById($transferId, ['items'])
                 ?? throw new ModelNotFoundException("Transfer [{$transferId}] not found.");
+
+            $this->assertBranchAccess($actor, $transfer->from_branch_id, $transfer->to_branch_id);
 
             if (! in_array($transfer->status, ['pending', 'approved'])) {
                 throw new \RuntimeException("Only pending or approved transfers can be cancelled.");
@@ -177,18 +228,31 @@ class InventoryService
             }
 
             $transfer->update(['status' => 'cancelled']);
+
+            $this->auditRepo->log(
+                tableName:  'stock_transfers',
+                recordId:   $transfer->id,
+                action:     'cancel',
+                oldValues:  ['status' => $transfer->status],
+                newValues:  ['status' => 'cancelled'],
+                employeeId: $actor->employee_id,
+                branchId:   $transfer->from_branch_id,
+            );
+
             return $transfer->fresh(['fromBranch', 'toBranch']);
         });
     }
 
     /**
-     * Reject a transfer and release reserved stock.
+     * Reject a transfer and release reserved stock. Either branch endpoint may reject.
      */
-    public function rejectTransfer(int $transferId, string $reason): StockTransfer
+    public function rejectTransfer(int $transferId, string $reason, User $actor): StockTransfer
     {
-        return DB::transaction(function () use ($transferId, $reason) {
+        return DB::transaction(function () use ($transferId, $reason, $actor) {
             $transfer = $this->transferRepo->findById($transferId, ['items'])
                 ?? throw new ModelNotFoundException("Transfer [{$transferId}] not found.");
+
+            $this->assertBranchAccess($actor, $transfer->from_branch_id, $transfer->to_branch_id);
 
             if ($transfer->status !== 'pending') {
                 throw new \RuntimeException("Only pending transfers can be rejected.");
@@ -202,7 +266,19 @@ class InventoryService
                 );
             }
 
-            return $this->transferRepo->reject($transfer, $reason);
+            $rejected = $this->transferRepo->reject($transfer, $reason);
+
+            $this->auditRepo->log(
+                tableName:  'stock_transfers',
+                recordId:   $transfer->id,
+                action:     'reject',
+                oldValues:  ['status' => 'pending'],
+                newValues:  ['status' => 'rejected', 'reason' => $reason],
+                employeeId: $actor->employee_id,
+                branchId:   $transfer->from_branch_id,
+            );
+
+            return $rejected;
         });
     }
 }

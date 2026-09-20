@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Concerns\EnforcesBranchAccess;
 use App\Http\Controllers\Concerns\ResolvesActiveBranch;
 use App\Http\Controllers\Controller;
 use App\Services\EmployeeService;
@@ -13,7 +14,7 @@ use Illuminate\Support\Facades\DB;
 
 class EmployeeWebController extends Controller
 {
-    use AuthorizesRequests, ResolvesActiveBranch;
+    use AuthorizesRequests, ResolvesActiveBranch, EnforcesBranchAccess;
     public function __construct(
         protected EmployeeService   $employeeService,
         protected BranchService     $branchService,
@@ -154,13 +155,15 @@ class EmployeeWebController extends Controller
     {
         $this->authorize('view employees');
         $employee = $this->employeeService->findOrFail($id);
+        $this->assertBranchAccess(auth()->user(), $employee->branch_id);
         return view('pages.employees.show', compact('employee'));
     }
 
     public function edit(int $id)
     {
         $this->authorize('edit employees');
-        $employee    = $this->employeeService->findOrFail($id);
+        $employee = $this->employeeService->findOrFail($id);
+        $this->assertBranchAccess(auth()->user(), $employee->branch_id);
         $branches    = $this->branchService->allActive();
         $departments = $this->departmentService->allWithCount();
         return view('pages.employees.form', compact('employee', 'branches', 'departments'));
@@ -184,14 +187,14 @@ class EmployeeWebController extends Controller
         ]);
         $validated['is_active'] = $request->boolean('is_active');
 
-        $this->employeeService->update($id, $validated, auth()->user()->employee_id, $request->ip());
+        $this->employeeService->update($id, $validated, auth()->user()->employee_id, $request->ip(), auth()->user());
         return redirect()->route('employees.index')->with('success', 'Employee updated.');
     }
 
     public function destroy(Request $request, int $id)
     {
         $this->authorize('delete employees');
-        $this->employeeService->delete($id, auth()->user()->employee_id, $request->ip());
+        $this->employeeService->delete($id, auth()->user()->employee_id, $request->ip(), auth()->user());
         return redirect()->route('employees.index')->with('success', 'Employee removed.');
     }
 }

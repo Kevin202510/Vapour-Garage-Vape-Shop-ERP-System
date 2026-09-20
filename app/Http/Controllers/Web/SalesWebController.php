@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Concerns\EnforcesBranchAccess;
 use App\Http\Controllers\Concerns\ResolvesActiveBranch;
 use App\Http\Controllers\Controller;
 use App\Services\SalesService;
@@ -12,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 
 class SalesWebController extends Controller
 {
-    use AuthorizesRequests, ResolvesActiveBranch;
+    use AuthorizesRequests, ResolvesActiveBranch, EnforcesBranchAccess;
     public function __construct(
         protected SalesService  $salesService,
         protected BranchService $branchService,
@@ -20,6 +21,8 @@ class SalesWebController extends Controller
 
     public function index(Request $request)
     {
+        $this->authorize('view sales');
+
         $filters = $request->only(['branch_id', 'cashier_id', 'status', 'payment_method', 'date_from', 'date_to', 'search']);
         $user    = auth()->user();
 
@@ -65,7 +68,11 @@ class SalesWebController extends Controller
 
     public function show(int $id)
     {
+        $this->authorize('view sales');
+
         $transaction = $this->salesService->findOrFail($id);
+        $this->assertBranchAccess(auth()->user(), $transaction->branch_id);
+
         return view('pages.sales.show', compact('transaction'));
     }
 

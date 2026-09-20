@@ -6,11 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Services\ProductCategoryService;
 use App\Services\BranchService;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class PosWebController extends Controller
 {
+    use AuthorizesRequests;
+
     public function __construct(
         protected ProductCategoryService $categoryService,
         protected BranchService          $branchService,
@@ -18,6 +21,8 @@ class PosWebController extends Controller
 
     public function index(Request $request)
     {
+        $this->authorize('create sales');
+
         $user     = auth()->user();
         $branches = $user->isSuperAdmin() ? $this->branchService->allActive() : collect();
 

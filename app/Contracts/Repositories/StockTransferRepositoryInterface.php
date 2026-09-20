@@ -10,6 +10,14 @@ interface StockTransferRepositoryInterface extends BaseRepositoryInterface
 {
     public function findById(int $id, array $relations = []): ?StockTransfer;
 
+    /**
+     * Same as findById(), but locks the transfer row (SELECT ... FOR UPDATE)
+     * for the duration of the enclosing transaction — used before mutating
+     * status-dependent flows (receive/approve/etc.) to prevent two concurrent
+     * requests from both passing the status check and double-processing.
+     */
+    public function lockForUpdate(int $id, array $relations = []): ?StockTransfer;
+
     public function findByTransferNumber(string $number): ?StockTransfer;
 
     public function getByBranch(int $branchId, string $direction = 'both'): Collection;

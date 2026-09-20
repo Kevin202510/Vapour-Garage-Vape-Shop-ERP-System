@@ -87,6 +87,8 @@ class ProductWebController extends Controller
 
     public function store(Request $request)
     {
+        $this->authorize('create products');
+
         $validated = $request->validate([
             'sku'                       => 'required|string|max:50|unique:products,sku',
             'name'                      => 'required|string|max:255',
@@ -146,6 +148,8 @@ class ProductWebController extends Controller
 
     public function update(Request $request, int $id)
     {
+        $this->authorize('edit products');
+
         $product   = $this->productService->findOrFail($id);
         $validated = $request->validate([
             'sku'                       => "sometimes|string|max:50|unique:products,sku,{$id}",

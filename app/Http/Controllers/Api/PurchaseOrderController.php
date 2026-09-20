@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Concerns\EnforcesBranchAccess;
 use App\Http\Controllers\Controller;
 use App\Services\PurchaseOrderService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -10,14 +11,14 @@ use Illuminate\Http\Request;
 
 class PurchaseOrderController extends Controller
 {
-    use AuthorizesRequests;
+    use AuthorizesRequests, EnforcesBranchAccess;
     public function __construct(protected PurchaseOrderService $service) {}
 
     public function index(Request $request): JsonResponse
     {
         $this->authorize('view purchase orders');
         $filters = $request->only(['branch_id','supplier_id','status','date_from','date_to','search','with_trashed','sort_by','sort_order']);
-        if ($request->user()->isBranchManager() && ! $request->user()->isSuperAdmin()) {
+        if (! $request->user()->isSuperAdmin()) {
             $filters['branch_id'] = $request->user()->branch_id;
         }
         return response()->json($this->service->list($filters, $request->integer('per_page', 15)));
@@ -41,16 +42,18 @@ class PurchaseOrderController extends Controller
         return response()->json(['message' => 'Purchase order created.', 'data' => $this->service->create($validated)], 201);
     }
 
-    public function show(int $id): JsonResponse
+    public function show(Request $request, int $id): JsonResponse
     {
         $this->authorize('view purchase orders');
-        return response()->json(['data' => $this->service->findOrFail($id)]);
+        $po = $this->service->findOrFail($id);
+        $this->assertBranchAccess($request->user(), $po->branch_id);
+        return response()->json(['data' => $po]);
     }
 
     public function approve(Request $request, int $id): JsonResponse
     {
         $this->authorize('approve purchase orders');
-        $po = $this->service->approve($id, $request->user()->employee_id ?? $request->user()->id);
+        $po = $this->service->approve($id, $request->user()->employee_id ?? $request->user()->id, $request->user());
         return response()->json(['message' => 'Purchase order approved.', 'data' => $po]);
     }
 
@@ -62,21 +65,21 @@ class PurchaseOrderController extends Controller
             'items.*.product_id'           => ['required','integer','exists:products,id'],
             'items.*.quantity_received'    => ['required','integer','min:0'],
         ]);
-        $po = $this->service->receive($id, $validated['items']);
+        $po = $this->service->receive($id, $validated['items'], $request->user());
         return response()->json(['message' => 'Items received. Inventory updated.', 'data' => $po]);
     }
 
-    public function cancel(int $id): JsonResponse
+    public function cancel(Request $request, int $id): JsonResponse
     {
         $this->authorize('cancel purchase orders');
-        $po = $this->service->cancel($id);
+        $po = $this->service->cancel($id, $request->user());
         return response()->json(['message' => 'Purchase order cancelled.', 'data' => $po]);
     }
 
-    public function destroy(int $id): JsonResponse
+    public function destroy(Request $request, int $id): JsonResponse
     {
         $this->authorize('cancel purchase orders');
-        $this->service->delete($id);
+        $this->service->delete($id, $request->user());
         return response()->json(['message' => 'Purchase order deleted.']);
     }
 }

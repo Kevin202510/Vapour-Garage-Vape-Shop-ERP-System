@@ -41,7 +41,7 @@ PROMPT;
         // /chatbot route — no need to duplicate it here.
 
         try {
-            $client = OpenAI::client(config('services.openai.key', env('OPENAI_API_KEY')));
+            $client = OpenAI::client(config('services.openai.key'));
 
             $response = $client->chat()->create([
                 'model'      => 'gpt-4o-mini',   // correct model name
