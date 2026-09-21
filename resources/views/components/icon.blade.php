@@ -61,6 +61,9 @@
         @case('key')
             <circle cx="7.5" cy="15.5" r="5.5"/><path d="M21 2l-9.6 9.6M15.5 7.5 19 11l3-3-3.5-3.5"/>
             @break
+        @case('book')
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            @break
         @default
             <circle cx="12" cy="12" r="10"/>
     @endswitch

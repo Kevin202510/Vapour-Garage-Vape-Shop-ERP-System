@@ -5,6 +5,7 @@ use App\Http\Controllers\ChatBotController;
 use App\Http\Controllers\Web\BranchWebController;
 use App\Http\Controllers\Web\CustomerWebController;
 use App\Http\Controllers\Web\DashboardController;
+use App\Http\Controllers\Web\DocumentationWebController;
 use App\Http\Controllers\Web\EmployeeWebController;
 use App\Http\Controllers\Web\HomeController;
 use App\Http\Controllers\Web\InventoryWebController;
@@ -78,6 +79,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // My Profile (self-service, no permission gate — always the caller's own data)
     Route::get('/my-profile', [ProfileWebController::class, 'show'])->name('profile.mine');
+
+    // Documentation (static reference, no permission gate — available to every authenticated user)
+    Route::get('/documentation', [DocumentationWebController::class, 'index'])->name('documentation.index');
 
     // Point of Sale
     Route::get('/pos', [PosWebController::class, 'index'])->name('pos.index');

@@ -87,6 +87,9 @@
             <x-nav-item route="permissions.index" icon="key"    label="Permissions" />
         @endcan
 
+        <x-nav-section label="Resources" />
+        <x-nav-item route="documentation.index" icon="book" label="Documentation" />
+
     </nav>
 
     {{-- User card --}}

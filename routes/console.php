@@ -43,9 +43,9 @@ Schedule::command('sales:close-period yearly')
 // Ensure `php artisan schedule:run` is called every minute via cron:
 //   * * * * * php /path/to/artisan schedule:run >> /dev/null 2>&1
 
-// Daily: sent at 6:00 AM every day for the previous day's sales
+// Daily: generated automatically at 12:00 AM (midnight) for the previous day's sales
 Schedule::command('sales:send-report daily')
-    ->dailyAt('06:00')
+    ->dailyAt('00:00')
     ->appendOutputTo(storage_path('logs/sales-reports.log'));
 
 // Weekly: sent every Monday at 7:00 AM for the previous week (Mon–Sun)
@@ -62,3 +62,30 @@ Schedule::command('sales:send-report monthly')
 Schedule::command('sales:send-report yearly')
     ->yearlyOn(1, 1, '08:00')
     ->appendOutputTo(storage_path('logs/sales-reports.log'));
+
+// ── Operational cleanup ──────────────────────────────────────────────────────
+
+// Forgotten clock-outs: force-close any shift left open from a previous day
+// so payroll generation (which reads hours_worked) isn't computed against an
+// open-ended shift.
+Schedule::command('attendance:auto-clockout')
+    ->dailyAt('00:30')
+    ->withoutOverlapping()
+    ->appendOutputTo(storage_path('logs/attendance-auto-clockout.log'))
+    ->onFailure(fn () => \Illuminate\Support\Facades\Log::error('attendance:auto-clockout failed — see storage/logs/attendance-auto-clockout.log'));
+
+// Abandoned online orders: cancel storefront orders staff never confirmed.
+// A pending order never touches inventory (stock is only decremented on
+// fulfillment), so this is a pure status change — safe to automate.
+Schedule::command('orders:cancel-stale --hours=48')
+    ->hourly()
+    ->withoutOverlapping()
+    ->appendOutputTo(storage_path('logs/orders-cancel-stale.log'))
+    ->onFailure(fn () => \Illuminate\Support\Facades\Log::error('orders:cancel-stale failed — see storage/logs/orders-cancel-stale.log'));
+
+// Queue/token housekeeping — built-in Artisan commands, no custom code needed.
+// Failed jobs older than 7 days are pruned; Sanctum tokens past their
+// expiration are pruned (a no-op today since config/sanctum.php has no
+// expiration set, but safe to leave scheduled if that's configured later).
+Schedule::command('queue:prune-failed --hours=168')->daily();
+Schedule::command('sanctum:prune-expired --hours=24')->daily();

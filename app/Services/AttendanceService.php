@@ -3,11 +3,13 @@
 namespace App\Services;
 
 use App\Contracts\Repositories\AttendanceRepositoryInterface;
+use App\Contracts\Repositories\AuditLogRepositoryInterface;
 use App\Contracts\Repositories\EmployeeRepositoryInterface;
 use App\Models\Attendance;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class AttendanceService
@@ -15,6 +17,7 @@ class AttendanceService
     public function __construct(
         protected AttendanceRepositoryInterface $repo,
         protected EmployeeRepositoryInterface   $employeeRepo,
+        protected AuditLogRepositoryInterface   $auditRepo,
     ) {}
 
     public function list(array $filters = [], int $perPage = 15): LengthAwarePaginator
@@ -94,5 +97,40 @@ class AttendanceService
     public function getMonthlySummary(int $employeeId, int $year, int $month): array
     {
         return $this->repo->getMonthlySummary($employeeId, $year, $month);
+    }
+
+    /**
+     * Force-close any shift still open from before today — an employee who
+     * forgot to clock out. Anchors hours worked to a fixed end-of-shift time
+     * on the shift's own work_date, not to "now".
+     *
+     * @return array{closed: int, employee_names: array<string>}
+     */
+    public function autoCloseForgottenShifts(string $defaultTimeOut = '23:59:59'): array
+    {
+        $open  = $this->repo->getOpenRecordsBefore(now()->toDateString());
+        $names = [];
+
+        DB::transaction(function () use ($open, $defaultTimeOut, &$names) {
+            foreach ($open as $record) {
+                $closed = $this->repo->autoCloseRecord($record, $defaultTimeOut);
+
+                $this->auditRepo->log(
+                    tableName: 'attendances',
+                    recordId:  $record->id,
+                    action:    'update',
+                    oldValues: ['time_out' => null],
+                    newValues: ['time_out' => $defaultTimeOut, 'hours_worked' => (string) $closed->hours_worked],
+                    branchId:  $record->branch_id,
+                );
+
+                $names[] = $record->employee?->full_name ?? "Employee #{$record->employee_id}";
+            }
+        });
+
+        return [
+            'closed'         => count($names),
+            'employee_names' => $names,
+        ];
     }
 }

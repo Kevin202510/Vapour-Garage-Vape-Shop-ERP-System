@@ -80,6 +80,15 @@ class AttendanceRepository extends BaseRepository implements AttendanceRepositor
         ]);
     }
 
+    public function getOpenRecordsBefore(string $date): Collection
+    {
+        return $this->model
+            ->with(['employee', 'branch'])
+            ->whereNull('time_out')
+            ->where('work_date', '<', $date)
+            ->get();
+    }
+
     public function clockOut(Attendance $attendance): Attendance
     {
         $timeOut     = now();
@@ -95,6 +104,24 @@ class AttendanceRepository extends BaseRepository implements AttendanceRepositor
             'time_out'       => $timeOut->format('H:i:s'),
             'hours_worked'   => $regularHrs,
             'overtime_hours' => $overtime,
+        ]);
+
+        return $attendance->fresh(['employee', 'branch']);
+    }
+
+    public function autoCloseRecord(Attendance $attendance, string $defaultTimeOut = '23:59:59'): Attendance
+    {
+        $timeIn      = \Carbon\Carbon::parse("{$attendance->work_date->toDateString()} {$attendance->time_in}");
+        $timeOut     = \Carbon\Carbon::parse("{$attendance->work_date->toDateString()} {$defaultTimeOut}");
+        $hoursWorked = round($timeIn->diffInMinutes($timeOut) / 60, 2);
+        $regularHrs  = min(8, $hoursWorked);
+        $overtime    = max(0, round($hoursWorked - 8, 2));
+
+        $attendance->update([
+            'time_out'       => $defaultTimeOut,
+            'hours_worked'   => $regularHrs,
+            'overtime_hours' => $overtime,
+            'remarks'        => trim(($attendance->remarks ? $attendance->remarks . ' — ' : '') . 'Auto clocked-out by system (forgotten clock-out).'),
         ]);
 
         return $attendance->fresh(['employee', 'branch']);
