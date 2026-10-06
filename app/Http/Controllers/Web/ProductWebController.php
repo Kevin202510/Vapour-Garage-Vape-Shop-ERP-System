@@ -9,7 +9,9 @@ use App\Services\SupplierService;
 use App\Contracts\Repositories\BranchInventoryRepositoryInterface;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class ProductWebController extends Controller
 {
@@ -83,6 +85,111 @@ class ProductWebController extends Controller
         $categories = $this->categoryService->all();
         $suppliers  = $this->supplierService->allActive();
         return view('pages.products.form', compact('categories', 'suppliers'));
+    }
+
+    public function importForm()
+    {
+        $this->authorize('create products');
+
+        return view('pages.products.import');
+    }
+
+    public function importTemplate()
+    {
+        $this->authorize('create products');
+
+        $filename = 'products-import-template.csv';
+
+        return response()->streamDownload(function () {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ProductService::importTemplateHeaders());
+            fputcsv($handle, ProductService::importTemplateExampleRow());
+            fclose($handle);
+        }, $filename, ['Content-Type' => 'text/csv']);
+    }
+
+    public function import(Request $request)
+    {
+        $this->authorize('create products');
+
+        $request->validate([
+            'file' => 'required|file|mimes:csv,txt,xlsx,xls|max:5120',
+        ]);
+
+        try {
+            $rows = $this->parseImportFile($request->file('file'));
+        } catch (\Throwable $e) {
+            return back()->withErrors(['file' => 'Could not read that file: ' . $e->getMessage()]);
+        }
+
+        if (empty($rows)) {
+            return back()->withErrors(['file' => 'The file has no data rows to import.']);
+        }
+
+        $result = $this->productService->import($rows, auth()->user()->employee_id, $request->ip());
+
+        return redirect()->route('products.import.form')->with('importResult', $result);
+    }
+
+    /**
+     * Parse an uploaded CSV or Excel file into rows keyed by canonical
+     * product field name (see ProductService::normalizeImportHeader()).
+     * Blank rows are skipped; unrecognised columns are ignored.
+     */
+    private function parseImportFile(UploadedFile $file): array
+    {
+        $extension = strtolower($file->getClientOriginalExtension());
+
+        $table = in_array($extension, ['xlsx', 'xls'], true)
+            ? $this->readSpreadsheet($file)
+            : $this->readCsv($file);
+
+        if (empty($table)) {
+            return [];
+        }
+
+        $headerRow = array_shift($table);
+        $fields    = array_map(
+            fn ($header) => ProductService::normalizeImportHeader((string) $header),
+            $headerRow
+        );
+
+        $rows = [];
+        foreach ($table as $line) {
+            if (count(array_filter($line, fn ($v) => trim((string) $v) !== '')) === 0) {
+                continue; // fully blank row
+            }
+
+            $row = [];
+            foreach ($fields as $i => $field) {
+                if ($field !== null) {
+                    $row[$field] = $line[$i] ?? null;
+                }
+            }
+            $rows[] = $row;
+        }
+
+        return $rows;
+    }
+
+    private function readCsv(UploadedFile $file): array
+    {
+        $handle = fopen($file->getRealPath(), 'r');
+        $rows   = [];
+        while (($line = fgetcsv($handle)) !== false) {
+            $rows[] = $line;
+        }
+        fclose($handle);
+
+        return $rows;
+    }
+
+    private function readSpreadsheet(UploadedFile $file): array
+    {
+        $spreadsheet = IOFactory::load($file->getRealPath());
+        $sheet       = $spreadsheet->getActiveSheet();
+
+        return $sheet->toArray(null, true, true, false);
     }
 
     public function store(Request $request)

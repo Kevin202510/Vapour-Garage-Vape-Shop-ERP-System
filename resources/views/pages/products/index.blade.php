@@ -10,6 +10,11 @@
                 <x-icon name="download" class="w-3 h-3" /> Export CSV
             </x-btn>
             @endcan
+            @can('create products')
+            <x-btn :href="route('products.import.form')" variant="ghost" size="sm">
+                <x-icon name="upload" class="w-3 h-3" /> Import
+            </x-btn>
+            @endcan
             @if(!$isArchived)
                 @can('create products')
                 <x-btn variant="primary" size="sm" :href="route('products.create')">

@@ -87,9 +87,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/pos', [PosWebController::class, 'index'])->name('pos.index');
 
     // Products
-    Route::get('products/export',        [ProductWebController::class, 'export'])->name('products.export');
-    Route::post('products/{id}/archive', [ProductWebController::class, 'archive'])->name('products.archive');
-    Route::post('products/{id}/restore', [ProductWebController::class, 'restore'])->name('products.restore');
+    Route::get('products/export',          [ProductWebController::class, 'export'])->name('products.export');
+    Route::get('products/import',          [ProductWebController::class, 'importForm'])->name('products.import.form');
+    Route::get('products/import/template', [ProductWebController::class, 'importTemplate'])->name('products.import.template');
+    Route::post('products/import',         [ProductWebController::class, 'import'])->name('products.import');
+    Route::post('products/{id}/archive',   [ProductWebController::class, 'archive'])->name('products.archive');
+    Route::post('products/{id}/restore',   [ProductWebController::class, 'restore'])->name('products.restore');
     Route::resource('products', ProductWebController::class);
 
     // Inventory
