@@ -14,7 +14,7 @@ class EmployeeSeeder extends Seeder
 {
     public function run(): void
     {
-        $branches  = Branch::all();
+        $branches  = Branch::where('is_active', true)->get();
         $deptSales = Department::where('name', 'Sales')->first();
         $deptMgmt  = Department::where('name', 'Management')->first();
         $deptOps   = Department::where('name', 'Operations')->first();

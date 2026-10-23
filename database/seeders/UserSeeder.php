@@ -14,7 +14,7 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        $branches = Branch::all();
+        $branches = Branch::where('is_active', true)->get();
 
         // ── Super Admin (no branch, no employee) ──────────────────────────────
         $superAdmin = User::updateOrCreate(
