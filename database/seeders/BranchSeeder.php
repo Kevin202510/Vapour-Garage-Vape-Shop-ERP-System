@@ -15,7 +15,7 @@ class BranchSeeder extends Seeder
                 'address'        => 'Padilla St., in front of New Public Market',
                 'city'           => 'Peñaranda Nueva Ecija',
                 'contact_number' => '09393394394',
-                'is_active'      => true,
+                'is_active'      => false,
             ],
             [
                 'name'           => 'Vapour Garage - Main (General Tinio)',
@@ -29,14 +29,14 @@ class BranchSeeder extends Seeder
                 'address'        => 'Poblacion, 2nd Floor beside Pot-Pot Pandesal',
                 'city'           => 'San Leonardo Nueva Ecija',
                 'contact_number' => '09393394394',
-                'is_active'      => true,
+                'is_active'      => false,
             ],
             [
                 'name'           => 'Vapour Garage - Fort Magsaysay',
                 'address'        => 'Purok 5, Mapalad, Sta. Rosa, beside Lho-Rhen Hot Malunggay Pandesal',
                 'city'           => 'Fort Magsaysay Nueva Ecija',
                 'contact_number' => '09393394394',
-                'is_active'      => true,
+                'is_active'      => false,
             ],
         ];
 
